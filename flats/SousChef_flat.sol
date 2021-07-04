@@ -441,22 +441,18 @@ contract SousChef is Ownable {
     address[] public addressList;
 
     // The timestamp (unix second) when mining starts.
-    uint256 public startTime;
+    uint256 public startTime = block.timestamp;
     // The timestamp when mining ends.
-    uint256 public bonusEndTime;
+    uint256 public bonusEndTime = block.timestamp + 3650 days;
+
 
     event Deposit(address indexed user, uint256 amount);
     event Withdraw(address indexed user, uint256 amount);
-    event EmergencyWithdraw(address indexed user, uint256 amount);
 
     constructor(
-        IERC20 _seance,
-        uint256 _startTime,
-        uint256 _endTime
+        IERC20 _seance
     ) {
         seance = _seance;
-        startTime = _startTime;
-        bonusEndTime = _endTime;
 
         // staking pool
         poolInfo = PoolInfo({

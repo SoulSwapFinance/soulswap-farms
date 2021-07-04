@@ -56,9 +56,9 @@ contract MasterChef is Ownable {
     // The SEANCE TOKEN!
     SeanceCircle public seance;
     // Team address, which recieves 10% of SOUL per second
-    address public team;
+    address public team = msg.sender;
     // Treasury address, which recieves 10% of SOUL per second
-    address public treasury;
+    address public treasury = msg.sender;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
 
@@ -74,7 +74,7 @@ contract MasterChef is Ownable {
     // Bonus muliplier for early soul summoners.
     uint256 public BONUS_MULTIPLIER = 1;
     // The UNIX timestamp when SOUL mining starts.
-    uint256 public startTime;
+    uint256 public startTime = block.timestamp;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
 
@@ -90,16 +90,10 @@ contract MasterChef is Ownable {
 
     constructor(
         SoulToken _soul,
-        SeanceCircle _seance,
-        address _team,
-        address _treasury,
-        uint256 _startTime
+        SeanceCircle _seance
     ) {
         soul = _soul;
         seance = _seance;
-        team = _team;
-        treasury = _treasury;
-        startTime = _startTime;
 
         // staking pool
         poolInfo.push(PoolInfo({

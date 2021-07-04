@@ -34,8 +34,8 @@ contract SoulVault is Ownable, Pausable {
 
     uint256 public totalShares;
     uint256 public lastHarvestedTime;
-    address public admin;
-    address public treasury;
+    address public admin = msg.sender;
+    address public treasury = msg.sender;
 
     uint256 public constant MAX_PERFORMANCE_FEE = 500; // 5%
     uint256 public constant MAX_CALL_FEE = 100; // 1%
@@ -58,21 +58,15 @@ contract SoulVault is Ownable, Pausable {
      * @param _token: Soul token contract
      * @param _receiptToken: Seance token contract
      * @param _masterchef: MasterChef contract
-     * @param _admin: address of the admin
-     * @param _treasury: address of the treasury (collects fees)
      */
     constructor(
         IERC20 _token,
         IERC20 _receiptToken,
-        IMasterChef _masterchef,
-        address _admin,
-        address _treasury
+        IMasterChef _masterchef
     ) {
         token = _token;
         receiptToken = _receiptToken;
         masterchef = _masterchef;
-        admin = _admin;
-        treasury = _treasury;
 
         // Infinite approve
         IERC20(_token).approve(address(_masterchef), type(uint256).max);
