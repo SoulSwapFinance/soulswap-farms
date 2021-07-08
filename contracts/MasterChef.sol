@@ -43,8 +43,8 @@ contract MasterChef is Ownable {
 
     // Info of each pool.
     struct PoolInfo {
-        IERC20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. SOULs to distribute per second.
+        IERC20 lpToken;          // Address of LP token contract.
+        uint256 allocPoint;      // How many allocation points assigned to this pool. SOULs to distribute per second.
         uint256 lastRewardTime;  // Most recent UNIX timestamp that SOULs distribution occurs.
         uint256 accSoulPerShare; // Accumulated SOULs per share, times 1e12. See below.
     }
@@ -55,10 +55,10 @@ contract MasterChef is Ownable {
     SoulToken public soul;
     // The SEANCE TOKEN!
     SeanceCircle public seance;
-    // Team address, which recieves 10% of SOUL per second
+    // Team address, which recieves 12.5% of SOUL rewards.
     address public team = msg.sender;
-    // Treasury address, which recieves 10% of SOUL per second
-    address public treasury = msg.sender;
+    // DAO address, which recieves 12.5% of SOUL rewards.
+    address public dao = msg.sender;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
 
@@ -104,10 +104,9 @@ contract MasterChef is Ownable {
         }));
 
         totalAllocPoint = 1000;
-
     }
 
-    function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
+    function updateMultiplier(uint256 multiplierNumber) external onlyOwner {
         BONUS_MULTIPLIER = multiplierNumber;
     }
 
@@ -116,7 +115,7 @@ contract MasterChef is Ownable {
         soulPerSecond = dailySoul / 86400;
     }
 
-    function updateChains(uint256 _chains) public onlyOwner {
+    function updateChains(uint256 _chains) external onlyOwner {
         require(_chains != 0, 'chain cannot be zero');
         chains = _chains;
         updateRewards();
@@ -127,11 +126,9 @@ contract MasterChef is Ownable {
     }
 
     // ADD -- NEW LP TOKEN POOL -- OWNER
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public onlyOwner {
-        
-        if (_withUpdate) {
-            massUpdatePools();
-        }
+    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) external {
+        require(msg.sender == owner() || msg.sender == dao, 'add: must be owner or dao');
+        if (_withUpdate) massUpdatePools();
         uint256 lastRewardTime = block.timestamp > startTime ? block.timestamp : startTime;
         totalAllocPoint = totalAllocPoint + _allocPoint;
         poolInfo.push(PoolInfo({
@@ -144,10 +141,9 @@ contract MasterChef is Ownable {
     }
 
     // UPDATE -- ALLOCATION POINT -- OWNER
-    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
-        if (_withUpdate) {
-            massUpdatePools();
-        }
+    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external {
+        require(msg.sender == owner() || msg.sender == dao, 'set: must be owner or dao');
+        if (_withUpdate) massUpdatePools();
         uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         if (prevAllocPoint != _allocPoint) {
@@ -171,19 +167,19 @@ contract MasterChef is Ownable {
     }
 
     // SET -- MIGRATOR CONTRACT -- OWNER
-    function setMigrator(IMigratorChef _migrator) public onlyOwner {
+    function setMigrator(IMigratorChef _migrator) external onlyOwner {
         migrator = _migrator;
     }
 
     // MIGRATE -- LP TOKENS TO ANOTHER CONTRACT -- MIGRATOR
-    function migrate(uint256 _pid) public {
-        require(address(migrator) != address(0), "migrate: no migrator");
+    function migrate(uint256 _pid) external {
+        require(address(migrator) != address(0), "migrate: no migrator set");
         PoolInfo storage pool = poolInfo[_pid];
         IERC20 lpToken = pool.lpToken;
         uint256 bal = lpToken.balanceOf(address(this));
         lpToken.approve(address(migrator), bal);
         IERC20 newLpToken = migrator.migrate(lpToken);
-        require(bal == newLpToken.balanceOf(address(this)), "migrate: bad");
+        require(bal == newLpToken.balanceOf(address(this)), "migrate: insufficient balance");
         pool.lpToken = newLpToken;
     }
 
@@ -230,7 +226,7 @@ contract MasterChef is Ownable {
             (multiplier * soulPerSecond * pool.allocPoint) / totalAllocPoint;
 
         soul.mint(team, soulReward / 8); // 12.5% SOUL per second to team
-        soul.mint(treasury, soulReward / 8); // 12.5% SOUL per second to treasury
+        soul.mint(dao, soulReward / 8); // 12.5% SOUL per second to dao
         
         soul.mint(address(seance), soulReward);
 
@@ -240,7 +236,7 @@ contract MasterChef is Ownable {
     }
 
     // DEPOSIT -- LP TOKENS -- LP OWNERS
-    function deposit(uint256 _pid, uint256 _amount) public {
+    function deposit(uint256 _pid, uint256 _amount) external {
 
         require (_pid != 0, 'deposit SOUL by staking');
 
@@ -263,7 +259,7 @@ contract MasterChef is Ownable {
     }
 
     // WITHDRAW -- LP TOKENS -- STAKERS
-    function withdraw(uint256 _pid, uint256 _amount) public {
+    function withdraw(uint256 _pid, uint256 _amount) external {
 
         require (_pid != 0, 'withdraw SOUL by unstaking');
         PoolInfo storage pool = poolInfo[_pid];
@@ -284,7 +280,7 @@ contract MasterChef is Ownable {
     }
 
     // STAKE -- SOUL TO MASTERCHEF -- PUBLIC SOUL HOLDERS
-    function enterStaking(uint256 _amount) public {
+    function enterStaking(uint256 _amount) external {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         updatePool(0);
@@ -305,7 +301,7 @@ contract MasterChef is Ownable {
     }
 
     // WITHDRAW -- SOUL tokens from STAKING.
-    function leaveStaking(uint256 _amount) public {
+    function leaveStaking(uint256 _amount) external {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
@@ -330,14 +326,14 @@ contract MasterChef is Ownable {
     }
 
     // UPDATE -- TREASURY ADDRESS -- TREASURY || TEAM
-    function newTreasury(address _treasury) public {
-        require(msg.sender == treasury || msg.sender == team, "treasury: invalid permissions");
-        treasury = _treasury;
+    function newDAO(address _dao) external {
+        require(msg.sender == dao || msg.sender == owner(), "newDAO: must be dao or owner");
+        dao = _dao;
     }
 
     // UPDATE -- ADMIN ADDRESS -- ADMIN
-    function newTeam(address _team) public {
-        require(msg.sender == team, "team: le who are you?");
+    function newTeam(address _team) external {
+        require(msg.sender == team || msg.sender == owner(), "newTeam: must be team or owner");
         team = _team;
     }
 }
