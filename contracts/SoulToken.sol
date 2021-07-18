@@ -6,7 +6,7 @@ import "./libs/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // SoulToken with Governance.
-contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
+contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
     function mint(address _to, uint256 _amount) public onlyMinter {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
@@ -241,8 +241,9 @@ contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
     }
 
     function addMinter(address _recipient) external onlyOwner {
-        require(!isMinter(_recipient), 
-        'addToWhitelist: already added to whitelist');
+        require(
+            !isMinter(_recipient), 
+            'addToWhitelist: already added to whitelist');
         minters[_recipient] = true;
 
         emit MinterAdded(_recipient);

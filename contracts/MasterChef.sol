@@ -3,18 +3,9 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
-
-import "./SoulToken.sol";
-import "./SeanceCircle.sol";
-
-interface IMigratorChef {
-    // Perform LP token migration from legacy swap.
-    // Take the current LP token address and return the new LP token address.
-    // Migrator should have full access to the caller's LP token.
-    // Return the new LP token address.
-
-    function migrate(IERC20 token) external returns (IERC20);
-}
+import './SoulToken.sol';
+import './SeanceCircle.sol';
+import './libs/IMigratorChef.sol';
 
 // MasterChef is the master of Soul. She can make Soul and she is a fair lady.
 
@@ -26,8 +17,8 @@ contract MasterChef is Ownable {
 
     // Info of each user.
     struct Users {
-        uint256 amount;     // How many LP tokens the user has provided.
-        uint256 rewardDebt; // Reward debt. See explanation below.
+        uint amount;     // How many LP tokens the user has provided.
+        uint rewardDebt; // Reward debt. See explanation below.
         //
         // We do some fancy math here. Basically, any point in time, the amount of SOUL
         // entitled to a user but is pending to be distributed is:
@@ -44,106 +35,137 @@ contract MasterChef is Ownable {
     // Info of each pool.
     struct Pools {
         IERC20 lpToken;          // Address of LP token contract.
-        uint256 allocPoint;      // How many allocation points assigned to this pool. SOULs to distribute per second.
-        uint256 lastRewardTime;  // Most recent UNIX timestamp that SOULs distribution occurs.
-        uint256 accSoulPerShare; // Accumulated SOULs per share, times 1e12. See below.
-    }
-
-    // Info of each chain.
-    struct Chains {
-        uint256 chainId;          // chainId
-        uint256 allocPoint;      // How many allocation points assigned to this chain. SOULs to distribute per second.
+        uint allocPoint;      // How many allocation points assigned to this pool. SOULs to distribute per second.
+        uint lastRewardTime;  // Most recent UNIX timestamp that SOULs distribution occurs.
+        uint accSoulPerShare; // Accumulated SOULs per share, times 1e12. See below.
     }
 
     //** ADDRESSES **//
 
-    // The SOUL TOKEN!
-    SoulToken public soul;
-    // The SEANCE TOKEN!
-    SeanceCircle public seance;
-    // Team address, which recieves 12.5% of SOUL rewards.
+    // SOUL TOKEN!
+    address private soulAddress = 0xeC51E98B14cc8327110ba25c1395F1006d312e2B; //TESTNET
+    SoulToken public soul = SoulToken(soulAddress);
+    
+    // SEANCE TOKEN!
+    address private seanceAddress = 0xf9D9b96F213aCC6434f16fff5D932FA85cD179f3; // TESTNET
+    SeanceCircle public seance = SeanceCircle(seanceAddress);
+
+    // Team: recieves 12.5% of SOUL rewards.
     address public team = msg.sender;
-    // DAO address, which recieves 12.5% of SOUL rewards.
+
+    // DAO: recieves 12.5% of SOUL rewards.
     address public dao = msg.sender;
+
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
 
     // ** GLOBAL VARIABLES ** //
-
-    // Blockchains containing MasterChef contract
-    uint256 public chains = 1;
+    uint public chainId;
+    uint public totalChains;
+    uint public totalPower;
+    uint public power;
 
     // SOUL per DAY
-    uint256 public dailySoul = 250000 * 1e18; 
+    uint public dailySoul = 250000 * 1e18;
 
     // SOUL tokens created per second.
-    uint256 public soulPerSecond = dailySoul / 86400;
+    uint public soulPerSecond = dailySoul / 86400;
 
     // Bonus muliplier for early soul summoners.
-    uint256 public BONUS_MULTIPLIER = 1;
+    uint public BONUS_MULTIPLIER = 1;
 
     // The UNIX timestamp when SOUL mining starts.
-    uint256 public startTime = block.timestamp;
+    uint public startTime = block.timestamp;
 
     // Total allocation points. Must be the sum of all allocation points in all pools.
-    uint256 public totalAllocPoint = 0;
+    uint public totalAllocPoint;
 
     // ** POOL VARIABLES ** //
 
     // POOLS X POOL INFO.
     Pools[] public poolInfo;
 
-    // CHAINS X CHAIN INFO.
-    Chains[] public chainInfo;
+    modifier onlyCreator() {
+        require(
+            isCreator(msg.sender) || 
+            msg.sender == address(owner()) ||
+            msg.sender == address(dao),
+            'only minter allowed to add');
+        _;
+    }
 
     // Info of each user that stakes LP tokens.
-    mapping (uint256 => mapping (address => Users)) public userInfo;
+    mapping (uint => mapping (address => Users)) public userInfo;
 
-    event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
-    event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
+    // stores an address for each creators
+    mapping(address => bool) public creators;
+
+    event Deposit(address indexed user, uint indexed pid, uint amount);
+    event Withdraw(address indexed user, uint indexed pid, uint amount);
+
+    event CreatorAdded(address indexed user);
+    event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
+    event PoolSet(uint pid, uint allocPoint);
+
+    event PowerUpdated(uint power, uint totalPower);
+    event RewardsUpdated(uint dailySoul, uint soulPerSecond);
 
     constructor(
-        SoulToken _soul,
-        SeanceCircle _seance
+        uint _chainId,
+        uint _totalChains,
+        uint _totalPower,
+        uint _power
     ) {
-        soul = _soul;
-        seance = _seance;
+        chainId = _chainId;
+        totalChains = _totalChains;
+        totalPower = _totalPower + _power;
+        power = _power;
 
         // staking pool
         poolInfo.push(Pools({
-            lpToken: _soul,
+            lpToken: soul,
             allocPoint: 1000,
             lastRewardTime: startTime,
             accSoulPerShare: 0
         }));
 
         totalAllocPoint = 1000;
+        totalChains ++;
     }
 
-    function updateMultiplier(uint256 multiplierNumber) external onlyOwner {
+    function isCreator(address _recipient) public view returns (bool) {
+        return creators[_recipient];
+    }
+
+    function addCreator(address _recipient) external onlyOwner {
+        require(!isCreator(_recipient), 
+        'addToCreators: already added to creators');
+        creators[_recipient] = true;
+
+        emit CreatorAdded(_recipient);
+    }
+
+    function updateMultiplier(uint multiplierNumber) external onlyOwner {
         BONUS_MULTIPLIER = multiplierNumber;
     }
 
-    function updateRewards() internal {
-        dailySoul = (250000 * 1e18) / chains;
-        soulPerSecond = dailySoul / 86400;
+    function updateRewards(uint _power, uint _totalPower) internal {
+        uint factor = _power / _totalPower;
+
+        dailySoul = factor * (250000 * 1e18) / totalChains;
+        soulPerSecond = dailySoul / 1 days;
+
+        emit RewardsUpdated(dailySoul, soulPerSecond);
     }
 
-    function updateChains(uint256 _chains) external onlyOwner {
-        require(_chains != 0, 'chain cannot be zero');
-        chains = _chains;
-        updateRewards();
-    }
-
-    function poolLength() external view returns (uint256) {
+    function poolLength() external view returns (uint) {
         return poolInfo.length;
     }
 
-    // ADD -- NEW LP TOKEN POOL -- OWNER
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) external {
-        require(msg.sender == owner() || msg.sender == dao, 'add: must be owner or dao');
+    // ADD -- NEW LP TOKEN POOL -- CREATOR
+    function add(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) external onlyCreator {
         if (_withUpdate) massUpdatePools();
-        uint256 lastRewardTime = block.timestamp > startTime ? block.timestamp : startTime;
+        uint lastRewardTime = block.timestamp > startTime ? block.timestamp : startTime;
         totalAllocPoint = totalAllocPoint + _allocPoint;
         poolInfo.push(Pools({
             lpToken: _lpToken,
@@ -152,25 +174,41 @@ contract MasterChef is Ownable {
             accSoulPerShare: 0
         }));
         updateStakingPool();
+
+        uint _pid = poolInfo.length;
+        
+        emit PoolAdded(_pid, _allocPoint, _lpToken, totalAllocPoint);
     }
 
     // UPDATE -- ALLOCATION POINT -- OWNER
-    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external {
+    function set(uint _pid, uint _allocPoint, bool _withUpdate) external {
         require(msg.sender == owner() || msg.sender == dao, 'set: must be owner or dao');
         if (_withUpdate) massUpdatePools();
-        uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
+        uint prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         if (prevAllocPoint != _allocPoint) {
             totalAllocPoint = totalAllocPoint - prevAllocPoint + _allocPoint;
             updateStakingPool();
-        }
+       }
+
+       emit PoolSet(_pid, _allocPoint);
+    }
+
+    // UPDATE -- POWER -- OWNER
+    function updatePower(uint _power) external onlyOwner {
+        uint prevTotalPower = totalPower - power;
+        totalPower = prevTotalPower + _power;
+
+        updateRewards(power, totalPower);
+
+        emit PowerUpdated(power, totalPower);
     }
 
     // UPDATE -- STAKING POOL -- INTERNAL
     function updateStakingPool() internal {
-        uint256 length = poolInfo.length;
-        uint256 points = 0;
-        for (uint256 pid = 1; pid < length; ++pid) {
+        uint length = poolInfo.length;
+        uint points = 0;
+        for (uint pid = 1; pid < length; ++pid) {
             points = points + poolInfo[pid].allocPoint;
         }
         if (points != 0) {
@@ -186,11 +224,11 @@ contract MasterChef is Ownable {
     }
 
     // MIGRATE -- LP TOKENS TO ANOTHER CONTRACT -- MIGRATOR
-    function migrate(uint256 _pid) external {
+    function migrate(uint _pid) external {
         require(address(migrator) != address(0), "migrate: no migrator set");
         Pools storage pool = poolInfo[_pid];
         IERC20 lpToken = pool.lpToken;
-        uint256 bal = lpToken.balanceOf(address(this));
+        uint bal = lpToken.balanceOf(address(this));
         lpToken.approve(address(migrator), bal);
         IERC20 newLpToken = migrator.migrate(lpToken);
         require(bal == newLpToken.balanceOf(address(this)), "migrate: insufficient balance");
@@ -198,19 +236,19 @@ contract MasterChef is Ownable {
     }
 
     // VIEW -- BONUS MULTIPLIER -- PUBLIC
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+    function getMultiplier(uint _from, uint _to) public view returns (uint) {
         return _to - _from * BONUS_MULTIPLIER;
     }
 
     // VIEW -- PENDING SOUL
-    function pendingSoul(uint256 _pid, address _user) external view returns (uint256) {
+    function pendingSoul(uint _pid, address _user) external view returns (uint) {
         Pools storage pool = poolInfo[_pid];
         Users storage user = userInfo[_pid][_user];
-        uint256 accSoulPerShare = pool.accSoulPerShare;
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        uint accSoulPerShare = pool.accSoulPerShare;
+        uint lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
-            uint256 multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
-            uint256 soulReward = (multiplier * soulPerSecond * pool.allocPoint) / totalAllocPoint;
+            uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
+            uint soulReward = (multiplier * soulPerSecond * pool.allocPoint) / totalAllocPoint;
             accSoulPerShare = accSoulPerShare + (soulReward * 1e12 / lpSupply);
         }
         return user.amount * accSoulPerShare / 1e12 - user.rewardDebt;
@@ -218,25 +256,25 @@ contract MasterChef is Ownable {
 
     // UPDATE -- REWARD VARIABLES FOR ALL POOLS (HIGH GAS POSSIBLE) -- PUBLIC
     function massUpdatePools() public {
-        uint256 length = poolInfo.length;
-        for (uint256 pid = 0; pid < length; ++pid) {
+        uint length = poolInfo.length;
+        for (uint pid = 0; pid < length; ++pid) {
             updatePool(pid);
         }
     }
 
     // UPDATE -- REWARD VARIABLES (POOL) -- PUBLIC
-    function updatePool(uint256 _pid) public {
+    function updatePool(uint _pid) public {
         Pools storage pool = poolInfo[_pid];
         if (block.timestamp <= pool.lastRewardTime) {
             return;
         }
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        uint lpSupply = pool.lpToken.balanceOf(address(this));
         if (lpSupply == 0) {
             pool.lastRewardTime = block.timestamp;
             return;
         }
-        uint256 multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
-        uint256 soulReward = 
+        uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
+        uint soulReward = 
             (multiplier * soulPerSecond * pool.allocPoint) / totalAllocPoint;
 
         soul.mint(team, soulReward / 8); // 12.5% SOUL per second to team
@@ -250,7 +288,7 @@ contract MasterChef is Ownable {
     }
 
     // DEPOSIT -- LP TOKENS -- LP OWNERS
-    function deposit(uint256 _pid, uint256 _amount) external {
+    function deposit(uint _pid, uint _amount) external {
 
         require (_pid != 0, 'deposit SOUL by staking');
 
@@ -258,7 +296,7 @@ contract MasterChef is Ownable {
         Users storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) { // already deposited assets
-            uint256 pending = (user.amount * pool.accSoulPerShare) / 1e12 - user.rewardDebt;
+            uint pending = (user.amount * pool.accSoulPerShare) / 1e12 - user.rewardDebt;
             if(pending > 0) { // sends pending rewards, if applicable
                 safeSoulTransfer(msg.sender, pending);
             }
@@ -273,7 +311,7 @@ contract MasterChef is Ownable {
     }
 
     // WITHDRAW -- LP TOKENS -- STAKERS
-    function withdraw(uint256 _pid, uint256 _amount) external {
+    function withdraw(uint _pid, uint _amount) external {
 
         require (_pid != 0, 'withdraw SOUL by unstaking');
         Pools storage pool = poolInfo[_pid];
@@ -281,7 +319,7 @@ contract MasterChef is Ownable {
         require(user.amount >= _amount, "withdraw: not good");
 
         updatePool(_pid);
-        uint256 pending = user.amount * pool.accSoulPerShare / 1e12 - user.rewardDebt;
+        uint pending = user.amount * pool.accSoulPerShare / 1e12 - user.rewardDebt;
         if(pending > 0) {
             safeSoulTransfer(msg.sender, pending);
         }
@@ -294,12 +332,12 @@ contract MasterChef is Ownable {
     }
 
     // STAKE -- SOUL TO MASTERCHEF -- PUBLIC SOUL HOLDERS
-    function enterStaking(uint256 _amount) external {
+    function enterStaking(uint _amount) external {
         Pools storage pool = poolInfo[0];
-        UserInfo storage user = userInfo[0][msg.sender];
+        Users storage user = userInfo[0][msg.sender];
         updatePool(0);
         if (user.amount > 0) {
-            uint256 pending = user.amount * pool.accSoulPerShare/ 1e12 - user.rewardDebt;
+            uint pending = user.amount * pool.accSoulPerShare/ 1e12 - user.rewardDebt;
             if(pending > 0) {
                 safeSoulTransfer(msg.sender, pending);
             }
@@ -315,12 +353,12 @@ contract MasterChef is Ownable {
     }
 
     // WITHDRAW -- SOUL tokens from STAKING.
-    function leaveStaking(uint256 _amount) external {
-        Pool storage pool = poolInfo[0];
-        UserInfo storage user = userInfo[0][msg.sender];
+    function leaveStaking(uint _amount) external {
+        Pools storage pool = poolInfo[0];
+        Users storage user = userInfo[0][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(0);
-        uint256 pending = user.amount * pool.accSoulPerShare / 1e12 - user.rewardDebt;
+        uint pending = user.amount * pool.accSoulPerShare / 1e12 - user.rewardDebt;
         if(pending > 0) {
             safeSoulTransfer(msg.sender, pending);
         }
@@ -335,7 +373,7 @@ contract MasterChef is Ownable {
     }
 
     // TRANSFER -- TRANSFERS SEANCE -- INTERNAL
-    function safeSoulTransfer(address _to, uint256 _amount) internal {
+    function safeSoulTransfer(address _to, uint _amount) internal {
         seance.safeSoulTransfer(_to, _amount);
     }
 
@@ -350,4 +388,5 @@ contract MasterChef is Ownable {
         require(msg.sender == team || msg.sender == owner(), "newTeam: must be team or owner");
         team = _team;
     }
+
 }

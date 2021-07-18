@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
-
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -85,7 +85,6 @@ interface IERC20 {
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
 pragma solidity ^0.8.0;
-
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -480,7 +479,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 pragma solidity ^0.8.0;
 
-
 /**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
@@ -551,16 +549,16 @@ abstract contract Ownable is Context {
 
 pragma solidity ^0.8.0;
 
+
 // SoulToken with Governance.
-contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
+contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
     function mint(address _to, uint256 _amount) public onlyMinter {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
     modifier onlyMinter() {
-        require(isMinter(msg.sender) || msg.sender == address(owner()), 
-        'only minter allowed to mint');
+        require(isMinter(msg.sender) || msg.sender == address(owner()), 'only minter allowed to mint');
         _;
     }
     
@@ -788,7 +786,9 @@ contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
     }
 
     function addMinter(address _recipient) external onlyOwner {
-        require(!isMinter(_recipient), 'addToWhitelist: already added to whitelist');
+        require(
+            !isMinter(_recipient), 
+            'addToWhitelist: already added to whitelist');
         minters[_recipient] = true;
 
         emit MinterAdded(_recipient);
