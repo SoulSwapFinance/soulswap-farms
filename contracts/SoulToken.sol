@@ -7,64 +7,57 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 // SoulToken with Governance.
 contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
-    /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
-    function mint(address _to, uint256 _amount) public onlyOwner {
+    function mint(address _to, uint256 _amount) public onlyMinter {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    // Copied and modified from YAM code:
-    // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernanceStorage.sol
-    // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernance.sol
-    // Which is copied and modified from COMPOUND:
-    // https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
-
-    /// @dev A record of each accounts delegate
+    modifier onlyMinter() {
+        require(isMinter(msg.sender) || msg.sender == address(owner()), 'only minter allowed to mint');
+        _;
+    }
+    
+    // record of each accounts delegate
     mapping (address => address) internal _delegates;
 
-    /// @dev A checkpoint for marking number of votes from a given block timestamp
+    // stores an address for each minter
+    mapping(address => bool) public minters;
+
+
+    // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
         uint256 fromTime;
         uint256 votes;
     }
 
-    /// @dev A record of votes checkpoints for each account, by index
+    // record of votes checkpoints for each account, by index
     mapping (address => mapping (uint256 => Checkpoint)) public checkpoints;
 
-    /// @dev The number of checkpoints for each account
+    // number of checkpoints for each account
     mapping (address => uint256) public numCheckpoints;
 
-    /// @dev The EIP-712 typehash for the contract's domain
+    // EIP-712 typehash for the contract's domain
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
-    /// @dev The EIP-712 typehash for the delegation struct used by the contract
+    // EIP-712 typehash for the delegation struct used by the contract
     bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
-    /// @dev A record of states for signing / validating signatures
+    // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
 
-      /// @dev An event thats emitted when an account changes its delegate
+    // event thats emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    /// @dev An event thats emitted when a delegate account's vote balance changes
+    // event thats emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
-    /**
-     * @dev Delegate votes from `msg.sender` to `delegatee`
-     * @param delegator The address to get delegatee for
-     */
-    function delegates(address delegator)
-        external
-        view
-        returns (address)
-    {
+    event MinterAdded(address indexed account);
+
+
+    function delegates(address delegator) external view returns (address)  {
         return _delegates[delegator];
     }
 
-   /**
-    * @dev Delegate votes from `msg.sender` to `delegatee`
-    * @param delegatee The address to delegate votes to
-    */
     function delegate(address delegatee) external {
         return _delegate(msg.sender, delegatee);
     }
@@ -241,5 +234,17 @@ contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
         uint256 chainId;
         assembly { chainId := chainid() }
         return chainId;
+    }
+
+    function isMinter(address _recipient) public view returns (bool) {
+        return minters[_recipient];
+    }
+
+    function addMinter(address _recipient) external onlyOwner {
+        require(!isMinter(_recipient), 
+        'addToWhitelist: already added to whitelist');
+        minters[_recipient] = true;
+
+        emit MinterAdded(_recipient);
     }
 }

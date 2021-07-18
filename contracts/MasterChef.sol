@@ -25,7 +25,7 @@ interface IMigratorChef {
 contract MasterChef is Ownable {
 
     // Info of each user.
-    struct UserInfo {
+    struct Users {
         uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
         //
@@ -42,11 +42,17 @@ contract MasterChef is Ownable {
     }
 
     // Info of each pool.
-    struct PoolInfo {
+    struct Pools {
         IERC20 lpToken;          // Address of LP token contract.
         uint256 allocPoint;      // How many allocation points assigned to this pool. SOULs to distribute per second.
         uint256 lastRewardTime;  // Most recent UNIX timestamp that SOULs distribution occurs.
         uint256 accSoulPerShare; // Accumulated SOULs per share, times 1e12. See below.
+    }
+
+    // Info of each chain.
+    struct Chains {
+        uint256 chainId;          // chainId
+        uint256 allocPoint;      // How many allocation points assigned to this chain. SOULs to distribute per second.
     }
 
     //** ADDRESSES **//
@@ -62,28 +68,36 @@ contract MasterChef is Ownable {
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
 
-
     // ** GLOBAL VARIABLES ** //
 
     // Blockchains containing MasterChef contract
     uint256 public chains = 1;
+
     // SOUL per DAY
     uint256 public dailySoul = 250000 * 1e18; 
+
     // SOUL tokens created per second.
     uint256 public soulPerSecond = dailySoul / 86400;
+
     // Bonus muliplier for early soul summoners.
     uint256 public BONUS_MULTIPLIER = 1;
+
     // The UNIX timestamp when SOUL mining starts.
     uint256 public startTime = block.timestamp;
+
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
 
     // ** POOL VARIABLES ** //
 
-    // Info of each pool.
-    PoolInfo[] public poolInfo;
+    // POOLS X POOL INFO.
+    Pools[] public poolInfo;
+
+    // CHAINS X CHAIN INFO.
+    Chains[] public chainInfo;
+
     // Info of each user that stakes LP tokens.
-    mapping (uint256 => mapping (address => UserInfo)) public userInfo;
+    mapping (uint256 => mapping (address => Users)) public userInfo;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -96,7 +110,7 @@ contract MasterChef is Ownable {
         seance = _seance;
 
         // staking pool
-        poolInfo.push(PoolInfo({
+        poolInfo.push(Pools({
             lpToken: _soul,
             allocPoint: 1000,
             lastRewardTime: startTime,
@@ -131,7 +145,7 @@ contract MasterChef is Ownable {
         if (_withUpdate) massUpdatePools();
         uint256 lastRewardTime = block.timestamp > startTime ? block.timestamp : startTime;
         totalAllocPoint = totalAllocPoint + _allocPoint;
-        poolInfo.push(PoolInfo({
+        poolInfo.push(Pools({
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardTime: lastRewardTime,
@@ -174,7 +188,7 @@ contract MasterChef is Ownable {
     // MIGRATE -- LP TOKENS TO ANOTHER CONTRACT -- MIGRATOR
     function migrate(uint256 _pid) external {
         require(address(migrator) != address(0), "migrate: no migrator set");
-        PoolInfo storage pool = poolInfo[_pid];
+        Pools storage pool = poolInfo[_pid];
         IERC20 lpToken = pool.lpToken;
         uint256 bal = lpToken.balanceOf(address(this));
         lpToken.approve(address(migrator), bal);
@@ -190,8 +204,8 @@ contract MasterChef is Ownable {
 
     // VIEW -- PENDING SOUL
     function pendingSoul(uint256 _pid, address _user) external view returns (uint256) {
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][_user];
+        Pools storage pool = poolInfo[_pid];
+        Users storage user = userInfo[_pid][_user];
         uint256 accSoulPerShare = pool.accSoulPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
@@ -212,7 +226,7 @@ contract MasterChef is Ownable {
 
     // UPDATE -- REWARD VARIABLES (POOL) -- PUBLIC
     function updatePool(uint256 _pid) public {
-        PoolInfo storage pool = poolInfo[_pid];
+        Pools storage pool = poolInfo[_pid];
         if (block.timestamp <= pool.lastRewardTime) {
             return;
         }
@@ -240,8 +254,8 @@ contract MasterChef is Ownable {
 
         require (_pid != 0, 'deposit SOUL by staking');
 
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+        Pools storage pool = poolInfo[_pid];
+        Users storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) { // already deposited assets
             uint256 pending = (user.amount * pool.accSoulPerShare) / 1e12 - user.rewardDebt;
@@ -262,8 +276,8 @@ contract MasterChef is Ownable {
     function withdraw(uint256 _pid, uint256 _amount) external {
 
         require (_pid != 0, 'withdraw SOUL by unstaking');
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][msg.sender];
+        Pools storage pool = poolInfo[_pid];
+        Users storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
 
         updatePool(_pid);
@@ -281,7 +295,7 @@ contract MasterChef is Ownable {
 
     // STAKE -- SOUL TO MASTERCHEF -- PUBLIC SOUL HOLDERS
     function enterStaking(uint256 _amount) external {
-        PoolInfo storage pool = poolInfo[0];
+        Pools storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         updatePool(0);
         if (user.amount > 0) {
@@ -302,7 +316,7 @@ contract MasterChef is Ownable {
 
     // WITHDRAW -- SOUL tokens from STAKING.
     function leaveStaking(uint256 _amount) external {
-        PoolInfo storage pool = poolInfo[0];
+        Pool storage pool = poolInfo[0];
         UserInfo storage user = userInfo[0][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(0);
