@@ -206,14 +206,6 @@ contract SoulVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Withdraws from MasterChef to Vault without caring about rewards.
-     * @dev EMERGENCY ONLY. Only callable by the contract admin.
-     */
-    function emergencyWithdraw() external onlyAdmin {
-        IMasterChef(masterchef).emergencyWithdraw(0);
-    }
-
-    /**
      * @notice Withdraw unexpected tokens sent to the Soul Vault
      */
     function inCaseTokensGetStuck(address _token) external onlyAdmin {

@@ -1,8 +1,8 @@
+// File: @openzeppelin/contracts/utils/Context.sol
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-
-// File: @openzeppelin/contracts/utils/Context.sol
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -26,7 +26,10 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
+
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -95,6 +98,8 @@ abstract contract Ownable is Context {
 }
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+
 
 pragma solidity ^0.8.0;
 
@@ -177,6 +182,8 @@ interface IERC20 {
 }
 
 // File: @openzeppelin/contracts/utils/Address.sol
+
+
 
 pragma solidity ^0.8.0;
 
@@ -389,7 +396,10 @@ library Address {
 
 // File: @openzeppelin/contracts/security/Pausable.sol
 
+
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -476,27 +486,47 @@ abstract contract Pausable is Context {
     }
 }
 
+// File: contracts/libs/IMigratorChef.sol
+
+
+
+
+pragma solidity ^0.8.0;
+
+interface IMigratorChef {
+    // Perform LP token migration from legacy swap.
+    // Take the current LP token address and return the new LP token address.
+    // Migrator should have full access to the caller's LP token.
+    // Return the new LP token address.
+
+    function migrate(IERC20 token) external returns (IERC20);
+}
+
 // File: contracts/libs/IMasterChef.sol
+
+
+
 
 pragma solidity ^0.8.0;
 
 interface IMasterChef {
     function deposit(uint256 _pid, uint256 _amount) external;
-
     function withdraw(uint256 _pid, uint256 _amount) external;
-
     function enterStaking(uint256 _amount) external;
 
-    function leaveStaking(uint256 _amount) external;
+    function leaveStaking(uint256 _amount) external; 
+
+    function setMigrator(IMigratorChef _migrator) external;
 
     function pendingSoul(uint256 _pid, address _user) external view returns (uint256);
 
     function userInfo(uint256 _pid, address _user) external view returns (uint256, uint256);
 
-    function emergencyWithdraw(uint256 _pid) external;
 }
 
 // File: contracts/SoulVault.sol
+
+
 
 /**
     SoulVault stakes everyone's SOUL (as a single entity) & distributes the rewards accordingly to 
@@ -506,6 +536,12 @@ interface IMasterChef {
  */
 
 pragma solidity ^0.8.0;
+
+
+
+
+
+
 
 contract SoulVault is Ownable, Pausable {
 
@@ -694,14 +730,6 @@ contract SoulVault is Ownable, Pausable {
             "withdrawFeePeriod cannot be more than MAX_WITHDRAW_FEE_PERIOD"
         );
         withdrawFeePeriod = _withdrawFeePeriod;
-    }
-
-    /**
-     * @notice Withdraws from MasterChef to Vault without caring about rewards.
-     * @dev EMERGENCY ONLY. Only callable by the contract admin.
-     */
-    function emergencyWithdraw() external onlyAdmin {
-        IMasterChef(masterchef).emergencyWithdraw(0);
     }
 
     /**
