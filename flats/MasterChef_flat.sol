@@ -1115,7 +1115,7 @@ contract MasterChef is Ownable {
     //** ADDRESSES **//
 
     // SOUL TOKEN!
-    address private soulAddress = 0xeC51E98B14cc8327110ba25c1395F1006d312e2B; //TESTNET
+    address private soulAddress = 0x701D8b35Bc0857a3D2fACf7EF8a739CFEBbd1Cd7; //TESTNET
     SoulToken public soul = SoulToken(soulAddress);
     
     // SEANCE TOKEN!
