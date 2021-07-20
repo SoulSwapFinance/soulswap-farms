@@ -43,18 +43,18 @@ contract MasterChef is Ownable {
     //** ADDRESSES **//
 
     // SOUL TOKEN!
-    address private soulAddress = 0x701D8b35Bc0857a3D2fACf7EF8a739CFEBbd1Cd7; //TESTNET
+    address private soulAddress;
     SoulToken public soul = SoulToken(soulAddress);
     
     // SEANCE TOKEN!
-    address private seanceAddress = 0xf9D9b96F213aCC6434f16fff5D932FA85cD179f3; // TESTNET
+    address private seanceAddress;
     SeanceCircle public seance = SeanceCircle(seanceAddress);
 
     // Team: recieves 12.5% of SOUL rewards.
-    address public team = msg.sender;
+    address public team;
 
     // DAO: recieves 12.5% of SOUL rewards.
-    address public dao = msg.sender;
+    address public dao;
 
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
@@ -75,24 +75,18 @@ contract MasterChef is Ownable {
     uint public BONUS_MULTIPLIER = 1;
 
     // The UNIX timestamp when SOUL mining starts.
-    uint public startTime = block.timestamp;
+    uint public startTime;
 
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint public totalAllocPoint;
 
+    // Indicates MasterChef contract has been initialized.
+    bool public initialized;
+
     // ** POOL VARIABLES ** //
 
-    // POOLS X POOL INFO.
+    // POOLS x POOL INFO.
     Pools[] public poolInfo;
-
-    modifier onlyCreator() {
-        require(
-            isCreator(msg.sender) || 
-            msg.sender == address(owner()) ||
-            msg.sender == address(dao),
-            'only minter allowed to add');
-        _;
-    }
 
     // Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => Users)) public userInfo;
@@ -103,23 +97,52 @@ contract MasterChef is Ownable {
     event Deposit(address indexed user, uint indexed pid, uint amount);
     event Withdraw(address indexed user, uint indexed pid, uint amount);
 
+    event Initialized(address team, address dev, address soul, address seance, uint chainId, uint power);
+
     event CreatorAdded(address indexed user);
+    event CreatorRemoved(address indexed user);
+
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
     event PoolSet(uint pid, uint allocPoint);
 
     event PowerUpdated(uint power, uint totalPower);
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
 
-    constructor(
+    modifier onlyCreator() {
+        require(isCreator(msg.sender), 'only minter allowed to add');
+        _;
+    }
+
+    modifier isNotInitialized() {
+        require(!initialized, "has already begun");
+        _;
+    }
+
+    modifier isInitialized() {
+        require(initialized, "has not begun");
+        _;
+    }
+
+    function initialize(
+        address _soulAddress, 
+        address _seanceAddress, 
         uint _chainId,
         uint _totalChains,
         uint _totalPower,
-        uint _power
-    ) {
+        uint _power) external isNotInitialized onlyOwner {
+        soulAddress = _soulAddress;
+        seanceAddress = _seanceAddress;
+        dao = msg.sender;
+        team = msg.sender;
+
+        startTime = block.timestamp;
+
         chainId = _chainId;
         totalChains = _totalChains;
         totalPower = _totalPower + _power;
         power = _power;
+
+        creators[msg.sender] = true;
 
         // staking pool
         poolInfo.push(Pools({
@@ -129,8 +152,12 @@ contract MasterChef is Ownable {
             accSoulPerShare: 0
         }));
 
+        initialized = true;
+
         totalAllocPoint = 1000;
         totalChains ++;
+
+        emit Initialized(team, dao, soulAddress, seanceAddress, chainId, power);
     }
 
     function isCreator(address _recipient) public view returns (bool) {
@@ -143,6 +170,13 @@ contract MasterChef is Ownable {
         creators[_recipient] = true;
 
         emit CreatorAdded(_recipient);
+    }
+
+    function removeCreator(address _creator) external onlyOwner {
+        require(isCreator(_creator), 'removeCreator: not a creator');
+        creators[_creator] = false;
+        
+        emit CreatorRemoved(_creator);
     }
 
     function updateMultiplier(uint multiplierNumber) external onlyOwner {
@@ -163,7 +197,7 @@ contract MasterChef is Ownable {
     }
 
     // ADD -- NEW LP TOKEN POOL -- CREATOR
-    function add(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) external onlyCreator {
+    function add(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) external isInitialized onlyCreator {
         if (_withUpdate) massUpdatePools();
         uint lastRewardTime = block.timestamp > startTime ? block.timestamp : startTime;
         totalAllocPoint = totalAllocPoint + _allocPoint;
@@ -181,8 +215,7 @@ contract MasterChef is Ownable {
     }
 
     // UPDATE -- ALLOCATION POINT -- OWNER
-    function set(uint _pid, uint _allocPoint, bool _withUpdate) external {
-        require(msg.sender == owner() || msg.sender == dao, 'set: must be owner or dao');
+    function set(uint _pid, uint _allocPoint, bool _withUpdate) external isInitialized onlyCreator {
         if (_withUpdate) massUpdatePools();
         uint prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
@@ -200,7 +233,6 @@ contract MasterChef is Ownable {
         totalPower = prevTotalPower + _power;
 
         updateRewards(power, totalPower);
-
         emit PowerUpdated(power, totalPower);
     }
 
@@ -377,16 +409,28 @@ contract MasterChef is Ownable {
         seance.safeSoulTransfer(_to, _amount);
     }
 
-    // UPDATE -- TREASURY ADDRESS -- TREASURY || TEAM
-    function newDAO(address _dao) external {
-        require(msg.sender == dao || msg.sender == owner(), "newDAO: must be dao or owner");
+    // UPDATE -- DAO ADDRESS -- OWNER
+    function newDAO(address _dao) external onlyOwner {
+        require(dao != _dao, 'must be a new address');
         dao = _dao;
     }
 
-    // UPDATE -- ADMIN ADDRESS -- ADMIN
-    function newTeam(address _team) external {
-        require(msg.sender == team || msg.sender == owner(), "newTeam: must be team or owner");
+    // UPDATE -- TEAM ADDRESS -- OWNER
+    function newTeam(address _team) external onlyOwner {
+        require(team != _team, 'must be a new address');
         team = _team;
+    }
+
+    // UPDATE -- SOUL ADDRESS -- OWNER
+    function newSoul(SoulToken _soul) external onlyOwner {
+        require(soul != _soul, 'must be a new address');
+        soul = _soul;
+    }
+
+    // UPDATE -- SEANCE ADDRESS -- OWNER
+    function newSeance(SeanceCircle _seance) external onlyOwner {
+        require(seance != _seance, 'must be a new address');
+        seance = _seance;
     }
 
 }

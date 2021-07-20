@@ -28,6 +28,7 @@ abstract contract Context {
 
 pragma solidity ^0.8.0;
 
+
 /**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
@@ -205,6 +206,7 @@ interface IERC20Metadata is IERC20 {
 // File: contracts/libs/ERC20.sol
 
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -550,65 +552,58 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 pragma solidity ^0.8.0;
 
 // SoulToken with Governance.
-contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
-    /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
-    function mint(address _to, uint256 _amount) public onlyOwner {
+contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
+    function mint(address _to, uint256 _amount) public onlyMinter {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    // Copied and modified from YAM code:
-    // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernanceStorage.sol
-    // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernance.sol
-    // Which is copied and modified from COMPOUND:
-    // https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
-
-    /// @dev A record of each accounts delegate
+    modifier onlyMinter() {
+        require(isMinter(msg.sender) || msg.sender == address(owner()), 'only minter allowed to mint');
+        _;
+    }
+    
+    // record of each accounts delegate
     mapping (address => address) internal _delegates;
 
-    /// @dev A checkpoint for marking number of votes from a given block timestamp
+    // stores an address for each minter
+    mapping(address => bool) public minters;
+
+    // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
         uint256 fromTime;
         uint256 votes;
     }
 
-    /// @dev A record of votes checkpoints for each account, by index
+    // record of votes checkpoints for each account, by index
     mapping (address => mapping (uint256 => Checkpoint)) public checkpoints;
 
-    /// @dev The number of checkpoints for each account
+    // number of checkpoints for each account
     mapping (address => uint256) public numCheckpoints;
 
-    /// @dev The EIP-712 typehash for the contract's domain
+    // EIP-712 typehash for the contract's domain
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
-    /// @dev The EIP-712 typehash for the delegation struct used by the contract
+    // EIP-712 typehash for the delegation struct used by the contract
     bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
-    /// @dev A record of states for signing / validating signatures
+    // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
 
-      /// @dev An event thats emitted when an account changes its delegate
+    // emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    /// @dev An event thats emitted when a delegate account's vote balance changes
+    // emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
-    /**
-     * @dev Delegate votes from `msg.sender` to `delegatee`
-     * @param delegator The address to get delegatee for
-     */
-    function delegates(address delegator)
-        external
-        view
-        returns (address)
-    {
+    // emitted when a minter is added or removed
+    event MinterAdded(address indexed account);
+    event MinterRemoved(address indexed account);
+
+    function delegates(address delegator) external view returns (address)  {
         return _delegates[delegator];
     }
 
-   /**
-    * @dev Delegate votes from `msg.sender` to `delegatee`
-    * @param delegatee The address to delegate votes to
-    */
     function delegate(address delegatee) external {
         return _delegate(msg.sender, delegatee);
     }
@@ -786,6 +781,24 @@ contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
         assembly { chainId := chainid() }
         return chainId;
     }
+
+    function isMinter(address _recipient) public view returns (bool) {
+        return minters[_recipient];
+    }
+
+    function addMinter(address _recipient) external onlyOwner {
+        require(!isMinter(_recipient), 'addMinter: already added to whitelist');
+        minters[_recipient] = true;
+
+        emit MinterAdded(_recipient);
+    }
+
+    function removeMinter(address _recipient) external onlyOwner {
+        require(isMinter(_recipient), 'addMinter: already added to whitelist');
+        minters[_recipient] = false;
+
+        emit MinterRemoved(_recipient);
+    }
 }
 
 // File: contracts/SeanceCircle.sol
@@ -793,14 +806,20 @@ contract SoulToken is ERC20('Soul Token', 'SOUL'), Ownable {
 pragma solidity ^0.8.0;
 
 // SeanceCircle with Governance.
-contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
+
+contract SeanceCircle is ERC20('SeanceToken', 'SEANCE'), Ownable {
     /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
-    function mint(address _to, uint256 _amount) public onlyOwner {
+    function mint(address _to, uint256 _amount) public onlyMinter {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    function burn(address _from ,uint256 _amount) public onlyOwner {
+    modifier onlyMinter() {
+        require(isMinter(msg.sender) || msg.sender == address(owner()), 'only minter allowed to mint');
+        _;
+    }
+
+    function burn(address _from ,uint256 _amount) public onlyMinter {
         _burn(_from, _amount);
         _moveDelegates(_delegates[_from], address(0), _amount);
     }
@@ -808,13 +827,12 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
     // The SOUL TOKEN!
     SoulToken public soul;
 
-
     constructor(SoulToken _soul) {
         soul = _soul;
     }
 
     // Safe soul transfer function, just in case if rounding error causes pool to not have enough SOUL.
-    function safeSoulTransfer(address _to, uint256 _amount) public onlyOwner {
+    function safeSoulTransfer(address _to, uint256 _amount) public onlyMinter {
         uint256 soulBal = soul.balanceOf(address(this));
         if (_amount > soulBal) {
             soul.transfer(_to, soulBal);
@@ -823,41 +841,42 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
         }
     }
 
-    // Copied and modified from YAM code:
-    // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernanceStorage.sol
-    // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernance.sol
-    // Which is copied and modified from COMPOUND:
-    // https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
-
-    /// @dev A record of each accounts delegate
+    // record of each accounts delegate
     mapping (address => address) internal _delegates;
 
-    /// @dev A checkpoint for marking number of votes from a given block timestamp
+    // stores an address for each minter
+    mapping(address => bool) public minters;
+
+    // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
         uint256 fromTime;
         uint256 votes;
     }
 
-    /// @dev A record of votes checkpoints for each account, by index
+    // record of votes checkpoints for each account, by index
     mapping (address => mapping (uint256 => Checkpoint)) public checkpoints;
 
-    /// @dev The number of checkpoints for each account
+    // number of checkpoints for each account
     mapping (address => uint256) public numCheckpoints;
 
-    /// @dev The EIP-712 typehash for the contract's domain
+    // EIP-712 typehash for the contract's domain
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
-    /// @dev The EIP-712 typehash for the delegation struct used by the contract
+    // EIP-712 typehash for the delegation struct used by the contract
     bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
-    /// @dev A record of states for signing / validating signatures
+    // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
 
-      /// @dev An event thats emitted when an account changes its delegate
+    // emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    /// @dev An event thats emitted when a delegate account's vote balance changes
+    // emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
+    
+    // emitted when a minter is added or removed
+    event MinterAdded(address indexed account);
+    event MinterRemoved(address indexed account);
 
     /**
      * @dev Delegate votes from `msg.sender` to `delegatee`
@@ -952,11 +971,7 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
      * @param blockTimestamp The block timestamp to get the vote balance at
      * @return The number of votes the account had as of the given block timestamp
      */
-    function getPriorVotes(address account, uint blockTimestamp)
-        external
-        view
-        returns (uint256)
-    {
+    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint256) {
         require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
 
         uint256 nCheckpoints = numCheckpoints[account];
@@ -990,9 +1005,7 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
         return checkpoints[account][lower].votes;
     }
 
-    function _delegate(address delegator, address delegatee)
-        internal
-    {
+    function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = _delegates[delegator];
         uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled);
         _delegates[delegator] = delegatee;
@@ -1052,4 +1065,29 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
         assembly { chainId := chainid() }
         return chainId;
     }
+
+
+    function isMinter(address _minter) public view returns (bool) {
+        return minters[_minter];
+    }
+
+    function addMinter(address _minter) external onlyOwner {
+        require(!isMinter(_minter), 'already minter');
+        minters[_minter] = true;
+
+        emit MinterAdded(_minter);
+    }
+
+    function removeMinter(address _minter) external onlyOwner {
+        require(isMinter(_minter), 'not a minter');
+        minters[_minter] = false;
+
+        emit MinterRemoved(_minter);
+    }
+
+    function newSoul(SoulToken _soul) external onlyOwner {
+        require(soul != _soul, 'newSoul: must be a new address');
+        soul = _soul;
+    }
+
 }

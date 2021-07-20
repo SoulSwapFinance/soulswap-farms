@@ -9456,9 +9456,9 @@
                                                 "src": "8644:44:0",
                                                 "typeDescriptions": {
                                                     "typeIdentifier": "t_stringliteral_795900e02c0d356f06db4c9b876c8087a61739d9f406653230a4cbed215c3ec7",
-                                                    "typeString": "literal_string \"addToWhitelist: already added to whitelist\""
+                                                    "typeString": "literal_string \"addMinter: already added to whitelist\""
                                                 },
-                                                "value": "addToWhitelist: already added to whitelist"
+                                                "value": "addMinter: already added to whitelist"
                                             }
                                         ],
                                         "expression": {
@@ -9469,7 +9469,7 @@
                                                 },
                                                 {
                                                     "typeIdentifier": "t_stringliteral_795900e02c0d356f06db4c9b876c8087a61739d9f406653230a4cbed215c3ec7",
-                                                    "typeString": "literal_string \"addToWhitelist: already added to whitelist\""
+                                                    "typeString": "literal_string \"addMinter: already added to whitelist\""
                                                 }
                                             ],
                                             "id": 677,

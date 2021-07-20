@@ -180,7 +180,6 @@ interface IERC20 {
 
 pragma solidity ^0.8.0;
 
-
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
  *
@@ -206,6 +205,7 @@ interface IERC20Metadata is IERC20 {
 // File: contracts/libs/ERC20.sol
 
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -568,7 +568,6 @@ contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
     // stores an address for each minter
     mapping(address => bool) public minters;
 
-
     // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
         uint256 fromTime;
@@ -590,14 +589,15 @@ contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
     // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
 
-    // event thats emitted when an account changes its delegate
+    // emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    // event thats emitted when a delegate account's vote balance changes
+    // emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
+    // emitted when a minter is added or removed
     event MinterAdded(address indexed account);
-
+    event MinterRemoved(address indexed account);
 
     function delegates(address delegator) external view returns (address)  {
         return _delegates[delegator];
@@ -786,12 +786,17 @@ contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
     }
 
     function addMinter(address _recipient) external onlyOwner {
-        require(
-            !isMinter(_recipient), 
-            'addToWhitelist: already added to whitelist');
+        require(!isMinter(_recipient), 'addMinter: already added to whitelist');
         minters[_recipient] = true;
 
         emit MinterAdded(_recipient);
+    }
+
+    function removeMinter(address _recipient) external onlyOwner {
+        require(isMinter(_recipient), 'addMinter: already added to whitelist');
+        minters[_recipient] = false;
+
+        emit MinterRemoved(_recipient);
     }
 }
 
@@ -800,14 +805,19 @@ contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
 pragma solidity ^0.8.0;
 
 // SeanceCircle with Governance.
-contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
+contract SeanceCircle is ERC20('SeanceToken', 'SEANCE'), Ownable {
     /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
-    function mint(address _to, uint256 _amount) public onlyOwner {
+    function mint(address _to, uint256 _amount) public onlyMinter {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    function burn(address _from ,uint256 _amount) public onlyOwner {
+    modifier onlyMinter() {
+        require(isMinter(msg.sender) || msg.sender == address(owner()), 'only minter allowed to mint');
+        _;
+    }
+
+    function burn(address _from ,uint256 _amount) public onlyMinter {
         _burn(_from, _amount);
         _moveDelegates(_delegates[_from], address(0), _amount);
     }
@@ -815,13 +825,12 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
     // The SOUL TOKEN!
     SoulToken public soul;
 
-
     constructor(SoulToken _soul) {
         soul = _soul;
     }
 
     // Safe soul transfer function, just in case if rounding error causes pool to not have enough SOUL.
-    function safeSoulTransfer(address _to, uint256 _amount) public onlyOwner {
+    function safeSoulTransfer(address _to, uint256 _amount) public onlyMinter {
         uint256 soulBal = soul.balanceOf(address(this));
         if (_amount > soulBal) {
             soul.transfer(_to, soulBal);
@@ -830,41 +839,42 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
         }
     }
 
-    // Copied and modified from YAM code:
-    // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernanceStorage.sol
-    // https://github.com/yam-finance/yam-protocol/blob/master/contracts/token/YAMGovernance.sol
-    // Which is copied and modified from COMPOUND:
-    // https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
-
-    /// @dev A record of each accounts delegate
+    // record of each accounts delegate
     mapping (address => address) internal _delegates;
 
-    /// @dev A checkpoint for marking number of votes from a given block timestamp
+    // stores an address for each minter
+    mapping(address => bool) public minters;
+
+    // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
         uint256 fromTime;
         uint256 votes;
     }
 
-    /// @dev A record of votes checkpoints for each account, by index
+    // record of votes checkpoints for each account, by index
     mapping (address => mapping (uint256 => Checkpoint)) public checkpoints;
 
-    /// @dev The number of checkpoints for each account
+    // number of checkpoints for each account
     mapping (address => uint256) public numCheckpoints;
 
-    /// @dev The EIP-712 typehash for the contract's domain
+    // EIP-712 typehash for the contract's domain
     bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
-    /// @dev The EIP-712 typehash for the delegation struct used by the contract
+    // EIP-712 typehash for the delegation struct used by the contract
     bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
-    /// @dev A record of states for signing / validating signatures
+    // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
 
-      /// @dev An event thats emitted when an account changes its delegate
+    // emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    /// @dev An event thats emitted when a delegate account's vote balance changes
+    // emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
+    
+    // emitted when a minter is added or removed
+    event MinterAdded(address indexed account);
+    event MinterRemoved(address indexed account);
 
     /**
      * @dev Delegate votes from `msg.sender` to `delegatee`
@@ -959,11 +969,7 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
      * @param blockTimestamp The block timestamp to get the vote balance at
      * @return The number of votes the account had as of the given block timestamp
      */
-    function getPriorVotes(address account, uint blockTimestamp)
-        external
-        view
-        returns (uint256)
-    {
+    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint256) {
         require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
 
         uint256 nCheckpoints = numCheckpoints[account];
@@ -997,9 +1003,7 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
         return checkpoints[account][lower].votes;
     }
 
-    function _delegate(address delegator, address delegatee)
-        internal
-    {
+    function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = _delegates[delegator];
         uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled);
         _delegates[delegator] = delegatee;
@@ -1059,10 +1063,36 @@ contract SeanceCircle is ERC20('SeanceCircle Token', 'SEANCE'), Ownable {
         assembly { chainId := chainid() }
         return chainId;
     }
+
+
+    function isMinter(address _recipient) public view returns (bool) {
+        return minters[_recipient];
+    }
+
+    function addMinter(address _recipient) external onlyOwner {
+        require(!isMinter(_recipient), 'addMinter: already added to whitelist');
+        minters[_recipient] = true;
+
+        emit MinterAdded(_recipient);
+    }
+
+    function removeMinter(address _recipient) external onlyOwner {
+        require(
+            isMinter(_recipient), 
+            'addMinter: already added to whitelist');
+        minters[_recipient] = false;
+
+        emit MinterRemoved(_recipient);
+    }
+
+    function newSoul(SoulToken _soul) external onlyOwner {
+        require(soul != _soul, 'newSoul: must be a new address');
+        soul = _soul;
+    }
+
 }
 
 // File: contracts/libs/IMigratorChef.sol
-
 
 pragma solidity ^0.8.0;
 
@@ -1115,18 +1145,18 @@ contract MasterChef is Ownable {
     //** ADDRESSES **//
 
     // SOUL TOKEN!
-    address private soulAddress = 0x701D8b35Bc0857a3D2fACf7EF8a739CFEBbd1Cd7; //TESTNET
+    address private soulAddress;
     SoulToken public soul = SoulToken(soulAddress);
     
     // SEANCE TOKEN!
-    address private seanceAddress = 0xf9D9b96F213aCC6434f16fff5D932FA85cD179f3; // TESTNET
+    address private seanceAddress;
     SeanceCircle public seance = SeanceCircle(seanceAddress);
 
     // Team: recieves 12.5% of SOUL rewards.
-    address public team = msg.sender;
+    address public team;
 
     // DAO: recieves 12.5% of SOUL rewards.
-    address public dao = msg.sender;
+    address public dao;
 
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
@@ -1147,24 +1177,18 @@ contract MasterChef is Ownable {
     uint public BONUS_MULTIPLIER = 1;
 
     // The UNIX timestamp when SOUL mining starts.
-    uint public startTime = block.timestamp;
+    uint public startTime;
 
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint public totalAllocPoint;
 
+    // Indicates MasterChef contract has been initialized.
+    bool public initialized;
+
     // ** POOL VARIABLES ** //
 
-    // POOLS X POOL INFO.
+    // POOLS x POOL INFO.
     Pools[] public poolInfo;
-
-    modifier onlyCreator() {
-        require(
-            isCreator(msg.sender) || 
-            msg.sender == address(owner()) ||
-            msg.sender == address(dao),
-            'only minter allowed to add');
-        _;
-    }
 
     // Info of each user that stakes LP tokens.
     mapping (uint => mapping (address => Users)) public userInfo;
@@ -1175,23 +1199,52 @@ contract MasterChef is Ownable {
     event Deposit(address indexed user, uint indexed pid, uint amount);
     event Withdraw(address indexed user, uint indexed pid, uint amount);
 
+    event Initialized(address team, address dev, address soul, address seance, uint chainId, uint power);
+
     event CreatorAdded(address indexed user);
+    event CreatorRemoved(address indexed user);
+
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
     event PoolSet(uint pid, uint allocPoint);
 
     event PowerUpdated(uint power, uint totalPower);
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
 
-    constructor(
+    modifier onlyCreator() {
+        require(isCreator(msg.sender), 'only minter allowed to add');
+        _;
+    }
+
+    modifier isNotInitialized() {
+        require(!initialized, "has already begun");
+        _;
+    }
+
+    modifier isInitialized() {
+        require(initialized, "has not begun");
+        _;
+    }
+
+    function initialize(
+        address _soulAddress, 
+        address _seanceAddress, 
         uint _chainId,
         uint _totalChains,
         uint _totalPower,
-        uint _power
-    ) {
+        uint _power) external isNotInitialized onlyOwner {
+        soulAddress = _soulAddress;
+        seanceAddress = _seanceAddress;
+        dao = msg.sender;
+        team = msg.sender;
+
+        startTime = block.timestamp;
+
         chainId = _chainId;
         totalChains = _totalChains;
         totalPower = _totalPower + _power;
         power = _power;
+
+        creators[msg.sender] = true;
 
         // staking pool
         poolInfo.push(Pools({
@@ -1201,8 +1254,12 @@ contract MasterChef is Ownable {
             accSoulPerShare: 0
         }));
 
+        initialized = true;
+
         totalAllocPoint = 1000;
         totalChains ++;
+
+        emit Initialized(team, dao, soulAddress, seanceAddress, chainId, power);
     }
 
     function isCreator(address _recipient) public view returns (bool) {
@@ -1215,6 +1272,13 @@ contract MasterChef is Ownable {
         creators[_recipient] = true;
 
         emit CreatorAdded(_recipient);
+    }
+
+    function removeCreator(address _creator) external onlyOwner {
+        require(isCreator(_creator), 'removeCreator: not a creator');
+        creators[_creator] = false;
+        
+        emit CreatorRemoved(_creator);
     }
 
     function updateMultiplier(uint multiplierNumber) external onlyOwner {
@@ -1235,7 +1299,7 @@ contract MasterChef is Ownable {
     }
 
     // ADD -- NEW LP TOKEN POOL -- CREATOR
-    function add(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) external onlyCreator {
+    function add(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) external isInitialized onlyCreator {
         if (_withUpdate) massUpdatePools();
         uint lastRewardTime = block.timestamp > startTime ? block.timestamp : startTime;
         totalAllocPoint = totalAllocPoint + _allocPoint;
@@ -1253,8 +1317,7 @@ contract MasterChef is Ownable {
     }
 
     // UPDATE -- ALLOCATION POINT -- OWNER
-    function set(uint _pid, uint _allocPoint, bool _withUpdate) external {
-        require(msg.sender == owner() || msg.sender == dao, 'set: must be owner or dao');
+    function set(uint _pid, uint _allocPoint, bool _withUpdate) external isInitialized onlyCreator {
         if (_withUpdate) massUpdatePools();
         uint prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
@@ -1272,7 +1335,6 @@ contract MasterChef is Ownable {
         totalPower = prevTotalPower + _power;
 
         updateRewards(power, totalPower);
-
         emit PowerUpdated(power, totalPower);
     }
 
@@ -1449,16 +1511,28 @@ contract MasterChef is Ownable {
         seance.safeSoulTransfer(_to, _amount);
     }
 
-    // UPDATE -- TREASURY ADDRESS -- TREASURY || TEAM
-    function newDAO(address _dao) external {
-        require(msg.sender == dao || msg.sender == owner(), "newDAO: must be dao or owner");
+    // UPDATE -- DAO ADDRESS -- OWNER
+    function newDAO(address _dao) external onlyOwner {
+        require(dao != _dao, 'must be a new address');
         dao = _dao;
     }
 
-    // UPDATE -- ADMIN ADDRESS -- ADMIN
-    function newTeam(address _team) external {
-        require(msg.sender == team || msg.sender == owner(), "newTeam: must be team or owner");
+    // UPDATE -- TEAM ADDRESS -- OWNER
+    function newTeam(address _team) external onlyOwner {
+        require(team != _team, 'must be a new address');
         team = _team;
+    }
+
+    // UPDATE -- SOUL ADDRESS -- OWNER
+    function newSoul(SoulToken _soul) external onlyOwner {
+        require(soul != _soul, 'must be a new address');
+        soul = _soul;
+    }
+
+    // UPDATE -- SEANCE ADDRESS -- OWNER
+    function newSeance(SeanceCircle _seance) external onlyOwner {
+        require(seance != _seance, 'must be a new address');
+        seance = _seance;
     }
 
 }

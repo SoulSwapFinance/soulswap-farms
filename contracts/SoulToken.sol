@@ -23,7 +23,6 @@ contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
     // stores an address for each minter
     mapping(address => bool) public minters;
 
-
     // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
         uint256 fromTime;
@@ -45,14 +44,15 @@ contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
     // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
 
-    // event thats emitted when an account changes its delegate
+    // emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
-    // event thats emitted when a delegate account's vote balance changes
+    // emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
+    // emitted when a minter is added or removed
     event MinterAdded(address indexed account);
-
+    event MinterRemoved(address indexed account);
 
     function delegates(address delegator) external view returns (address)  {
         return _delegates[delegator];
@@ -236,16 +236,21 @@ contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {
         return chainId;
     }
 
-    function isMinter(address _recipient) public view returns (bool) {
-        return minters[_recipient];
+    function isMinter(address _minter) public view returns (bool) {
+        return minters[_minter];
     }
 
-    function addMinter(address _recipient) external onlyOwner {
-        require(
-            !isMinter(_recipient), 
-            'addToWhitelist: already added to whitelist');
-        minters[_recipient] = true;
+    function addMinter(address _minter) external onlyOwner {
+        require(!isMinter(_minter), 'already minter');
+        minters[_minter] = true;
 
-        emit MinterAdded(_recipient);
+        emit MinterAdded(_minter);
+    }
+
+    function removeMinter(address _minter) external onlyOwner {
+        require(isMinter(_minter), 'not a minter');
+        minters[_minter] = false;
+
+        emit MinterRemoved(_minter);
     }
 }
