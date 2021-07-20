@@ -1232,6 +1232,7 @@ contract MasterChef is Ownable {
         uint _totalChains,
         uint _totalPower,
         uint _power) external isNotInitialized onlyOwner {
+        creators[msg.sender] = true;
         soulAddress = _soulAddress;
         seanceAddress = _seanceAddress;
         dao = msg.sender;
@@ -1244,7 +1245,8 @@ contract MasterChef is Ownable {
         totalPower = _totalPower + _power;
         power = _power;
 
-        creators[msg.sender] = true;
+        soul  = SoulToken(soulAddress);
+        seance = SeanceCircle(seanceAddress);
 
         // staking pool
         poolInfo.push(Pools({

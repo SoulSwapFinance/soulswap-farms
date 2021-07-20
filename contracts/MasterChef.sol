@@ -44,11 +44,11 @@ contract MasterChef is Ownable {
 
     // SOUL TOKEN!
     address private soulAddress;
-    SoulToken public soul = SoulToken(soulAddress);
+    SoulToken public soul;
     
     // SEANCE TOKEN!
     address private seanceAddress;
-    SeanceCircle public seance = SeanceCircle(seanceAddress);
+    SeanceCircle public seance;
 
     // Team: recieves 12.5% of SOUL rewards.
     address public team;
@@ -130,6 +130,7 @@ contract MasterChef is Ownable {
         uint _totalChains,
         uint _totalPower,
         uint _power) external isNotInitialized onlyOwner {
+        creators[msg.sender] = true;
         soulAddress = _soulAddress;
         seanceAddress = _seanceAddress;
         dao = msg.sender;
@@ -142,7 +143,9 @@ contract MasterChef is Ownable {
         totalPower = _totalPower + _power;
         power = _power;
 
-        creators[msg.sender] = true;
+        soul  = SoulToken(soulAddress);
+        seance = SeanceCircle(seanceAddress);
+
 
         // staking pool
         poolInfo.push(Pools({
