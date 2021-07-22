@@ -11,6 +11,7 @@
 
     "flat:soul": "truffle-flattener contracts/SoulToken.sol > flats/SoulToken_flat.sol",
     "flat:seance": "truffle-flattener contracts/SeanceCircle.sol > flats/SeanceCircle_flat.sol",
+    "flat:bound": "truffle-flattener contracts/SpellBound.sol > flats/SpellBound_flat.sol",
     "flat:chef": "truffle-flattener contracts/MasterChef.sol > flats/MasterChef_flat.sol",
 
     "flat:vault": "truffle-flattener contracts/SoulVault.sol > flats/SoulVault_flat.sol",
