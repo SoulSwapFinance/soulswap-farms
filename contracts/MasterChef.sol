@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import './SoulToken.sol';
-import './SeanceCircle.sol';
+import './SpellBound.sol';
 import './libs/IMigratorChef.sol';
 
 // MasterChef is the master of Soul. She can make Soul and she is a fair lady.
@@ -46,9 +46,9 @@ contract MasterChef is Ownable {
     address private soulAddress;
     SoulToken public soul;
     
-    // SEANCE TOKEN!
-    address private seanceAddress;
-    SeanceCircle public seance;
+    // SPELL TOKEN!
+    address private spellAddress;
+    SpellBound public spell;
 
     // Team: recieves 12.5% of SOUL rewards.
     address public team;
@@ -97,7 +97,7 @@ contract MasterChef is Ownable {
     event Deposit(address indexed user, uint indexed pid, uint amount);
     event Withdraw(address indexed user, uint indexed pid, uint amount);
 
-    event Initialized(address team, address dev, address soul, address seance, uint chainId, uint power);
+    event Initialized(address team, address dev, address soul, address spell, uint chainId, uint power);
 
     event CreatorAdded(address indexed user);
     event CreatorRemoved(address indexed user);
@@ -125,14 +125,14 @@ contract MasterChef is Ownable {
 
     function initialize(
         address _soulAddress, 
-        address _seanceAddress, 
+        address _spellAddress, 
         uint _chainId,
         uint _totalChains,
         uint _totalPower,
         uint _power) external isNotInitialized onlyOwner {
         creators[msg.sender] = true;
         soulAddress = _soulAddress;
-        seanceAddress = _seanceAddress;
+        spellAddress = _spellAddress;
         dao = msg.sender;
         team = msg.sender;
 
@@ -144,55 +144,18 @@ contract MasterChef is Ownable {
         power = _power;
 
         soul  = SoulToken(soulAddress);
-        seance = SeanceCircle(seanceAddress);
-
-
-        // staking pool
-        poolInfo.push(Pools({
-            lpToken: soul,
-            allocPoint: 1000,
-            lastRewardTime: startTime,
-            accSoulPerShare: 0
-        }));
+        spell = SpellBound(spellAddress);
 
         initialized = true;
 
         totalAllocPoint = 1000;
         totalChains ++;
 
-        emit Initialized(team, dao, soulAddress, seanceAddress, chainId, power);
+        emit Initialized(team, dao, soulAddress, spellAddress, chainId, power);
     }
 
     function isCreator(address _recipient) public view returns (bool) {
         return creators[_recipient];
-    }
-
-    function addCreator(address _recipient) external onlyOwner {
-        require(!isCreator(_recipient), 
-        'addToCreators: already added to creators');
-        creators[_recipient] = true;
-
-        emit CreatorAdded(_recipient);
-    }
-
-    function removeCreator(address _creator) external onlyOwner {
-        require(isCreator(_creator), 'removeCreator: not a creator');
-        creators[_creator] = false;
-        
-        emit CreatorRemoved(_creator);
-    }
-
-    function updateMultiplier(uint multiplierNumber) external onlyOwner {
-        BONUS_MULTIPLIER = multiplierNumber;
-    }
-
-    function updateRewards(uint _power, uint _totalPower) internal {
-        uint factor = _power / _totalPower;
-
-        dailySoul = factor * (250000 * 1e18) / totalChains;
-        soulPerSecond = dailySoul / 1 days;
-
-        emit RewardsUpdated(dailySoul, soulPerSecond);
     }
 
     function poolLength() external view returns (uint) {
@@ -210,52 +173,21 @@ contract MasterChef is Ownable {
             lastRewardTime: lastRewardTime,
             accSoulPerShare: 0
         }));
-        updateStakingPool();
 
         uint _pid = poolInfo.length;
-        
         emit PoolAdded(_pid, _allocPoint, _lpToken, totalAllocPoint);
     }
 
     // UPDATE -- ALLOCATION POINT -- OWNER
+    // Update the given pool's SOUL allocation point.
     function set(uint _pid, uint _allocPoint, bool _withUpdate) external isInitialized onlyCreator {
-        if (_withUpdate) massUpdatePools();
         uint prevAllocPoint = poolInfo[_pid].allocPoint;
+        require(prevAllocPoint != _allocPoint, "set: assigning same alloc");
+        if (_withUpdate) massUpdatePools();
+        totalAllocPoint = totalAllocPoint - prevAllocPoint + _allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
-        if (prevAllocPoint != _allocPoint) {
-            totalAllocPoint = totalAllocPoint - prevAllocPoint + _allocPoint;
-            updateStakingPool();
-       }
 
-       emit PoolSet(_pid, _allocPoint);
-    }
-
-    // UPDATE -- POWER -- OWNER
-    function updatePower(uint _power) external onlyOwner {
-        uint prevTotalPower = totalPower - power;
-        totalPower = prevTotalPower + _power;
-
-        updateRewards(power, totalPower);
-        emit PowerUpdated(power, totalPower);
-    }
-
-    // UPDATE -- STAKING POOL -- INTERNAL
-    function updateStakingPool() internal {
-        uint length = poolInfo.length;
-        uint points = 0;
-        for (uint pid = 1; pid < length; ++pid) {
-            points = points + poolInfo[pid].allocPoint;
-        }
-        if (points != 0) {
-            points = points / 3;
-            totalAllocPoint = totalAllocPoint - poolInfo[0].allocPoint + points;
-            poolInfo[0].allocPoint = points;
-        }
-    }
-
-    // SET -- MIGRATOR CONTRACT -- OWNER
-    function setMigrator(IMigratorChef _migrator) external onlyOwner {
-        migrator = _migrator;
+        emit PoolSet(_pid, _allocPoint);
     }
 
     // MIGRATE -- LP TOKENS TO ANOTHER CONTRACT -- MIGRATOR
@@ -315,7 +247,7 @@ contract MasterChef is Ownable {
         soul.mint(team, soulReward / 8); // 12.5% SOUL per second to team
         soul.mint(dao, soulReward / 8); // 12.5% SOUL per second to dao
         
-        soul.mint(address(seance), soulReward);
+        soul.mint(address(spell), soulReward);
 
         pool.accSoulPerShare = pool.accSoulPerShare + (soulReward * 1e12 / lpSupply);
 
@@ -324,9 +256,6 @@ contract MasterChef is Ownable {
 
     // DEPOSIT -- LP TOKENS -- LP OWNERS
     function deposit(uint _pid, uint _amount) external {
-
-        require (_pid != 0, 'deposit SOUL by staking');
-
         Pools storage pool = poolInfo[_pid];
         Users storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
@@ -347,8 +276,6 @@ contract MasterChef is Ownable {
 
     // WITHDRAW -- LP TOKENS -- STAKERS
     function withdraw(uint _pid, uint _amount) external {
-
-        require (_pid != 0, 'withdraw SOUL by unstaking');
         Pools storage pool = poolInfo[_pid];
         Users storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
@@ -366,50 +293,44 @@ contract MasterChef is Ownable {
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
-    // STAKE -- SOUL TO MASTERCHEF -- PUBLIC SOUL HOLDERS
-    function enterStaking(uint _amount) external {
-        Pools storage pool = poolInfo[0];
-        Users storage user = userInfo[0][msg.sender];
-        updatePool(0);
-        if (user.amount > 0) {
-            uint pending = user.amount * pool.accSoulPerShare/ 1e12 - user.rewardDebt;
-            if(pending > 0) {
-                safeSoulTransfer(msg.sender, pending);
-            }
-        }
-        if(_amount > 0) {
-            pool.lpToken.transferFrom(address(msg.sender), address(this), _amount);
-            user.amount = user.amount + _amount;
-        }
-        user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
-
-        seance.mint(msg.sender, _amount);
-        emit Deposit(msg.sender, 0, _amount);
-    }
-
-    // WITHDRAW -- SOUL tokens from STAKING.
-    function leaveStaking(uint _amount) external {
-        Pools storage pool = poolInfo[0];
-        Users storage user = userInfo[0][msg.sender];
-        require(user.amount >= _amount, "withdraw: not good");
-        updatePool(0);
-        uint pending = user.amount * pool.accSoulPerShare / 1e12 - user.rewardDebt;
-        if(pending > 0) {
-            safeSoulTransfer(msg.sender, pending);
-        }
-        if(_amount > 0) {
-            user.amount = user.amount - _amount;
-            pool.lpToken.transfer(address(msg.sender), _amount);
-        }
-        user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
-
-        seance.burn(msg.sender, _amount);
-        emit Withdraw(msg.sender, 0, _amount);
-    }
-
-    // TRANSFER -- TRANSFERS SEANCE -- INTERNAL
+    // TRANSFER -- TRANSFERS SOUL -- INTERNAL
+    // Just in case if rounding error causes pool to not have enough SOULs.
     function safeSoulTransfer(address _to, uint _amount) internal {
-        seance.safeSoulTransfer(_to, _amount);
+        uint256 soulBal = soul.balanceOf(address(this));
+        if (_amount > soulBal) {
+            soul.transfer(_to, soulBal);
+        } else {
+            soul.transfer(_to, _amount);
+        }
+    }
+
+    // UPDATE -- REWARDS -- INTERNAL
+    function updateRewards(uint _power, uint _totalPower) internal {
+        uint factor = _power / _totalPower;
+
+        dailySoul = factor * (250000 * 1e18) / totalChains;
+        soulPerSecond = dailySoul / 1 days;
+
+        emit RewardsUpdated(dailySoul, soulPerSecond);
+    }
+
+    // UPDATE -- POWER -- OWNER
+    function updatePower(uint _power) external onlyOwner {
+        uint prevTotalPower = totalPower - power;
+        totalPower = prevTotalPower + _power;
+
+        updateRewards(power, totalPower);
+        emit PowerUpdated(power, totalPower);
+    }
+
+    // SET -- MIGRATOR CONTRACT -- OWNER
+    function setMigrator(IMigratorChef _migrator) external onlyOwner {
+        migrator = _migrator;
+    }
+
+    // UPDATE -- MULTIPLIER -- OWNER
+    function updateMultiplier(uint multiplierNumber) external onlyOwner {
+        BONUS_MULTIPLIER = multiplierNumber;
     }
 
     // UPDATE -- DAO ADDRESS -- OWNER
@@ -430,10 +351,24 @@ contract MasterChef is Ownable {
         soul = _soul;
     }
 
-    // UPDATE -- SEANCE ADDRESS -- OWNER
-    function newSeance(SeanceCircle _seance) external onlyOwner {
-        require(seance != _seance, 'must be a new address');
-        seance = _seance;
+    // UPDATE -- SPELL ADDRESS -- OWNER
+    function newSpell(SpellBound _spell) external onlyOwner {
+        require(spell != _spell, 'must be a new address');
+        spell = _spell;
     }
 
+    function addCreator(address _recipient) external onlyOwner {
+        require(!isCreator(_recipient), 
+        'addToCreators: already added to creators');
+        creators[_recipient] = true;
+
+        emit CreatorAdded(_recipient);
+    }
+
+    function removeCreator(address _creator) external onlyOwner {
+        require(isCreator(_creator), 'removeCreator: not a creator');
+        creators[_creator] = false;
+        
+        emit CreatorRemoved(_creator);
+    }
 }
