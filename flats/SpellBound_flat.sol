@@ -1,8 +1,8 @@
+// File: @openzeppelin/contracts/utils/Context.sol
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-
-// File: @openzeppelin/contracts/utils/Context.sol
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -26,7 +26,10 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -95,6 +98,8 @@ abstract contract Ownable is Context {
 }
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -178,7 +183,10 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -204,7 +212,12 @@ interface IERC20Metadata is IERC20 {
 
 // File: contracts/libs/ERC20.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
+
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -547,6 +560,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: @openzeppelin/contracts/utils/Address.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /**
@@ -758,9 +773,14 @@ library Address {
 
 // File: contracts/SpellBound.sol
 
+// SPDX-License-Identifier: MIT
+
+
+
+
 pragma solidity ^0.8.0;
 
-contract SpellBound is ERC20("SpellBound", "SPELL") {
+contract SpellBound is ERC20("SpellBound", "SPELL"), Ownable {
     IERC20 public soul;
 
     constructor(IERC20 _soul) {

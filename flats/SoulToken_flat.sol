@@ -1,8 +1,8 @@
+// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-
-// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -84,7 +84,10 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -110,6 +113,8 @@ interface IERC20Metadata is IERC20 {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /*
@@ -134,7 +139,12 @@ abstract contract Context {
 
 // File: contracts/libs/ERC20.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
+
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -477,7 +487,10 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -547,7 +560,11 @@ abstract contract Ownable is Context {
 
 // File: contracts/SoulToken.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
+
 
 // SoulToken with Governance.
 contract SoulToken is ERC20('SoulToken', 'SOUL'), Ownable {

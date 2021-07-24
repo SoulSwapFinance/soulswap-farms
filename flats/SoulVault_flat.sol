@@ -99,8 +99,6 @@ abstract contract Ownable is Context {
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-
-
 pragma solidity ^0.8.0;
 
 /**
@@ -182,8 +180,6 @@ interface IERC20 {
 }
 
 // File: @openzeppelin/contracts/utils/Address.sol
-
-
 
 pragma solidity ^0.8.0;
 
@@ -396,8 +392,6 @@ library Address {
 
 // File: @openzeppelin/contracts/security/Pausable.sol
 
-
-
 pragma solidity ^0.8.0;
 
 
@@ -504,9 +498,6 @@ interface IMigratorChef {
 
 // File: contracts/libs/IMasterChef.sol
 
-
-
-
 pragma solidity ^0.8.0;
 
 interface IMasterChef {
@@ -526,8 +517,6 @@ interface IMasterChef {
 
 // File: contracts/SoulVault.sol
 
-
-
 /**
     SoulVault stakes everyone's SOUL (as a single entity) & distributes the rewards accordingly to 
     the user's share of the total stake, calculated with the same logic as MasterChef.
@@ -536,12 +525,6 @@ interface IMasterChef {
  */
 
 pragma solidity ^0.8.0;
-
-
-
-
-
-
 
 contract SoulVault is Ownable, Pausable {
 
