@@ -1,27 +1,26 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import './libs/ERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
+import './libs/Operable.sol';
 
 // spell is the neatest bound around. come in with some soul, and leave with some more! 
 // handles swapping to and from spell -- our dex reward token.
 
-contract SpellBound is ERC20("SpellBound", "SPELL"), Ownable, ReentrancyGuard {
+contract SpellBound is ERC20("SpellBound", "SPELL"), Operable, ReentrancyGuard {
     IERC20 public soul;
+
     bool isInitialized; // stores whether contract has been initialized
 
     // the soul token contract
     function initialize(IERC20 _soul) external onlyOwner {
         soul = _soul;
-
+        isInitialized = true;
     }
 
     // locks soul, mints spell at bound rate
-    function enter(uint soulQty) public nonReentrant {
+    function enter(uint soulQty) external nonReentrant {
         require(isInitialized, 'staking has not yet begun');
         // acquires soul locked in the contract
         uint totalSoul = soul.balanceOf(address(this));
@@ -44,7 +43,8 @@ contract SpellBound is ERC20("SpellBound", "SPELL"), Ownable, ReentrancyGuard {
 
     // leaves the spellbound. reclaims soul.
     // unlocks soul rewards + staked | burns bounded spell
-    function leave(uint spellQty) public nonReentrant {
+    function leave(uint spellQty) external nonReentrant {
+        require(isInitialized, 'staking has not yet begun');
         // qty of spellBound in existence
         uint totalBound = totalSupply();
         // calcs the qty of soul the spell is worth
@@ -53,4 +53,13 @@ contract SpellBound is ERC20("SpellBound", "SPELL"), Ownable, ReentrancyGuard {
         _burn(msg.sender, spellQty);
         soul.transfer(msg.sender, rewards);
     }
+
+    // sends over soul that is shared across all spell bounded | operators-only, ywc
+    // does not mint new spell
+    function boundSpell(uint soulQty) external nonReentrant onlyOperator {
+        require(isInitialized, 'staking has not yet begun');
+        // locks the soul in the contract
+        soul.transferFrom(msg.sender, address(this), soulQty);
+    }
+
 }

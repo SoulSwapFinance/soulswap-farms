@@ -1,42 +1,39 @@
 const SoulPower = artifacts.require('SoulPower.sol');
-const MasterChef = artifacts.require('MasterChef.sol');
 const SeanceCircle = artifacts.require('SeanceCircle.sol');
+const SpellBound = artifacts.require('SpellBound.sol');
+const SoulSummoner = artifacts.require('SoulSummoner.sol');
 const SoulVault = artifacts.require('SoulVault.sol');
 
 module.exports = async function(deployer) {
 
-  // Deploy Soul Power Contract
+  // deploy soul
   await deployer.deploy(SoulPower)
   const soulPower = await SoulPower.deployed()
   await soulPower.mint(process.env.ADMIN_ADDRESS, web3.utils.toWei('50000000000000000', 'gwei'))
 
-  // Deploy Seance Token Contract
+  // deploy seance
   await deployer.deploy(SeanceCircle, soulPower.address)
-  const seanceToken = await SeanceCircle.deployed()
+  const seanceCircle = await SeanceCircle.deployed()
 
-// Deploy MasterChef Contract
-  await deployer.deploy(
-    MasterChef,
-    soulPower.address,
-    seanceToken.address,
-    process.env.ADMIN_ADDRESS, // Your address where you get SOUL powers - should be a multisig
-    process.env.TREASURY_ADDRESS, // Your address where you collect fees - should be a multisig
-    '1620819000', // process.env.START_TIME, // Block timestamp when token baking begins
-  )
-  const masterChef = await MasterChef.deployed()
+  // deploy spell
+  await deployer.deploy(SpellBound)
+  const spellBound = await SpellBound.deployed()
+  console.log('spellBound: ', spellBound.address)
 
-// Deploy SoulVault Contract
+// deploy summoner
+  await deployer.deploy(SoulSummoner)
+  const soulSummoner = await SoulSummoner.deployed()
+
+// deploy vault
 await deployer.deploy(
   SoulVault,
-  soulPower.address, // TOKEN
-  seanceToken.address, // RECEIPT TOKEN
-  masterChef.address, // MASTERCHEF
-  process.env.ADMIN_ADDRESS, // Your address where you get SOUL powers - should be a multisig
-  process.env.TREASURY_ADDRESS, // Your address where you collect fees - should be a multisig
+  soulPower.address, // soul
+  seanceCircle.address, // seance
+  soulSummoner.address // summoner
 )
 
-  // Make MasterChef contract token owner for soulPower and seanceToken
-  await soulPower.transferOwnership(masterChef.address)
-  await seanceToken.transferOwnership(masterChef.address)
+  // make SoulSummoner contract an operator for soulPower and seanceCircle
+  await soulPower.addOperator(soulSummoner.address)
+  await seanceCircle.addOperator(soulSummoner.address)
 
 }

@@ -2,46 +2,40 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import './libs/Operable.sol';
 import './SoulPower.sol';
 import './SeanceCircle.sol';
 import './libs/IMigrator.sol';
 
-// SoulSummoner is the master of Soul -- we all have some power over the summoner.
+// the summoner of souls | ownership transferred to a governance smart contract 
+// upon sufficient distribution + the community's desire to self-govern.
 
-// Ownership transferred to a governance smart contract once SOUL is sufficiently
-// distributed and the community can show to govern itself.
-
-contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
+contract SoulSummoner is Operable, ReentrancyGuard {
 
     // Info of each user.
     struct Users {
-        uint amount;     // How many LP tokens the user has provided.
-        uint rewardDebt; // Reward debt. See explanation below.
+        uint amount;     // ttl lp tokens user has provided
+        uint rewardDebt; // reward debt (see below)
         //
-        // We do some fancy math here. Basically, any point in time, the amount of SOUL
+        // we do some fancy math here. basically, any point in time, the amount of SOUL
         // entitled to a user but is pending to be distributed is:
         //
         //   pending reward = (user.amount * pool.accSoulPerShare) - user.rewardDebt
-
-        // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accSoulPerShare` (and `lastRewardTime`) gets updated.
-        //   2. User receives the pending reward sent to their address.
-        //   3. User's `amount` gets updated.
-        //   4. User's `rewardDebt` gets updated.
+        //
+        // the following occurs when anyone deposits or withdraws lp tokens to a pool:
+        //   1. pool: `accSoulPerShare` and `lastRewardTime` get updated.
+        //   2. user: receives pending reward.
+        //   3. user: `amount` updates(+/-).
+        //   4. user: `rewardDebt` updates (+/-).
     }
 
-    // Info of each pool.
+    // info of each pool.
     struct Pools {
-        IERC20 lpToken;       // Address of LP token contract.
-        uint allocPoint;      // How many allocation points assigned to this pool. SOULs to distribute per second.
-        uint lastRewardTime;  // Most recent UNIX timestamp that SOULs distribution occurs.
-        uint accSoulPerShare; // Accumulated SOULs per share, times 1e12. See below.
+        IERC20 lpToken;       // lp token ierc20 contract.
+        uint allocPoint;      // allocation points assigned to this pool | SOULs to distribute per second.
+        uint lastRewardTime;  // most recent UNIX timestamp during which SOULs distribution occurred in the pool.
+        uint accSoulPerShare; // accumulated SOULs per share, times 1e12.
     }
-
-    //** ADDRESSES **//
 
     // SOUL POWER!
     address private soulAddress;
@@ -51,46 +45,38 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
     address private seanceAddress;
     SeanceCircle public seance;
 
-    // Team: recieves 12.5% of SOUL rewards.
-    address public team;
+    address public team; // receives 1/8 soul supply
+    address public dao; // recieves 1/8 soul supply
 
-    // DAO: recieves 12.5% of SOUL rewards.
-    address public dao;
-
-    // The migrator contract. It has a lot of power. Can only be set through governance (owner).
+    // migrator contract | has a lot of power.
     IMigrator public migrator;
 
     // ** GLOBAL VARIABLES ** //
     uint public chainId;
     uint public totalChains;
-    uint public totalPower;
-    uint public power;
+    uint public totalWeight;
+    uint public weight;
 
     // SOUL per DAY
     uint public dailySoul = 250000 * 1e18;
 
-    // SOUL power created per second.
+    // SOUL power per second.
     uint public soulPerSecond = dailySoul / 86400;
 
-    // Bonus muliplier for early soul summoners.
+    // bonus muliplier for early soul summoners.
     uint public bonusMultiplier = 1;
 
-    // The UNIX timestamp when SOUL mining starts.
+    // UNIX timestamp when SOUL mining starts.
     uint public startTime;
 
-    // Total allocation points. Must be the sum of all allocation points in all pools.
+    // ttl allocation points | must be the sum of all allocation points.
     uint public totalAllocPoint;
 
-    // Indicates SoulSummoner contract has been initialized.
-    bool public initialized;
+    // summoner initialized state.
+    bool public isInitialized;
 
-    // ** POOL VARIABLES ** //
-
-    // POOLS x POOL INFO.
-    Pools[] public poolInfo;
-
-    // Info of each user that stakes LP tokens.
-    mapping (uint => mapping (address => Users)) public userInfo;
+    Pools[] public poolInfo; // pool info
+    mapping (uint => mapping (address => Users)) public userInfo; // staker data
 
     event Deposit(address indexed user, uint indexed pid, uint amount);
     event Withdraw(address indexed user, uint indexed pid, uint amount);
@@ -100,18 +86,8 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
     event PoolSet(uint pid, uint allocPoint);
 
-    event PowerUpdated(uint power, uint totalPower);
+    event WeightUpdated(uint weight, uint totalWeight);
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
-
-    modifier isNotInitialized() {
-        require(!initialized, "has already begun");
-        _;
-    }
-
-    modifier isInitialized() {
-        require(initialized, "has not begun");
-        _;
-    }
 
     modifier validatePoolByPid(uint256 _pid) {
         require(_pid < poolInfo.length, "pool does not exist");
@@ -132,8 +108,9 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
         address _seanceAddress, 
         uint _chainId,
         uint _totalChains,
-        uint _totalPower,
-        uint _power) external isNotInitialized onlyOwner {
+        uint _totalWeight,
+        uint _weight) external onlyOwner {
+        require(!isInitialized, 'already initialized');
         soulAddress = _soulAddress;
         seanceAddress = _seanceAddress;
         dao = msg.sender;
@@ -143,8 +120,8 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
 
         chainId = _chainId;
         totalChains = _totalChains;
-        totalPower = _totalPower + _power;
-        power = _power;
+        totalWeight = _totalWeight + _weight;
+        weight = _weight;
 
         soul  = SoulPower(soulAddress);
         seance = SeanceCircle(seanceAddress);
@@ -158,12 +135,12 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
             accSoulPerShare: 0
         }));
 
-        initialized = true;
+        isInitialized = true;
 
         totalAllocPoint = 1000;
         totalChains ++;
 
-        emit Initialized(team, dao, soulAddress, seanceAddress, chainId, power);
+        emit Initialized(team, dao, soulAddress, seanceAddress, chainId, weight);
     }
 
     function updateMultiplier(uint _bonusMultiplier) external onlyOperator {
@@ -184,7 +161,8 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
     }
 
     // ADD -- NEW LP POOL -- OPERATOR
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public isInitialized onlyOperator {
+    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public onlyOperator {
+        require(isInitialized, 'contract is not initialized');
         checkPoolDuplicate(_lpToken);
         addPool(_allocPoint, _lpToken, _withUpdate);
     }
@@ -207,11 +185,11 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
         uint _pid = poolInfo.length;
 
         emit PoolAdded(_pid, _allocPoint, _lpToken, totalAllocPoint);
-
     }
 
-    // UPDATE -- ALLOCATION POINT -- OWNER
-    function set(uint _pid, uint _allocPoint, bool _withUpdate) external isInitialized onlyOperator validatePoolByPid(_pid) {
+    // set the allocation points (operator)
+    function set(uint _pid, uint _allocPoint, bool _withUpdate) external onlyOperator validatePoolByPid(_pid) {
+        require(isInitialized, 'farming has not yet begun');
         if (_withUpdate) { massUpdatePools(); }
         uint prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
@@ -223,16 +201,27 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
        emit PoolSet(_pid, _allocPoint);
     }
 
-    // UPDATE -- POWER -- OWNER
-    function updatePower(uint _power) external onlyOwner {
-        uint prevTotalPower = totalPower - power;
-        totalPower = prevTotalPower + _power;
+    // increase weight (operator)
+    function gainWeight(uint _weight) external onlyOperator {
+        require(isInitialized, 'not so soon');
+        weight = _weight;
+        totalWeight += weight;
 
-        updateRewards(power, totalPower);
-        emit PowerUpdated(power, totalPower);
+        updateRewards(weight, totalWeight);
+        emit WeightUpdated(weight, totalWeight);
     }
 
-    // UPDATE -- STAKING POOL -- INTERNAL
+    // decrease weight (operator)
+    function loseWeight(uint _weight) external onlyOperator {
+        require(isInitialized, 'not so soon');
+        weight = _weight;
+        totalWeight -= weight;
+
+        updateRewards(weight, totalWeight);
+        emit WeightUpdated(weight, totalWeight);
+    }
+
+    // updates staking pool (internal)
     function updateStakingPool() internal {
         uint length = poolInfo.length;
         uint points = 0;
@@ -246,13 +235,15 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
         }
     }
 
-    // SET -- MIGRATOR CONTRACT -- OWNER
+    // sets migrator contract (owner)
     function setMigrator(IMigrator _migrator) external onlyOwner {
+        require(isInitialized, 'not so soon');
         migrator = _migrator;
     }
 
-    // MIGRATE -- LP TOKENS TO ANOTHER CONTRACT -- MIGRATOR
+    // migrates lp tokens to another contract (migrator)
     function migrate(uint _pid) external validatePoolByPid(_pid) {
+        require(isInitialized, 'not so soon');
         require(address(migrator) != address(0), 'no migrator set');
         Pools storage pool = poolInfo[_pid];
         IERC20 lpToken = pool.lpToken;
@@ -263,12 +254,11 @@ contract SoulSummoner is ReentrancyGuard, Ownable, Operable {
         pool.lpToken = _lpToken;
     }
 
-    // VIEW -- BONUS MULTIPLIER -- PUBLIC
     function getMultiplier(uint _from, uint _to) public view returns (uint) {
         return (_to - _from) * bonusMultiplier; // todo: minus parens
     }
 
-    // VIEW -- PENDING SOUL
+    // external view for pendingSoul
     function pendingSoul(uint _pid, address _user) external view returns (uint) {
         Pools storage pool = poolInfo[_pid];
         Users storage user = userInfo[_pid][_user];
