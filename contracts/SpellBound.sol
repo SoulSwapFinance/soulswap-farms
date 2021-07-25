@@ -14,7 +14,7 @@ contract SpellBound is ERC20("SpellBound", "SPELL"), Ownable {
     }
 
     // Enter the bound (somewhere lost between the simulacra and simulation). 
-    // Pay some SOUL. Earn some shares.
+    // Pay some SOUL. Collect some shares.
     function enter(uint256 _amount) public {
         uint256 totalSoul = soul.balanceOf(address(this));
         uint256 totalShares = totalSupply();

@@ -14,7 +14,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
-import './libs/IMasterChef.sol';
+import './libs/ISummoner.sol';
 
 contract SoulVault is Ownable, Pausable {
 
@@ -25,10 +25,10 @@ contract SoulVault is Ownable, Pausable {
         uint256 lastUserActionTime; // keeps track of the last user action time
     }
 
-    IERC20 public immutable token; // Soul token
+    IERC20 public immutable token; // Soul power
     IERC20 public immutable receiptToken; // Seance token
 
-    IMasterChef public immutable masterchef;
+    ISummoner public immutable summoner;
 
     mapping(address => UserInfo) public userInfo;
 
@@ -55,21 +55,21 @@ contract SoulVault is Ownable, Pausable {
 
     /**
      * @notice Constructor
-     * @param _token: Soul token contract
+     * @param _token: Soul power contract
      * @param _receiptToken: Seance token contract
-     * @param _masterchef: MasterChef contract
+     * @param _summoner: MasterChef contract
      */
     constructor(
         IERC20 _token,
         IERC20 _receiptToken,
-        IMasterChef _masterchef
+        IMasterChef _summoner
     ) {
         token = _token;
         receiptToken = _receiptToken;
-        masterchef = _masterchef;
+        summoner = _summoner;
 
         // Infinite approve
-        IERC20(_token).approve(address(_masterchef), type(uint256).max);
+        IERC20(_token).approve(address(_summoner), type(uint256).max);
     }
 
     /**
@@ -128,11 +128,11 @@ contract SoulVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Reinvests SOUL tokens into MasterChef
+     * @notice Reinvests SOUL powers into MasterChef
      * @dev Only possible when contract not paused.
      */
     function harvest() external notContract whenNotPaused {
-        IMasterChef(masterchef).leaveStaking(0);
+        IMasterChef(summoner).leaveStaking(0);
 
         uint256 bal = available();
         uint256 currentPerformanceFee = (bal * performanceFee) / 10000;
@@ -239,7 +239,7 @@ contract SoulVault is Ownable, Pausable {
      * @return Expected reward to collect in SOUL
      */
     function calculateHarvestSoulRewards() external view returns (uint256) {
-        uint256 amount = IMasterChef(masterchef).pendingSoul(0, address(this));
+        uint256 amount = IMasterChef(summoner).pendingSoul(0, address(this));
         amount = amount + available();
         uint256 currentCallFee = (amount * callFee) / 10000;
 
@@ -251,7 +251,7 @@ contract SoulVault is Ownable, Pausable {
      * @return Returns total pending SOUL rewards
      */
     function calculateTotalPendingSoulRewards() external view returns (uint256) {
-        uint256 amount = IMasterChef(masterchef).pendingSoul(0, address(this));
+        uint256 amount = IMasterChef(summoner).pendingSoul(0, address(this));
         amount = amount + available();
 
         return amount;
@@ -280,7 +280,7 @@ contract SoulVault is Ownable, Pausable {
         uint256 bal = available();
         if (bal < currentAmount) {
             uint256 balWithdraw = currentAmount - bal;
-            IMasterChef(masterchef).leaveStaking(balWithdraw);
+            IMasterChef(summoner).leaveStaking(balWithdraw);
             uint256 balAfter = available();
             uint256 diff = balAfter - bal;
             if (diff < balWithdraw) {
@@ -320,7 +320,7 @@ contract SoulVault is Ownable, Pausable {
      * @dev It includes tokens held by the contract and held in MasterChef
      */
     function balanceOf() public view returns (uint256) {
-        (uint256 amount, ) = IMasterChef(masterchef).userInfo(0, address(this));
+        (uint256 amount, ) = IMasterChef(summoner).userInfo(0, address(this));
         return token.balanceOf(address(this)) + amount;
     }
 
@@ -330,7 +330,7 @@ contract SoulVault is Ownable, Pausable {
     function _earn() internal {
         uint256 bal = available();
         if (bal > 0) {
-            IMasterChef(masterchef).enterStaking(bal);
+            IMasterChef(summoner).enterStaking(bal);
         }
     }
 

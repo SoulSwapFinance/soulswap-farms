@@ -1,41 +1,16 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
+import "./libs/ERC20.sol";
+import "./libs/Operable.sol";
 
-import '@openzeppelin/contracts/access/Ownable.sol';
-import './libs/Operable.sol';
-import './SoulPower.sol';
-
-// SeanceCircle with Governance.
-contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
-    /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (SoulSummoner).
+// SoulPower with Governance.
+contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
     function mint(address _to, uint256 _amount) public onlyOperator {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
-
-    function burn(address _from ,uint256 _amount) public onlyOperator {
-        _burn(_from, _amount);
-        _moveDelegates(_delegates[_from], address(0), _amount);
-    }
-
-    // The SOUL POWER!
-    SoulPower public soul;
-
-    constructor(SoulPower _soul) {
-        soul = _soul;
-    }
-
-    // Safe soul transfer function, just in case if rounding error causes pool to not have enough SOUL.
-    function safeSoulTransfer(address _to, uint256 _amount) public onlyOperator {
-        uint256 soulBal = soul.balanceOf(address(this));
-        if (_amount > soulBal) {
-            soul.transfer(_to, soulBal);
-        } else {
-            soul.transfer(_to, _amount);
-        }
-    }
-
+    
     // record of each accounts delegate
     mapping (address => address) internal _delegates;
 
@@ -66,22 +41,10 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
     // emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
-    /**
-     * @dev Delegate votes from `msg.sender` to `delegatee`
-     * @param delegator The address to get delegatee for
-     */
-    function delegates(address delegator)
-        external
-        view
-        returns (address)
-    {
+    function delegates(address delegator) external view returns (address)  {
         return _delegates[delegator];
     }
 
-   /**
-    * @dev Delegate votes from `msg.sender` to `delegatee`
-    * @param delegatee The address to delegate votes to
-    */
     function delegate(address delegatee) external {
         return _delegate(msg.sender, delegatee);
     }
@@ -159,7 +122,11 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
      * @param blockTimestamp The block timestamp to get the vote balance at
      * @return The number of votes the account had as of the given block timestamp
      */
-    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint256) {
+    function getPriorVotes(address account, uint blockTimestamp)
+        external
+        view
+        returns (uint256)
+    {
         require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
 
         uint256 nCheckpoints = numCheckpoints[account];
@@ -193,9 +160,11 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
         return checkpoints[account][lower].votes;
     }
 
-    function _delegate(address delegator, address delegatee) internal {
+    function _delegate(address delegator, address delegatee)
+        internal
+    {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOULs (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -252,11 +221,6 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
         uint256 chainId;
         assembly { chainId := chainid() }
         return chainId;
-    }
-
-    function newSoul(SoulPower _soul) external onlyOperator {
-        require(soul != _soul, 'must be a new address');
-        soul = _soul;
     }
 
 }

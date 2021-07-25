@@ -1,10 +1,10 @@
 const { assert } = require("chai");
 
-const SoulToken = artifacts.require('SoulToken');
+const SoulPower = artifacts.require('SoulPower');
 
-contract('SoulToken', ([alice, bob, carol, dev, minter]) => {
+contract('SoulPower', ([alice, bob, carol, dev, minter]) => {
     beforeEach(async () => {
-        this.soul = await SoulToken.new({ from: minter });
+        this.soul = await SoulPower.new({ from: minter });
     });
 
 
