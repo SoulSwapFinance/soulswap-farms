@@ -4,7 +4,7 @@ import './IMigrator.sol';
 
 pragma solidity ^0.8.0;
 
-interface ISummomer {
+interface ISummoner {
     function deposit(uint256 _pid, uint256 _amount) external;
     function withdraw(uint256 _pid, uint256 _amount) external;
     function enterStaking(uint256 _amount) external;

@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
 import './libs/Operable.sol';
 import './SoulPower.sol';
 

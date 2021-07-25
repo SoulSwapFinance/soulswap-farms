@@ -3,14 +3,14 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
+import './libs/Operable.sol';
 
 // import "@nomiclabs/buidler/console.sol";
 
 
-// SousChef is the chef of new tokens. She can summon any soul and she is a fair lady as well as a MasterChef.
-contract SousChef is Ownable {
+// SousSummoner is the chef of new tokens. She can summon any soul and she is a fair lady as well as a MasterChef.
+contract SousSummoner is Ownable, Operable {
 
     // Info of each user.
     struct UserInfo {
@@ -18,7 +18,7 @@ contract SousChef is Ownable {
         uint256 rewardDebt;  // Reward debt. See explanation below.
         uint256 rewardPending;
         //
-        // We do some fancy math here. Basically, any point in time, the amount of SEANCEs
+        // We do some fancy math here. Basically, any point in time, the amount of SEANCE
         // entitled to a user but is pending to be distributed is:
         //
         //   pending reward = (user.amount * pool.accRewardPerShare) - user.rewardDebt + user.rewardPending
@@ -39,7 +39,7 @@ contract SousChef is Ownable {
     // The SEANCE TOKEN!
     IERC20 public seance;
 
-    // chains containing souschef
+    // chains containing soussummoner
     uint32 public chains = 1;
 
     // rewards [[ / day ]].
@@ -96,7 +96,7 @@ contract SousChef is Ownable {
         rewardPerSecond = dailyReward / 86400;
     }
 
-    function updateChains(uint32 _chains) public onlyOwner {
+    function updateChains(uint32 _chains) public onlyOperator {
         chains = _chains;
         updateRewards();
     }
@@ -133,7 +133,7 @@ contract SousChef is Ownable {
     }
 
 
-    // Deposit Seance tokens to SousChef for Reward allocation.
+    // Deposit Seance tokens to SousSummoner for Reward allocation.
     function deposit(uint256 _amount) public {
         require (_amount > 0, 'amount 0');
         UserInfo storage user = userInfo[msg.sender];
@@ -150,7 +150,7 @@ contract SousChef is Ownable {
         emit Deposit(msg.sender, _amount);
     }
 
-    // Withdraw Seance tokens from SousChef.
+    // Withdraw Seance tokens from SousSummoner.
     function withdraw(uint256 _amount) public {
         require (_amount > 0, 'amount 0');
         UserInfo storage user = userInfo[msg.sender];

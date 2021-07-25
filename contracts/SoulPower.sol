@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-import "./libs/ERC20.sol";
+// import "./libs/ERC20.sol";
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import "./libs/Operable.sol";
 
 // SoulPower with Governance.

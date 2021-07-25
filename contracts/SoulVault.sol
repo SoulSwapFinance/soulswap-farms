@@ -2,7 +2,7 @@
 
 /**
     SoulVault stakes everyone's SOUL (as a single entity) & distributes the rewards accordingly to 
-    the user's share of the total stake, calculated with the same logic as MasterChef.
+    the user's share of the total stake, calculated with the same logic as SoulSummoner.
 
     The user needs to approve the contract address with SOUL `allowance()` in order to deposit.
  */
@@ -57,12 +57,12 @@ contract SoulVault is Ownable, Pausable {
      * @notice Constructor
      * @param _token: Soul power contract
      * @param _receiptToken: Seance token contract
-     * @param _summoner: MasterChef contract
+     * @param _summoner: SoulSummoner contract
      */
     constructor(
         IERC20 _token,
         IERC20 _receiptToken,
-        IMasterChef _summoner
+        ISummoner _summoner
     ) {
         token = _token;
         receiptToken = _receiptToken;
@@ -128,11 +128,11 @@ contract SoulVault is Ownable, Pausable {
     }
 
     /**
-     * @notice Reinvests SOUL powers into MasterChef
+     * @notice Reinvests SOUL powers into SoulSummoner
      * @dev Only possible when contract not paused.
      */
     function harvest() external notContract whenNotPaused {
-        IMasterChef(summoner).leaveStaking(0);
+        ISummoner(summoner).leaveStaking(0);
 
         uint256 bal = available();
         uint256 currentPerformanceFee = (bal * performanceFee) / 10000;
@@ -239,7 +239,7 @@ contract SoulVault is Ownable, Pausable {
      * @return Expected reward to collect in SOUL
      */
     function calculateHarvestSoulRewards() external view returns (uint256) {
-        uint256 amount = IMasterChef(summoner).pendingSoul(0, address(this));
+        uint256 amount = ISummoner(summoner).pendingSoul(0, address(this));
         amount = amount + available();
         uint256 currentCallFee = (amount * callFee) / 10000;
 
@@ -251,7 +251,7 @@ contract SoulVault is Ownable, Pausable {
      * @return Returns total pending SOUL rewards
      */
     function calculateTotalPendingSoulRewards() external view returns (uint256) {
-        uint256 amount = IMasterChef(summoner).pendingSoul(0, address(this));
+        uint256 amount = ISummoner(summoner).pendingSoul(0, address(this));
         amount = amount + available();
 
         return amount;
@@ -280,7 +280,7 @@ contract SoulVault is Ownable, Pausable {
         uint256 bal = available();
         if (bal < currentAmount) {
             uint256 balWithdraw = currentAmount - bal;
-            IMasterChef(summoner).leaveStaking(balWithdraw);
+            ISummoner(summoner).leaveStaking(balWithdraw);
             uint256 balAfter = available();
             uint256 diff = balAfter - bal;
             if (diff < balWithdraw) {
@@ -317,20 +317,20 @@ contract SoulVault is Ownable, Pausable {
 
     /**
      * @notice Calculates the total underlying tokens
-     * @dev It includes tokens held by the contract and held in MasterChef
+     * @dev It includes tokens held by the contract and held in SoulSummoner
      */
     function balanceOf() public view returns (uint256) {
-        (uint256 amount, ) = IMasterChef(summoner).userInfo(0, address(this));
+        (uint256 amount, ) = ISummoner(summoner).userInfo(0, address(this));
         return token.balanceOf(address(this)) + amount;
     }
 
     /**
-     * @notice Deposits tokens into MasterChef to earn staking rewards
+     * @notice Deposits tokens into SoulSummoner to earn staking rewards
      */
     function _earn() internal {
         uint256 bal = available();
         if (bal > 0) {
-            IMasterChef(summoner).enterStaking(bal);
+            ISummoner(summoner).enterStaking(bal);
         }
     }
 
