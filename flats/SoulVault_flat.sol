@@ -1,8 +1,8 @@
-// File: @openzeppelin/contracts/utils/Context.sol
-
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
+
+// File: @openzeppelin/contracts/utils/Context.sol
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -26,10 +26,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
-
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -98,8 +95,6 @@ abstract contract Ownable is Context {
 }
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
-
-// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -182,8 +177,6 @@ interface IERC20 {
 }
 
 // File: @openzeppelin/contracts/utils/Address.sol
-
-// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -396,10 +389,7 @@ library Address {
 
 // File: @openzeppelin/contracts/security/Pausable.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
-
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -488,9 +478,6 @@ abstract contract Pausable is Context {
 
 // File: contracts/libs/IMigrator.sol
 
-// SPDX-License-Identifier: MIT
-
-
 pragma solidity ^0.8.0;
 
 interface IMigrator {
@@ -503,9 +490,6 @@ interface IMigrator {
 }
 
 // File: contracts/libs/ISummoner.sol
-
-// SPDX-License-Identifier: MIT
-
 
 pragma solidity ^0.8.0;
 
@@ -524,8 +508,6 @@ interface ISummoner {
 
 // File: contracts/SoulVault.sol
 
-// SPDX-License-Identifier: MIT
-
 /**
     SoulVault stakes everyone's SOUL (as a single entity) & distributes the rewards accordingly to 
     the user's share of the total stake, calculated with the same logic as SoulSummoner.
@@ -540,61 +522,55 @@ pragma solidity ^0.8.0;
 
 
 
-
 contract SoulVault is Ownable, Pausable {
 
     struct UserInfo {
-        uint256 shares; // number of shares for a user
-        uint256 lastDepositedTime; // keeps track of deposited time for potential penalty
-        uint256 soulAtLastUserAction; // keeps track of soul deposited at the last user action
-        uint256 lastUserActionTime; // keeps track of the last user action time
+        uint shares; // number of shares for a user
+        uint lastDepositedTime; // keeps track of deposited time for potential penalty
+        uint soulAtLastUserAction; // keeps track of soul deposited at the last user action
+        uint lastUserActionTime; // keeps track of the last user action time
     }
 
-    IERC20 public immutable token; // Soul power
-    IERC20 public immutable receiptToken; // Seance token
+    IERC20 public soul; // soul power
+    IERC20 public seance; // seance circle
 
     ISummoner public immutable summoner;
 
     mapping(address => UserInfo) public userInfo;
 
-    uint256 public totalShares;
-    uint256 public lastHarvestedTime;
+    uint public totalShares;
+    uint public lastHarvestedTime;
     address public admin = msg.sender;
     address public treasury = msg.sender;
 
-    uint256 public constant MAX_PERFORMANCE_FEE = 500; // 5%
-    uint256 public constant MAX_CALL_FEE = 100; // 1%
-    uint256 public constant MAX_WITHDRAW_FEE = 100; // 1%
-    uint256 public constant MAX_WITHDRAW_FEE_PERIOD = 72 hours; // 3 days
+    uint public constant MAX_PERFORMANCE_FEE = 500; // 5%
+    uint public constant MAX_CALL_FEE = 100; // 1%
+    uint public constant MAX_WITHDRAW_FEE = 100; // 1%
+    uint public constant MAX_WITHDRAW_FEE_PERIOD = 72 hours; // 3 days
 
-    uint256 public performanceFee = 200; // 2%
-    uint256 public callFee = 25; // 0.25%
-    uint256 public withdrawFee = 10; // 0.1%
-    uint256 public withdrawFeePeriod = 72 hours; // 3 days
+    uint public performanceFee = 200; // 2%
+    uint public callFee = 25; // 0.25%
+    uint public withdrawFee = 10; // 0.1%
+    uint public withdrawFeePeriod = 72 hours; // 3 days
 
-    event Deposit(address indexed sender, uint256 amount, uint256 shares, uint256 lastDepositedTime);
-    event Withdraw(address indexed sender, uint256 amount, uint256 shares);
-    event Harvest(address indexed sender, uint256 performanceFee, uint256 callFee);
+    event Deposit(address indexed sender, uint amount, uint shares, uint lastDepositedTime);
+    event Withdraw(address indexed sender, uint amount, uint shares);
+    event Harvest(address indexed sender, uint performanceFee, uint callFee);
+   
     event Pause();
     event Unpause();
 
-    /**
-     * @notice Constructor
-     * @param _token: Soul power contract
-     * @param _receiptToken: Seance token contract
-     * @param _summoner: SoulSummoner contract
-     */
     constructor(
-        IERC20 _token,
-        IERC20 _receiptToken,
+        IERC20 _soul,
+        IERC20 _seance,
         ISummoner _summoner
     ) {
-        token = _token;
-        receiptToken = _receiptToken;
+        soul = _soul;
+        seance = _seance;
         summoner = _summoner;
 
         // Infinite approve
-        IERC20(_token).approve(address(_summoner), type(uint256).max);
+        soul.approve(address(_summoner), type(uint).max);
     }
 
     /**
@@ -619,12 +595,12 @@ contract SoulVault is Ownable, Pausable {
      * @dev Only possible when contract not paused & user has approved tokens for transferFrom.
      * @param _amount: number of tokens to deposit (in SOUL)
      */
-    function deposit(uint256 _amount) external whenNotPaused notContract {
+    function deposit(uint _amount) external whenNotPaused notContract {
         require(_amount > 0, "Nothing to deposit");
 
-        uint256 pool = balanceOf();
-        token.transferFrom(msg.sender, address(this), _amount);
-        uint256 currentShares = 0;
+        uint pool = balanceOf();
+        soul.transferFrom(msg.sender, address(this), _amount);
+        uint currentShares = 0;
         if (totalShares != 0) {
             currentShares = (_amount * totalShares) / pool;
         } else {
@@ -659,12 +635,12 @@ contract SoulVault is Ownable, Pausable {
     function harvest() external notContract whenNotPaused {
         ISummoner(summoner).leaveStaking(0);
 
-        uint256 bal = available();
-        uint256 currentPerformanceFee = (bal * performanceFee) / 10000;
-        token.transfer(treasury, currentPerformanceFee);
+        uint bal = available();
+        uint currentPerformanceFee = (bal * performanceFee) / 10000;
+        soul.transfer(treasury, currentPerformanceFee);
 
-        uint256 currentCallFee = (bal * callFee) / 10000;
-        token.transfer(msg.sender, currentCallFee);
+        uint currentCallFee = (bal * callFee) / 10000;
+        soul.transfer(msg.sender, currentCallFee);
 
         _earn();
 
@@ -673,56 +649,38 @@ contract SoulVault is Ownable, Pausable {
         emit Harvest(msg.sender, currentPerformanceFee, currentCallFee);
     }
 
-    /**
-     * @notice Sets admin address
-     * @dev Only callable by the contract owner.
-     */
+    // sets admin address (owner)
     function setAdmin(address _admin) external onlyOwner {
         require(_admin != address(0), "Cannot be zero address");
         admin = _admin;
     }
 
-    /**
-     * @notice Sets treasury address
-     * @dev Only callable by the contract owner.
-     */
+    // sets treasury address (owner)
     function setTreasury(address _treasury) external onlyOwner {
         require(_treasury != address(0), "Cannot be zero address");
         treasury = _treasury;
     }
 
-    /**
-     * @notice Sets performance fee
-     * @dev Only callable by the contract admin.
-     */
-    function setPerformanceFee(uint256 _performanceFee) external onlyAdmin {
+    // sets performance fee
+    function setPerformanceFee(uint _performanceFee) external onlyAdmin {
         require(_performanceFee <= MAX_PERFORMANCE_FEE, "performanceFee cannot be more than MAX_PERFORMANCE_FEE");
         performanceFee = _performanceFee;
     }
 
-    /**
-     * @notice Sets call fee
-     * @dev Only callable by the contract admin.
-     */
-    function setCallFee(uint256 _callFee) external onlyAdmin {
+    // sets call fee
+    function setCallFee(uint _callFee) external onlyAdmin {
         require(_callFee <= MAX_CALL_FEE, "callFee cannot be more than MAX_CALL_FEE");
         callFee = _callFee;
     }
 
-    /**
-     * @notice Sets withdraw fee
-     * @dev Only callable by the contract admin.
-     */
-    function setWithdrawFee(uint256 _withdrawFee) external onlyAdmin {
+    // sets withdraw fee
+    function setWithdrawFee(uint _withdrawFee) external onlyAdmin {
         require(_withdrawFee <= MAX_WITHDRAW_FEE, "withdrawFee cannot be more than MAX_WITHDRAW_FEE");
         withdrawFee = _withdrawFee;
     }
 
-    /**
-     * @notice Sets withdraw fee period
-     * @dev Only callable by the contract admin.
-     */
-    function setWithdrawFeePeriod(uint256 _withdrawFeePeriod) external onlyAdmin {
+    // sets withdraw fee period
+    function setWithdrawFeePeriod(uint _withdrawFeePeriod) external onlyAdmin {
         require(
             _withdrawFeePeriod <= MAX_WITHDRAW_FEE_PERIOD,
             "withdrawFeePeriod cannot be more than MAX_WITHDRAW_FEE_PERIOD"
@@ -730,92 +688,73 @@ contract SoulVault is Ownable, Pausable {
         withdrawFeePeriod = _withdrawFeePeriod;
     }
 
-    /**
-     * @notice Withdraw unexpected tokens sent to the Soul Vault
-     */
+    // withdraw unexpected tokens sent to the soul vault
     function inCaseTokensGetStuck(address _token) external onlyAdmin {
-        require(_token != address(token), "Token cannot be same as deposit token");
-        require(_token != address(receiptToken), "Token cannot be same as receipt token");
+        require(_token != address(soul), "Token cannot be same as deposit token");
+        require(_token != address(seance), "Token cannot be same as receipt token");
 
-        uint256 amount = IERC20(_token).balanceOf(address(this));
+        uint amount = IERC20(_token).balanceOf(address(this));
         IERC20(_token).transfer(msg.sender, amount);
     }
 
-    /**
-     * @notice Triggers stopped state
-     * @dev Only possible when contract not paused.
-     */
+    // triggers stopped state
     function pause() external onlyAdmin whenNotPaused {
         _pause();
         emit Pause();
     }
 
-    /**
-     * @notice Returns to normal state
-     * @dev Only possible when contract is paused.
-     */
+    // returns to normal state (when pausdd)
     function unpause() external onlyAdmin whenPaused {
         _unpause();
         emit Unpause();
     }
 
-    /**
-     * @notice Calculates the expected harvest reward from third party
-     * @return Expected reward to collect in SOUL
-     */
-    function calculateHarvestSoulRewards() external view returns (uint256) {
-        uint256 amount = ISummoner(summoner).pendingSoul(0, address(this));
+    // calc expected SOUL harvest reward from third party
+    function calculateHarvestSoulRewards() external view returns (uint) {
+        uint amount = ISummoner(summoner).pendingSoul(0, address(this));
         amount = amount + available();
-        uint256 currentCallFee = (amount * callFee) / 10000;
+        uint currentCallFee = (amount * callFee) / 10000;
 
         return currentCallFee;
     }
 
-    /**
-     * @notice Calculates the total pending rewards that can be restaked
-     * @return Returns total pending SOUL rewards
-     */
-    function calculateTotalPendingSoulRewards() external view returns (uint256) {
-        uint256 amount = ISummoner(summoner).pendingSoul(0, address(this));
+    // calc the ttl pending rewards that may be restaked
+    function calculateTotalPendingSoulRewards() external view returns (uint) {
+        uint amount = ISummoner(summoner).pendingSoul(0, address(this));
         amount = amount + available();
 
         return amount;
     }
 
-    /**
-     * @notice Calculates the price per share
-     */
-    function getPricePerFullShare() external view returns (uint256) {
+    // calcs the price per share
+    function getPricePerFullShare() external view returns (uint) {
         return totalShares == 0 ? 1e18 : (balanceOf() * 1e18) / totalShares;
     }
 
-    /**
-     * @notice Withdraws from funds from the Soul Vault
-     * @param _shares: Number of shares to withdraw
-     */
-    function withdraw(uint256 _shares) public notContract {
+    // withdraws from funds from the Soul Vault
+    function withdraw(uint _shares) public notContract {
         UserInfo storage user = userInfo[msg.sender];
         require(_shares > 0, "Nothing to withdraw");
         require(_shares <= user.shares, "Withdraw amount exceeds balance");
 
-        uint256 currentAmount = (balanceOf() * _shares) / totalShares;
+        uint currentAmount = (balanceOf() * _shares) / totalShares;
         user.shares = user.shares - _shares;
         totalShares = totalShares - _shares;
 
-        uint256 bal = available();
+        uint bal = available();
         if (bal < currentAmount) {
-            uint256 balWithdraw = currentAmount - bal;
+            uint balWithdraw = currentAmount - bal;
             ISummoner(summoner).leaveStaking(balWithdraw);
-            uint256 balAfter = available();
-            uint256 diff = balAfter - bal;
+            uint balAfter = available();
+            uint diff = balAfter - bal;
             if (diff < balWithdraw) {
                 currentAmount = bal + diff;
             }
         }
 
         if (block.timestamp < user.lastDepositedTime + withdrawFeePeriod) {
-            uint256 currentWithdrawFee = (currentAmount * withdrawFee) / 10000;
-            token.transfer(treasury, currentWithdrawFee);
+            uint currentWithdrawFee = (currentAmount * withdrawFee) / 10000;
+            soul.transfer(treasury, currentWithdrawFee);
             currentAmount = currentAmount - currentWithdrawFee;
         }
 
@@ -827,44 +766,34 @@ contract SoulVault is Ownable, Pausable {
 
         user.lastUserActionTime = block.timestamp;
 
-        token.transfer(msg.sender, currentAmount);
+        soul.transfer(msg.sender, currentAmount);
 
         emit Withdraw(msg.sender, currentAmount, _shares);
     }
 
-    /**
-     * @notice Checks the total SOUL deposited by users
-     * @dev The contract staked the total SOUL deposited
-     */
-    function available() public view returns (uint256) {
-        return token.balanceOf(address(this));
+    // checks the ttl SOUL deposited by users
+    function available() public view returns (uint) {
+        return soul.balanceOf(address(this));
     }
 
-    /**
-     * @notice Calculates the total underlying tokens
-     * @dev It includes tokens held by the contract and held in SoulSummoner
-     */
-    function balanceOf() public view returns (uint256) {
-        (uint256 amount, ) = ISummoner(summoner).userInfo(0, address(this));
-        return token.balanceOf(address(this)) + amount;
+
+    // ttl underlying soul | vault + SoulSummoner
+    function balanceOf() public view returns (uint) {
+        (uint amount, ) = ISummoner(summoner).userInfo(0, address(this));
+        return soul.balanceOf(address(this)) + amount;
     }
 
-    /**
-     * @notice Deposits tokens into SoulSummoner to earn staking rewards
-     */
+    // deposits into summoner to earn rewards
     function _earn() internal {
-        uint256 bal = available();
+        uint bal = available();
         if (bal > 0) {
             ISummoner(summoner).enterStaking(bal);
         }
     }
 
-    /**
-     * @notice Checks if address is a contract
-     * @dev It prevents contract from being targeted
-     */
+    // checks whether sender is contract to prev targeted attacks
     function _isContract(address addr) internal view returns (bool) {
-        uint256 size;
+        uint size;
         assembly {
             size := extcodesize(addr)
         }

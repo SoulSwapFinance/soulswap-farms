@@ -9,7 +9,7 @@ import './libs/Operable.sol';
 // import "@nomiclabs/buidler/console.sol";
 
 
-// SousSummoner is the chef of new tokens. She can summon any soul and she is a fair lady as well as a MasterChef.
+// SousSummoner is the summoner of new tokens. She can summon any soul and she is a fair lady as well as a MasterChef.
 contract SousSummoner is Ownable, Operable {
 
     // Info of each user.

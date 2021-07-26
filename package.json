@@ -16,6 +16,7 @@
 
     "flat:vault": "truffle-flattener contracts/SoulVault.sol > flats/SoulVault_flat.sol",
     "flat:sous": "truffle-flattener contracts/SousSummoner.sol > flats/SousSummoner_flat.sol",
+    "flat:maker": "truffle-flattener contracts/SoulMaker.sol > flats/SoulMaker_flat.sol",
 
     "verify:soul": "truffle run verify SoulPower --network testnet --license SPDX-License-Identifier",
     "verify:seance": "truffle run verify SeanceCircle --network testnet --license SPDX-License-Identifier",
@@ -24,6 +25,7 @@
 
     "verify:vault": "truffle run verify SoulVault --network testnet --license SPDX-License-Identifier",
     "verify:sous": "truffle run verify SousSummoner --network testnet --license SPDX-License-Identifier",
+    "verify:maker": "truffle run verify SoulMaker --network testnet --license SPDX-License-Identifier",
 
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage"

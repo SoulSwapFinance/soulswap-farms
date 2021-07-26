@@ -3,9 +3,7 @@
 // P1 - P3: OK
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-// import '@soulswap/swap-core/contracts/interfaces/ISoulSwapERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import './libs/SafeERC20.sol';
 import '@soulswap/swap-core/contracts/interfaces/ISoulSwapPair.sol';
 import '@soulswap/swap-core/contracts/interfaces/ISoulSwapFactory.sol';
 import './libs/Operable.sol';
