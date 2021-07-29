@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './SoulPower.sol';
 import './SeanceCircle.sol';
-import './libs/IMigrator.sol';
+import './interfaces/IMigrator.sol';
 
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
 contract SoulSummoner is Operable, ReentrancyGuard {
 
-    // info of each user.
+    // user info
     struct Users {
         uint amount;     // ttl lp tokens user has provided
         uint rewardDebt; // reward debt (see below)
@@ -29,7 +28,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         //   4. user: `rewardDebt` updates (+/-).
     }
 
-    // info of each pool.
+    // pool info
     struct Pools {
         IERC20 lpToken;       // lp token ierc20 contract.
         uint allocPoint;      // allocation points assigned to this pool | SOULs to distribute per second.
@@ -37,38 +36,37 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         uint accSoulPerShare; // accumulated SOULs per share, times 1e12.
     }
 
-    // SOUL POWER!
+    // soul power: our native utility token
     address private soulAddress;
     SoulPower public soul;
     
-    // SEANCE TOKEN!
+    // seance circle: our governance token
     address private seanceAddress;
     SeanceCircle public seance;
 
     address public team; // receives 1/8 soul supply
     address public dao; // recieves 1/8 soul supply
 
-    // migrator contract | has a lot of power.
+    // migrator contract | has lotsa power
     IMigrator public migrator;
 
-    // ** GLOBAL VARIABLES ** //
-    uint public chainId;
+    // blockchain variables accounting for share of overall emissions
     uint public totalWeight;
     uint public weight;
 
-    // SOUL per DAY
+    // soul x day x this.chain
     uint public dailySoul; // = weight * 250K * 1e18;
 
-    // SOUL / second.
-    uint public soulPerSecond = 0; // = dailySoul / 86400;
+    // soul x second x this.chain
+    uint public soulPerSecond; // = dailySoul / 86400;
 
-    // bonus muliplier for early soul summoners.
+    // bonus muliplier for early soul summoners
     uint public bonusMultiplier = 1;
 
-    // UNIX timestamp when SOUL mining starts.
+    // timestamp when soul rewards began (initialized)
     uint public startTime;
 
-    // ttl allocation points | must be the sum of all allocation points.
+    // ttl allocation points | must be the sum of all allocation points
     uint public totalAllocPoint;
 
     // summoner initialized state.
@@ -77,42 +75,46 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     Pools[] public poolInfo; // pool info
     mapping (uint => mapping (address => Users)) public userInfo; // staker data
 
+    // prevents: early reward distribution
     modifier isSummoned {
-        require(isInitialized, 'farming has not yet begun');
+        require(isInitialized, 'rewards have not yet begun');
         _;
     }
 
     event Deposit(address indexed user, uint indexed pid, uint amount);
     event Withdraw(address indexed user, uint indexed pid, uint amount);
 
-    event Initialized(address team, address dev, address soul, address seance, uint chainId, uint power);
-
+    event Initialized(address team, address dao, address soul, address seance, uint totalAllocPoint, uint weight);
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
     event PoolSet(uint pid, uint allocPoint);
 
     event WeightUpdated(uint weight, uint totalWeight);
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
+    event AccountsUpdated(address dao, address team);
+    event TokensUpdated(address soul, address seance);
 
-    modifier validatePoolByPid(uint256 _pid) {
-        require(_pid < poolInfo.length, "pool does not exist");
+    // validates: pool exists
+    modifier validatePoolByPid(uint pid) {
+        require(pid < poolInfo.length, 'pool does not exist');
         _;
     }
 
-    // VALIDATION -- ELIMINATES POOL DUPLICATION RISK -- NONE
-    function checkPoolDuplicate(IERC20 _token
-    ) internal view {
-        uint256 length = poolInfo.length;
-        for (uint256 pid = 0; pid < length; ++pid) {
-            require(poolInfo[pid].lpToken != _token, "add: existing pool");
+    // validate: pool uniqueness to eliminate duplication risk (internal view)
+    function checkPoolDuplicate(IERC20 _token) internal view {
+        uint length = poolInfo.length;
+
+        for (uint pid = 0; pid < length; ++pid) {
+            require(poolInfo[pid].lpToken != _token, 'duplicated pool');
         }
     }
 
     function initialize(
         address _soulAddress, 
         address _seanceAddress, 
-        uint _chainId,
         uint _totalWeight,
-        uint _weight) external onlyOwner {
+        uint _weight,
+        uint _stakingAlloc 
+       ) external onlyOwner {
         require(!isInitialized, 'already initialized');
 
         soulAddress = _soulAddress;
@@ -122,9 +124,9 @@ contract SoulSummoner is Operable, ReentrancyGuard {
 
         startTime = block.timestamp;
 
-        chainId = _chainId;
         totalWeight = _totalWeight + _weight;
         weight = _weight;
+        uint allocPoint = _stakingAlloc;
 
         soul  = SoulPower(soulAddress);
         seance = SeanceCircle(seanceAddress);
@@ -134,15 +136,15 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         // staking pool
         poolInfo.push(Pools({
             lpToken: soul,
-            allocPoint: 1000,
+            allocPoint: allocPoint,
             lastRewardTime: startTime,
             accSoulPerShare: 0
         }));
 
-        isInitialized = true;
-        totalAllocPoint = 1000;
+        isInitialized = true; // triggers initialize state
+        totalAllocPoint += allocPoint; // kickstarts total allocation
 
-        emit Initialized(team, dao, soulAddress, seanceAddress, chainId, weight);
+        emit Initialized(team, dao, soulAddress, seanceAddress, totalAllocPoint, weight);
     }
 
     function updateMultiplier(uint _bonusMultiplier) external onlyOperator {
@@ -150,9 +152,9 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     }
 
     function updateRewards(uint _weight, uint _totalWeight) internal {
-        uint share = _weight / _totalWeight; // share of ttl emissions for chain
-        dailySoul = share * (250000 * 1e18); // updates daily rewards x share(%) of ttl emissions
-        soulPerSecond = dailySoul / 1 days; // updates daily soul rewards / sec
+        uint share = _weight / _totalWeight; // share of ttl emissions for chain (chain % ttl emissions)
+        dailySoul = share * (250000 * 1e18); // dailySoul (for this.chain) = share (%) x 250K (soul emissions constant)
+        soulPerSecond = dailySoul / 1 days; // updates: daily rewards expressed in seconds (1 days = 86,400 secs)
 
         emit RewardsUpdated(dailySoul, soulPerSecond);
     }
@@ -161,72 +163,79 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         return poolInfo.length;
     }
 
-    // ADD -- NEW LP POOL -- OPERATOR
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public isSummoned onlyOperator {
+    // add: new pool (operator)
+    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) public isSummoned onlyOperator {
         checkPoolDuplicate(_lpToken);
-        addPool(_allocPoint, _lpToken, _withUpdate);
+        _addPool(_allocPoint, _lpToken, _withUpdate);
     }
 
-    // ADD -- NEW LP POOL -- INTERNAL
-    function addPool(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) internal {
+    // add: new pool (internal)
+    function _addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) internal {
         if (_withUpdate) { massUpdatePools(); }
-        uint256 lastRewardTime = block.timestamp > startTime ? block.timestamp : startTime;
-        totalAllocPoint = totalAllocPoint + _allocPoint;
+
+        totalAllocPoint += _allocPoint;
+        
         poolInfo.push(
-            Pools({
-                lpToken: _lpToken,
-                allocPoint: _allocPoint,
-                lastRewardTime: lastRewardTime,
-                accSoulPerShare: 0
-            })
-        );
+        Pools({
+            lpToken: _lpToken,
+            allocPoint: _allocPoint,
+            lastRewardTime: block.timestamp > startTime ? block.timestamp : startTime,
+            accSoulPerShare: 0
+        }));
         
         updateStakingPool();
-        uint _pid = poolInfo.length;
+        uint pid = poolInfo.length;
 
-        emit PoolAdded(_pid, _allocPoint, _lpToken, totalAllocPoint);
+        emit PoolAdded(pid, _allocPoint, _lpToken, totalAllocPoint);
     }
 
-    // set the allocation points (operator)
-    function set(uint _pid, uint _allocPoint, bool _withUpdate) external isSummoned validatePoolByPid(_pid) onlyOperator {
-        if (_withUpdate) { massUpdatePools(); }
-        uint prevAllocPoint = poolInfo[_pid].allocPoint;
-        poolInfo[_pid].allocPoint = _allocPoint;
-        if (prevAllocPoint != _allocPoint) {
-            totalAllocPoint = totalAllocPoint - prevAllocPoint + _allocPoint;
-            updateStakingPool();
-       }
+    // set: allocation points (operator)
+    function set(uint pid, uint allocPoint, bool withUpdate) 
+        external isSummoned validatePoolByPid(pid) onlyOperator {
+                if (withUpdate) { massUpdatePools(); } // updates all pools
+                
+                uint prevAllocPoint = poolInfo[pid].allocPoint;
+                poolInfo[pid].allocPoint = allocPoint;
+                
+                if (prevAllocPoint != allocPoint) {
+                    totalAllocPoint = totalAllocPoint - prevAllocPoint + allocPoint;
+                    
+                    updateStakingPool(); // updates only selected pool
+            }
 
-       emit PoolSet(_pid, _allocPoint);
+        emit PoolSet(pid, allocPoint);
     }
 
-    // increase weight (operator)
-    function newWeight(uint _weight) external isSummoned onlyOperator {
-        require(weight != _weight, 'must be new weight value');
+    // update: weight (operator)
+    function updateWeight(uint updatedWeight) external isSummoned onlyOperator {
+        require(weight != updatedWeight, 'must be new weight value');
         
-        if (weight < _weight) { // if weight is gained
-            uint gain = _weight - weight; // calculates weight gained
+        if (weight < updatedWeight) { // if weight is gained
+            uint gain = updatedWeight - weight; // calculates weight gained
             totalWeight += gain; // increases totalWeight
 
-            if (weight > _weight)  { // if weight is lost
-                uint loss = weight - _weight; // calculates weight gained
+            if (weight > updatedWeight)  { // if weight is lost
+                uint loss = weight - updatedWeight; // calculates weight gained
                 totalWeight -= loss; // decreases totalWeight
             }
 
-            weight = _weight; // updates weight variable      
+            weight = updatedWeight; // updates weight variable      
         }
         
         updateRewards(weight, totalWeight);
+
         emit WeightUpdated(weight, totalWeight);
     }
 
-    // updates staking pool (internal)
+    // update: staking pool (internal)
     function updateStakingPool() internal {
         uint length = poolInfo.length;
         uint points = 0;
-        for (uint pid = 1; pid < length; ++pid) {
-            points = points + poolInfo[pid].allocPoint;
+        
+        for (uint pid = 1; pid < length; ++pid) { 
+            points = points + poolInfo[pid].allocPoint; 
         }
+
         if (points != 0) {
             points = points / 3;
             totalAllocPoint = totalAllocPoint - poolInfo[0].allocPoint + points;
@@ -234,16 +243,17 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         }
     }
 
-    // sets migrator contract (owner)
+    // set: migrator contract (owner)
     function setMigrator(IMigrator _migrator) external isSummoned onlyOwner {
         migrator = _migrator;
     }
 
-    // migrates lp tokens to another contract (migrator)
-    function migrate(uint _pid) external isSummoned validatePoolByPid(_pid) {
+    // migrate: lp tokens to another contract (migrator)
+    function migrate(uint pid) external isSummoned validatePoolByPid(pid) {
         require(address(migrator) != address(0), 'no migrator set');
-        Pools storage pool = poolInfo[_pid];
+        Pools storage pool = poolInfo[pid];
         IERC20 lpToken = pool.lpToken;
+
         uint bal = lpToken.balanceOf(address(this));
         lpToken.approve(address(migrator), bal);
         IERC20 _lpToken = migrator.migrate(lpToken);
@@ -251,16 +261,19 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         pool.lpToken = _lpToken;
     }
 
+    // view: bonus multiplier (public)
     function getMultiplier(uint _from, uint _to) public view returns (uint) {
         return (_to - _from) * bonusMultiplier; // todo: minus parens
     }
 
-    // external view for pendingSoul
-    function pendingSoul(uint _pid, address _user) external view returns (uint) {
-        Pools storage pool = poolInfo[_pid];
-        Users storage user = userInfo[_pid][_user];
+    // view: pending soul rewards (external)
+    function pendingSoul(uint pid, address _user) external view returns (uint) {
+        Pools storage pool = poolInfo[pid];
+        Users storage user = userInfo[pid][_user];
+
         uint accSoulPerShare = pool.accSoulPerShare;
         uint lpSupply = pool.lpToken.balanceOf(address(this));
+
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
             uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
@@ -273,48 +286,41 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     // update: rewards for all pools (public)
     function massUpdatePools() public {
         uint length = poolInfo.length;
-        for (uint pid = 0; pid < length; ++pid) {
-            updatePool(pid);
-        }
+        for (uint pid = 0; pid < length; ++pid) { updatePool(pid); }
     }
 
     // update: rewards for a given pool id (public)
-    function updatePool(uint _pid) public validatePoolByPid(_pid) {
-        Pools storage pool = poolInfo[_pid];
-        if (block.timestamp <= pool.lastRewardTime) {
-            return;
-        }
+    function updatePool(uint pid) public validatePoolByPid(pid) {
+        Pools storage pool = poolInfo[pid];
+
+        if (block.timestamp <= pool.lastRewardTime) { return; }
         uint lpSupply = pool.lpToken.balanceOf(address(this));
-        if (lpSupply == 0) {
-            pool.lastRewardTime = block.timestamp;
-            return;
-        }
+
+        if (lpSupply == 0) { pool.lastRewardTime = block.timestamp; return; } // first staker in pool
+
         uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
-        uint soulReward = 
-            multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
+        uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
         
-        uint divi = soulReward * 1e12 / 8e12; // 1/8th rewards
+        uint divi = soulReward * 1e12 / 8e12; // 12.5% rewards x divi
         uint divis = divi * 2; // total divis
         uint shares = soulReward - divis; // net shares
         
         soul.mint(team, divi);
         soul.mint(dao, divi);
-        
         soul.mint(address(seance), shares);
 
         pool.accSoulPerShare = pool.accSoulPerShare + soulReward * shares / lpSupply;
-
         pool.lastRewardTime = block.timestamp;
     }
 
     // deposit: lp tokens (lp owner)
-    function deposit(uint _pid, uint _amount) external nonReentrant validatePoolByPid(_pid) {
+    function deposit(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
+        require (pid != 0, 'deposit SOUL by staking');
 
-        require (_pid != 0, 'deposit SOUL by staking');
+        Pools storage pool = poolInfo[pid];
+        Users storage user = userInfo[pid][msg.sender];
+        updatePool(pid);
 
-        Pools storage pool = poolInfo[_pid];
-        Users storage user = userInfo[_pid][msg.sender];
-        updatePool(_pid);
         if (user.amount > 0) { // already deposited assets
             uint pending = (user.amount * pool.accSoulPerShare) / 1e12 - user.rewardDebt;
             if(pending > 0) { // sends pending rewards, if applicable
@@ -322,105 +328,116 @@ contract SoulSummoner is Operable, ReentrancyGuard {
             }
         }
 
-        if (_amount > 0) { // if adding more
-            pool.lpToken.transferFrom(address(msg.sender), address(this), _amount);
-            user.amount = user.amount + _amount;
+        if (amount > 0) { // if adding more
+            pool.lpToken.transferFrom(address(msg.sender), address(this), amount);
+            user.amount = user.amount + amount;
         }
+
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
-        emit Deposit(msg.sender, _pid, _amount);
+        emit Deposit(msg.sender, pid, amount);
     }
 
-    // withdraw: lp tokens (stakers)
-    function withdraw(uint _pid, uint _amount) external nonReentrant validatePoolByPid(_pid) {
+    // withdraw: lp tokens (external farmers)
+    function withdraw(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
 
-        require (_pid != 0, 'withdraw SOUL by unstaking');
-        Pools storage pool = poolInfo[_pid];
-        Users storage user = userInfo[_pid][msg.sender];
-        require(user.amount >= _amount, 'withdraw not good');
+        require (pid != 0, 'withdraw SOUL by unstaking');
+        Pools storage pool = poolInfo[pid];
+        Users storage user = userInfo[pid][msg.sender];
 
-        updatePool(_pid);
+        require(user.amount >= amount, 'withdraw not good');
+        updatePool(pid);
+
         uint pending = user.amount * pool.accSoulPerShare / 1e12 - user.rewardDebt;
-        if(pending > 0) {
-            safeSoulTransfer(msg.sender, pending);
+
+        if(pending > 0) { safeSoulTransfer(msg.sender, pending); }
+
+        if(amount > 0) {
+            user.amount = user.amount - amount;
+            pool.lpToken.transfer(address(msg.sender), amount);
         }
-        if(_amount > 0) {
-            user.amount = user.amount - _amount;
-            pool.lpToken.transfer(address(msg.sender), _amount);
-        }
+
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
-        emit Withdraw(msg.sender, _pid, _amount);
+        emit Withdraw(msg.sender, pid, amount);
     }
 
 
-    // STAKE -- SOUL TO SOUL SUMMONER -- PUBLIC SOUL HOLDERS
+    // stake: soul into summoner (external)
     function enterStaking(uint _amount) external nonReentrant {
         Pools storage pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
         updatePool(0);
+
         if (user.amount > 0) {
             uint pending = user.amount * pool.accSoulPerShare / 1e12 - user.rewardDebt;
             if(pending > 0) {
                 safeSoulTransfer(msg.sender, pending);
             }
-        }
+        } 
+        
         if(_amount > 0) {
             pool.lpToken.transferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount + _amount;
         }
+
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
         seance.mint(msg.sender, _amount);
         emit Deposit(msg.sender, 0, _amount);
     }
 
-    // WITHDRAW -- SOUL powers from STAKING.
-    function leaveStaking(uint _amount) external nonReentrant {
+    // unstake: your soul (external staker)
+    function leaveStaking(uint amount) external nonReentrant {
         Pools storage pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
-        require(user.amount >= _amount, "withdraw: not good");
+
+        require(user.amount >= amount, "withdraw: not good");
         updatePool(0);
+
         uint pending = user.amount * pool.accSoulPerShare / 1e12 - user.rewardDebt;
+
         if(pending > 0) {
             safeSoulTransfer(msg.sender, pending);
         }
-        if(_amount > 0) {
-            user.amount = user.amount - _amount;
-            pool.lpToken.transfer(address(msg.sender), _amount);
+
+        if(amount > 0) {
+            user.amount = user.amount - amount;
+            pool.lpToken.transfer(address(msg.sender), amount);
         }
+
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
-        seance.burn(msg.sender, _amount);
-        emit Withdraw(msg.sender, 0, _amount);
+        seance.burn(msg.sender, amount);
+        emit Withdraw(msg.sender, 0, amount);
     }
     
-    // TRANSFER -- TRANSFERS SEANCE -- INTERNAL
-    function safeSoulTransfer(address _to, uint _amount) internal {
-        seance.safeSoulTransfer(_to, _amount);
+    // transfer: seance (internal)
+    function safeSoulTransfer(address account, uint amount) internal {
+        seance.safeSoulTransfer(account, amount);
     }
 
 
-    // UPDATE -- DAO ADDRESS -- OWNER
-    function newDAO(address _dao) external onlyOwner {
-        require(dao != _dao, 'must be a new address');
+    // update accounts: dao and team addresses (owner)
+    function updateAccounts(address _dao, address _team) external onlyOwner {
+        require(dao != _dao, 'must be a new account');
+        require(team != _team, 'must be a new account');
+
         dao = _dao;
-    }
-
-    // UPDATE -- TEAM ADDRESS -- OWNER
-    function newTeam(address _team) external onlyOwner {
-        require(team != _team, 'must be a new address');
         team = _team;
+
+    emit AccountsUpdated(dao, team);
+
     }
 
-    // UPDATE -- SOUL ADDRESS -- OWNER
-    function newSoul(SoulPower _soul) external onlyOwner {
-        require(soul != _soul, 'must be a new address');
-        soul = _soul;
-    }
+    // update token addresses: soul and seance addresses (owner)
+    function updateTokens(address _soul, address _seance) external onlyOwner {
+        require(soul != IERC20(_soul), 'must be a new token address');
+        require(seance != IERC20(_seance), 'must be a new token address');
 
-    // UPDATE -- SEANCE ADDRESS -- OWNER
-    function newSeance(SeanceCircle _seance) external onlyOwner {
-        require(seance != _seance, 'must be a new address');
-        seance = _seance;
+        soul = SoulPower(_soul);
+        seance = SeanceCircle(_seance);
+
+    emit TokensUpdated(_soul, _seance);
+
     }
 
 }

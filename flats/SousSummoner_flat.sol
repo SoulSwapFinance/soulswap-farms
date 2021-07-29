@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: MIT
-
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -83,6 +83,8 @@ interface IERC20 {
 }
 
 // File: @openzeppelin/contracts/utils/Address.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -295,6 +297,8 @@ library Address {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /*
@@ -319,7 +323,10 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -387,9 +394,11 @@ abstract contract Ownable is Context {
     }
 }
 
-// File: contracts/libs/Operable.sol
+// File: contracts/libraries/Operable.sol
 
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 
 // --------------------------------------------------------------------------------------
 //  Allows multiple contracts to act as `owner`, from `Ownable.sol`, with `onlyOperator`.
@@ -449,7 +458,15 @@ abstract contract Operable is Context, Ownable {
 
 // File: contracts/SousSummoner.sol
 
+/// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
+
+
+
+// import "@nomiclabs/buidler/console.sol";
+
 
 // SousSummoner is the summoner of new tokens. She can summon any soul and she is a fair lady as well as a MasterChef.
 contract SousSummoner is Ownable, Operable {

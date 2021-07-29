@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-// import "./libs/ERC20.sol";
-import './libs/ERC20.sol';
-import "./libs/Operable.sol";
+import './libraries/ERC20.sol';
+import "./libraries/Operable.sol";
 
 // SoulPower with Governance.
 contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {

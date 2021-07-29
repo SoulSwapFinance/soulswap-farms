@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: MIT
-
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -84,7 +84,10 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -110,6 +113,8 @@ interface IERC20Metadata is IERC20 {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /*
@@ -132,9 +137,14 @@ abstract contract Context {
     }
 }
 
-// File: contracts/libs/ERC20.sol
+// File: contracts/libraries/ERC20.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
+
+
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -479,6 +489,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /**
@@ -542,7 +554,10 @@ abstract contract ReentrancyGuard {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -610,9 +625,11 @@ abstract contract Ownable is Context {
     }
 }
 
-// File: contracts/libs/Operable.sol
+// File: contracts/libraries/Operable.sol
 
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 
 // --------------------------------------------------------------------------------------
 //  Allows multiple contracts to act as `owner`, from `Ownable.sol`, with `onlyOperator`.
@@ -672,7 +689,12 @@ abstract contract Operable is Context, Ownable {
 
 // File: contracts/SpellBound.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
+
+
 
 // spell is the neatest bound around. come in with some soul, and leave with some more! 
 // handles swapping to and from spell -- our dex reward token.
@@ -721,14 +743,6 @@ contract SpellBound is ERC20("SpellBound", "SPELL"), Operable, ReentrancyGuard {
         uint rewards = spellQty * boundRate;
         _burn(msg.sender, spellQty);
         soul.transfer(msg.sender, rewards);
-    }
-
-    // sends over soul that is shared across all spell bounded | operators-only, ywc
-    // does not mint new spell
-    function boundSpell(uint soulQty) external nonReentrant onlyOperator {
-        require(isInitialized, 'staking has not yet begun');
-        // locks the soul in the contract
-        soul.transferFrom(msg.sender, address(this), soulQty);
     }
 
 }

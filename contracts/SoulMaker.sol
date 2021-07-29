@@ -3,10 +3,10 @@
 // P1 - P3: OK
 pragma solidity ^0.8.0;
 
-import './libs/SafeERC20.sol';
+import './libraries/SafeERC20.sol';
 import '@soulswap/swap-core/contracts/interfaces/ISoulSwapPair.sol';
 import '@soulswap/swap-core/contracts/interfaces/ISoulSwapFactory.sol';
-import './libs/Operable.sol';
+import './libraries/Operable.sol';
 
 // SoulMaker is SoulSummoner's most generous wizard. SoulMaker may cook up Soul from pretty much anything!
 // This contract handles 'serving up' rewards for SpellBound holders by trading tokens collected from fees for Soul.
@@ -16,14 +16,9 @@ contract SoulMaker is Ownable, Operable {
     using SafeERC20 for IERC20;
 
     ISoulSwapFactory public immutable factory;
-    // V1 - V5: OK
     address public immutable spell;
-    // V1 - V5: OK
     address private immutable soul;
-    //0x6B3595068778DD592e39A122f4f5a5cF09C90fE2
-    // V1 - V5: OK
     address private immutable weth;
-    //0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
 
     mapping(address => address) internal _bridges;
 
@@ -70,17 +65,15 @@ contract SoulMaker is Ownable, Operable {
 
     // not a fool proof, but prevents flash loans, so here it's ok to use tx.origin
     modifier onlyEOA() {
-        // Try to make flash-loan exploit harder to do by only allowing externally owned addresses.
+        // try to making flash-loan exploit harder to do by only allowing externally owned addresses.
         require(msg.sender == tx.origin, 'SoulMaker: must use EOA');
         _;
     }
 
-    // F1 - F10: OK
-    // F3: _convert is separate to save gas by only checking the 'onlyEOA' modifier once in case of convertMultiple
-    // F6: There is an exploit to add lots of SOUL to the spellbound, run convert, then remove the SOUL again.
-    //     As the size of the SpellBound has grown, this requires large amounts of funds and isn't super profitable anymore
-    //     The onlyEOA modifier prevents this being done with a flash loan.
-    // C1 - C24: OK
+    // _convert is separate to save gas by only checking the 'onlyEOA' modifier once in case of convertMultiple
+    // there is an exploit to add lots of SOUL to the spellbound, run convert, then remove the SOUL again.
+    // as the size of the SpellBound has grown, this requires large amounts of funds and isn't super profitable anymore
+    // the onlyEOA modifier prevents this being done with a flash loan.
     function convert(address token0, address token1) external onlyEOA() {
         _convert(token0, token1);
     }
@@ -105,11 +98,10 @@ contract SoulMaker is Ownable, Operable {
             address(pair),
             pair.balanceOf(address(this))
         );
-        // X1 - X5: OK
+
         (uint256 amount0, uint256 amount1) = pair.burn(address(this));
-        if (token0 != pair.token0()) {
-            (amount0, amount1) = (amount1, amount0);
-        }
+
+        if (token0 != pair.token0()) { (amount0, amount1) = (amount1, amount0); }
         emit LogConvert(
             msg.sender,
             token0,

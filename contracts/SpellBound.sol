@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-import './libs/ERC20.sol';
+import './libraries/ERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-import './libs/Operable.sol';
+import './libraries/Operable.sol';
 
 // spell is the neatest bound around. come in with some soul, and leave with some more! 
 // handles swapping to and from spell -- our dex reward token.
@@ -52,14 +52,6 @@ contract SpellBound is ERC20("SpellBound", "SPELL"), Operable, ReentrancyGuard {
         uint rewards = spellQty * boundRate;
         _burn(msg.sender, spellQty);
         soul.transfer(msg.sender, rewards);
-    }
-
-    // sends over soul that is shared across all spell bounded | operators-only, ywc
-    // does not mint new spell
-    function boundSpell(uint soulQty) external nonReentrant onlyOperator {
-        require(isInitialized, 'staking has not yet begun');
-        // locks the soul in the contract
-        soul.transferFrom(msg.sender, address(this), soulQty);
     }
 
 }
