@@ -17,7 +17,7 @@ module.exports = {
             privateKeys.split(','), // Array of account private keys
             )
             //`https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`// URL to an Ethereum Node
-            `https://rpc.testnet.fantom.network/`// URL to an Ethereum Node
+            `https://rpc.testnet.fantom.network`// URL to an Ethereum Node
         },
         gas: 5000000,
         gasPrice: 25000000000,

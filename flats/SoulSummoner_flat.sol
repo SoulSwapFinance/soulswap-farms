@@ -1220,7 +1220,6 @@ contract SoulSummoner is Operable, ReentrancyGuard {
 
     // ** GLOBAL VARIABLES ** //
     uint public chainId;
-    uint public totalChains;
     uint public totalWeight;
     uint public weight;
 
@@ -1274,10 +1273,10 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         address _soulAddress, 
         address _seanceAddress, 
         uint _chainId,
-        uint _totalChains,
         uint _totalWeight,
         uint _weight) external onlyOwner {
         require(!isInitialized, 'already initialized');
+
         soulAddress = _soulAddress;
         seanceAddress = _seanceAddress;
         dao = msg.sender;
@@ -1286,7 +1285,6 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         startTime = block.timestamp;
 
         chainId = _chainId;
-        totalChains = _totalChains;
         totalWeight = _totalWeight + _weight;
         weight = _weight;
 
@@ -1303,9 +1301,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         }));
 
         isInitialized = true;
-
         totalAllocPoint = 1000;
-        totalChains ++;
 
         emit Initialized(team, dao, soulAddress, seanceAddress, chainId, weight);
     }
@@ -1314,11 +1310,10 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         bonusMultiplier = _bonusMultiplier;
     }
 
-    function updateRewards(uint _power, uint _totalPower) internal {
-        uint factor = _power / _totalPower;
-
-        dailySoul = factor * (250000 * 1e18) / totalChains;
-        soulPerSecond = dailySoul / 1 days;
+    function updateRewards(uint _weight, uint _totalWeight) internal {
+        uint share = _weight / _totalWeight; // share of ttl emissions for chain
+        dailySoul = share * (250000 * 1e18); // updates daily rewards x share(%) of ttl emissions
+        soulPerSecond = dailySoul / 1 days; // updates daily soul rewards / sec
 
         emit RewardsUpdated(dailySoul, soulPerSecond);
     }
@@ -1371,19 +1366,20 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     // increase weight (operator)
     function gainWeight(uint _weight) external onlyOperator {
         require(isInitialized, 'not so soon');
-        weight = _weight;
-        totalWeight += weight;
+        require(weight != _weight, 'must be new weight value');
+        
+        if (weight < _weight) { // if weight is gained
+            uint gain = _weight - weight; // calculates weight gained
+            totalWeight += gain; // increases totalWeight
 
-        updateRewards(weight, totalWeight);
-        emit WeightUpdated(weight, totalWeight);
-    }
+            if (weight > _weight)  { // if weight is lost
+                uint loss = weight - _weight; // calculates weight gained
+                totalWeight -= loss; // decreases totalWeight
+            }
 
-    // decrease weight (operator)
-    function loseWeight(uint _weight) external onlyOperator {
-        require(isInitialized, 'not so soon');
-        weight = _weight;
-        totalWeight -= weight;
-
+            weight = _weight; // updates weight variable      
+        }
+        
         updateRewards(weight, totalWeight);
         emit WeightUpdated(weight, totalWeight);
     }
