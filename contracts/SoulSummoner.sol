@@ -124,6 +124,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         soul  = SoulPower(soulAddress);
         seance = SeanceCircle(seanceAddress);
 
+        updateRewards(weight, totalWeight); // updates dailySoul and soulPerSecond
 
         // staking pool
         poolInfo.push(Pools({
