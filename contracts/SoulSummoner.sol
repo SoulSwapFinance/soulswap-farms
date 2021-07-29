@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './SoulPower.sol';
 import './SeanceCircle.sol';
 import './libs/IMigrator.sol';
@@ -12,7 +12,7 @@ import './libs/IMigrator.sol';
 
 contract SoulSummoner is Operable, ReentrancyGuard {
 
-    // Info of each user.
+    // info of each user.
     struct Users {
         uint amount;     // ttl lp tokens user has provided
         uint rewardDebt; // reward debt (see below)
@@ -57,10 +57,10 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     uint public weight;
 
     // SOUL per DAY
-    uint public dailySoul = 250000 * 1e18;
+    uint public dailySoul; // = weight * 250K * 1e18;
 
-    // SOUL power per second.
-    uint public soulPerSecond = dailySoul / 86400;
+    // SOUL / second.
+    uint public soulPerSecond = 0; // = dailySoul / 86400;
 
     // bonus muliplier for early soul summoners.
     uint public bonusMultiplier = 1;
@@ -76,6 +76,11 @@ contract SoulSummoner is Operable, ReentrancyGuard {
 
     Pools[] public poolInfo; // pool info
     mapping (uint => mapping (address => Users)) public userInfo; // staker data
+
+    modifier isSummoned {
+        require(isInitialized, 'farming has not yet begun');
+        _;
+    }
 
     event Deposit(address indexed user, uint indexed pid, uint amount);
     event Withdraw(address indexed user, uint indexed pid, uint amount);
@@ -157,8 +162,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     }
 
     // ADD -- NEW LP POOL -- OPERATOR
-    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public onlyOperator {
-        require(isInitialized, 'contract is not initialized');
+    function add(uint256 _allocPoint, IERC20 _lpToken, bool _withUpdate) public isSummoned onlyOperator {
         checkPoolDuplicate(_lpToken);
         addPool(_allocPoint, _lpToken, _withUpdate);
     }
@@ -184,8 +188,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     }
 
     // set the allocation points (operator)
-    function set(uint _pid, uint _allocPoint, bool _withUpdate) external onlyOperator validatePoolByPid(_pid) {
-        require(isInitialized, 'farming has not yet begun');
+    function set(uint _pid, uint _allocPoint, bool _withUpdate) external isSummoned validatePoolByPid(_pid) onlyOperator {
         if (_withUpdate) { massUpdatePools(); }
         uint prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
@@ -198,8 +201,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     }
 
     // increase weight (operator)
-    function gainWeight(uint _weight) external onlyOperator {
-        require(isInitialized, 'not so soon');
+    function newWeight(uint _weight) external isSummoned onlyOperator {
         require(weight != _weight, 'must be new weight value');
         
         if (weight < _weight) { // if weight is gained
@@ -233,14 +235,12 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     }
 
     // sets migrator contract (owner)
-    function setMigrator(IMigrator _migrator) external onlyOwner {
-        require(isInitialized, 'not so soon');
+    function setMigrator(IMigrator _migrator) external isSummoned onlyOwner {
         migrator = _migrator;
     }
 
     // migrates lp tokens to another contract (migrator)
-    function migrate(uint _pid) external validatePoolByPid(_pid) {
-        require(isInitialized, 'not so soon');
+    function migrate(uint _pid) external isSummoned validatePoolByPid(_pid) {
         require(address(migrator) != address(0), 'no migrator set');
         Pools storage pool = poolInfo[_pid];
         IERC20 lpToken = pool.lpToken;
@@ -270,7 +270,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         return user.amount * accSoulPerShare / 1e12 - user.rewardDebt;
     }
 
-    // UPDATE -- REWARD VARIABLES FOR ALL POOLS (HIGH GAS) -- PUBLIC
+    // update: rewards for all pools (public)
     function massUpdatePools() public {
         uint length = poolInfo.length;
         for (uint pid = 0; pid < length; ++pid) {
@@ -278,7 +278,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         }
     }
 
-    // UPDATE -- REWARD VARIABLES (POOL) -- PUBLIC
+    // update: rewards for a given pool id (public)
     function updatePool(uint _pid) public validatePoolByPid(_pid) {
         Pools storage pool = poolInfo[_pid];
         if (block.timestamp <= pool.lastRewardTime) {
@@ -307,7 +307,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         pool.lastRewardTime = block.timestamp;
     }
 
-    // DEPOSIT -- LP TOKENS -- LP OWNERS
+    // deposit: lp tokens (lp owner)
     function deposit(uint _pid, uint _amount) external nonReentrant validatePoolByPid(_pid) {
 
         require (_pid != 0, 'deposit SOUL by staking');
@@ -330,7 +330,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    // WITHDRAW -- LP TOKENS -- STAKERS
+    // withdraw: lp tokens (stakers)
     function withdraw(uint _pid, uint _amount) external nonReentrant validatePoolByPid(_pid) {
 
         require (_pid != 0, 'withdraw SOUL by unstaking');
