@@ -190,37 +190,35 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     }
 
     // set: allocation points (operator)
-    function set(uint pid, uint allocPoint, bool withUpdate) 
-        external isSummoned validatePoolByPid(pid) onlyOperator {
-                if (withUpdate) { massUpdatePools(); } // updates all pools
-                
-                uint prevAllocPoint = poolInfo[pid].allocPoint;
-                poolInfo[pid].allocPoint = allocPoint;
-                
-                if (prevAllocPoint != allocPoint) {
-                    totalAllocPoint = totalAllocPoint - prevAllocPoint + allocPoint;
-                    
-                    updateStakingPool(); // updates only selected pool
-            }
+    function set(uint pid, uint allocPoint, bool withUpdate) external isSummoned validatePoolByPid(pid) onlyOperator {
+        if (withUpdate) { massUpdatePools(); } // updates all pools
+        
+        uint prevAllocPoint = poolInfo[pid].allocPoint;
+        poolInfo[pid].allocPoint = allocPoint;
+        
+        if (prevAllocPoint != allocPoint) {
+            totalAllocPoint = totalAllocPoint - prevAllocPoint + allocPoint;
+            updateStakingPool(); // updates only selected pool
+        }
 
         emit PoolSet(pid, allocPoint);
     }
 
     // update: weight (operator)
-    function updateWeight(uint updatedWeight) external isSummoned onlyOperator {
-        require(weight != updatedWeight, 'must be new weight value');
+    function updateWeight(uint newWeight) external isSummoned onlyOperator {
+        require(weight != newWeight, 'must be new weight value');
         
-        if (weight < updatedWeight) { // if weight is gained
-            uint gain = updatedWeight - weight; // calculates weight gained
-            totalWeight += gain; // increases totalWeight
-
-            if (weight > updatedWeight)  { // if weight is lost
-                uint loss = weight - updatedWeight; // calculates weight gained
-                totalWeight -= loss; // decreases totalWeight
-            }
-
-            weight = updatedWeight; // updates weight variable      
+        if (weight < newWeight) {           // if weight is gained
+            uint gain = newWeight - weight; // calculates weight gained
+            totalWeight += gain;            // increases totalWeight
         }
+        
+        if (weight > newWeight)  {          // if weight is lost
+            uint loss = weight - newWeight; // calculates weight gained
+            totalWeight -= loss;            // decreases totalWeight
+        }
+
+        weight = newWeight; // updates weight variable      
         
         updateRewards(weight, totalWeight);
 
@@ -230,7 +228,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     // update: staking pool (internal)
     function updateStakingPool() internal {
         uint length = poolInfo.length;
-        uint points = 0;
+        uint points;
         
         for (uint pid = 1; pid < length; ++pid) { 
             points = points + poolInfo[pid].allocPoint; 
@@ -268,7 +266,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
 
     // view: pending soul rewards (external)
     function pendingSoul(uint pid, address _user) external view returns (uint) {
-        Pools storage pool = poolInfo[pid];
+        Pools memory pool = poolInfo[pid];
         Users storage user = userInfo[pid][_user];
 
         uint accSoulPerShare = pool.accSoulPerShare;
@@ -317,7 +315,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     function deposit(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
         require (pid != 0, 'deposit SOUL by staking');
 
-        Pools storage pool = poolInfo[pid];
+        Pools memory pool = poolInfo[pid];
         Users storage user = userInfo[pid][msg.sender];
         updatePool(pid);
 
@@ -339,9 +337,8 @@ contract SoulSummoner is Operable, ReentrancyGuard {
 
     // withdraw: lp tokens (external farmers)
     function withdraw(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
-
         require (pid != 0, 'withdraw SOUL by unstaking');
-        Pools storage pool = poolInfo[pid];
+        Pools memory pool = poolInfo[pid];
         Users storage user = userInfo[pid][msg.sender];
 
         require(user.amount >= amount, 'withdraw not good');
@@ -363,7 +360,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
 
     // stake: soul into summoner (external)
     function enterStaking(uint _amount) external nonReentrant {
-        Pools storage pool = poolInfo[0];
+        Pools memory pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
         updatePool(0);
 
@@ -387,7 +384,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
 
     // unstake: your soul (external staker)
     function leaveStaking(uint amount) external nonReentrant {
-        Pools storage pool = poolInfo[0];
+        Pools memory pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
 
         require(user.amount >= amount, "withdraw: not good");
@@ -424,8 +421,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         dao = _dao;
         team = _team;
 
-    emit AccountsUpdated(dao, team);
-
+        emit AccountsUpdated(dao, team);
     }
 
     // update token addresses: soul and seance addresses (owner)
@@ -436,8 +432,6 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         soul = SoulPower(_soul);
         seance = SeanceCircle(_seance);
 
-    emit TokensUpdated(_soul, _seance);
-
+        emit TokensUpdated(_soul, _seance);
     }
-
 }
