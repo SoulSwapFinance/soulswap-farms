@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+// import '@openzeppelin/contracts/access/Ownable.sol';
+// import '@openzeppelin/contracts/access/AccessControlEnumerable.sol';
 import './SoulPower.sol';
 import './SeanceCircle.sol';
 import './interfaces/IMigrator.sol';
@@ -9,7 +11,7 @@ import './interfaces/IMigrator.sol';
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract SoulSummoner is Operable, ReentrancyGuard {
+contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
 
     // user info
     struct Users {
@@ -147,7 +149,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
         emit Initialized(team, dao, soulAddress, seanceAddress, totalAllocPoint, weight);
     }
 
-    function updateMultiplier(uint _bonusMultiplier) external onlyOperator {
+    function updateMultiplier(uint _bonusMultiplier) external onlyRole(maat) { // maat -- goddess of cosmic order
         bonusMultiplier = _bonusMultiplier;
     }
 
@@ -164,9 +166,10 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     }
 
     // add: new pool (operator)
-    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) public isSummoned onlyOperator {
-        checkPoolDuplicate(_lpToken);
-        _addPool(_allocPoint, _lpToken, _withUpdate);
+    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) 
+        public isSummoned onlyRole(isis) { // isis: the soul summoning goddess whose power transcends them all
+            checkPoolDuplicate(_lpToken);
+            _addPool(_allocPoint, _lpToken, _withUpdate);
     }
 
     // add: new pool (internal)
@@ -191,7 +194,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
 
     // set: allocation points (operator)
     function set(uint pid, uint allocPoint, bool withUpdate) 
-        external isSummoned validatePoolByPid(pid) onlyOperator {
+        external isSummoned validatePoolByPid(pid) onlyRole(maat) { // maat -- goddess of cosmic order
                 if (withUpdate) { massUpdatePools(); } // updates all pools
                 
                 uint prevAllocPoint = poolInfo[pid].allocPoint;
@@ -207,7 +210,7 @@ contract SoulSummoner is Operable, ReentrancyGuard {
     }
 
     // update: weight (operator)
-    function updateWeight(uint updatedWeight) external isSummoned onlyOperator {
+    function updateWeight(uint updatedWeight) external isSummoned onlyRole(maat) { // maat -- goddess of cosmic order
         require(weight != updatedWeight, 'must be new weight value');
         
         if (weight < updatedWeight) { // if weight is gained

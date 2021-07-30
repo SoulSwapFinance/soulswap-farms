@@ -84,8 +84,6 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/utils/Address.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 /**
@@ -297,11 +295,7 @@ library Address {
 
 // File: contracts/libraries/SafeERC20.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
-
-
 
 /**
  * @title SafeERC20
@@ -395,8 +389,6 @@ library SafeERC20 {
 
 // File: @soulswap/swap-core/contracts/interfaces/ISoulSwapPair.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity >=0.5.0;
 
 interface ISoulSwapPair {
@@ -452,8 +444,6 @@ interface ISoulSwapPair {
 
 // File: @soulswap/swap-core/contracts/interfaces/ISoulSwapFactory.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity >=0.5.0;
 
 interface ISoulSwapFactory {
@@ -475,8 +465,6 @@ interface ISoulSwapFactory {
 }
 
 // File: @openzeppelin/contracts/utils/Context.sol
-
-// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -502,10 +490,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
-
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -575,9 +560,7 @@ abstract contract Ownable is Context {
 
 // File: contracts/libraries/Operable.sol
 
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
 
 // --------------------------------------------------------------------------------------
 //  Allows multiple contracts to act as `owner`, from `Ownable.sol`, with `onlyOperator`.
@@ -637,14 +620,7 @@ abstract contract Operable is Context, Ownable {
 
 // File: contracts/SoulMaker.sol
 
-// SPDX-License-Identifier: MIT
-
-// P1 - P3: OK
 pragma solidity ^0.8.0;
-
-
-
-
 
 // SoulMaker is SoulSummoner's most generous wizard. SoulMaker may cook up Soul from pretty much anything!
 // This contract handles 'serving up' rewards for SpellBound holders by trading tokens collected from fees for Soul.

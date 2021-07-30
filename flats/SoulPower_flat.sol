@@ -1,6 +1,6 @@
-// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
-
 // SPDX-License-Identifier: MIT
+
+// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
 pragma solidity ^0.8.0;
 
@@ -84,10 +84,7 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
-
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -113,8 +110,6 @@ interface IERC20Metadata is IERC20 {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 /*
@@ -139,12 +134,7 @@ abstract contract Context {
 
 // File: contracts/libraries/ERC20.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
-
-
-
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -489,10 +479,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
-
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -560,103 +547,446 @@ abstract contract Ownable is Context {
     }
 }
 
-// File: contracts/libraries/Operable.sol
+// File: @openzeppelin/contracts/utils/Strings.sol
 
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+/**
+ * @dev String operations.
+ */
+library Strings {
+    bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
 
-// --------------------------------------------------------------------------------------
-//  Allows multiple contracts to act as `owner`, from `Ownable.sol`, with `onlyOperator`.
-// --------------------------------------------------------------------------------------
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` decimal representation.
+     */
+    function toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT licence
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
 
-abstract contract Operable is Context, Ownable {
-
-    address[] public operators;
-    mapping(address => bool) public operator;
-
-    event OperatorUpdated(address indexed operator, bool indexed access);
-    constructor () {
-        address msgSender = _msgSender();
-        operator[msgSender] = true;
-        operators.push(msgSender);
-        emit OperatorUpdated(msgSender, true);
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
     }
 
     /**
-     * @dev Throws if called by any account other than the operator.
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
      */
-    modifier onlyOperator() {
-        address msgSender = _msgSender();
-        require(operator[msgSender], "Operator: caller is not an operator");
+    function toHexString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0x00";
+        }
+        uint256 temp = value;
+        uint256 length = 0;
+        while (temp != 0) {
+            length++;
+            temp >>= 8;
+        }
+        return toHexString(value, length);
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
+     */
+    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
+        bytes memory buffer = new bytes(2 * length + 2);
+        buffer[0] = "0";
+        buffer[1] = "x";
+        for (uint256 i = 2 * length + 1; i > 1; --i) {
+            buffer[i] = _HEX_SYMBOLS[value & 0xf];
+            value >>= 4;
+        }
+        require(value == 0, "Strings: hex length insufficient");
+        return string(buffer);
+    }
+}
+
+// File: @openzeppelin/contracts/utils/introspection/IERC165.sol
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev Interface of the ERC165 standard, as defined in the
+ * https://eips.ethereum.org/EIPS/eip-165[EIP].
+ *
+ * Implementers can declare support of contract interfaces, which can then be
+ * queried by others ({ERC165Checker}).
+ *
+ * For an implementation, see {ERC165}.
+ */
+interface IERC165 {
+    /**
+     * @dev Returns true if this contract implements the interface defined by
+     * `interfaceId`. See the corresponding
+     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+     * to learn more about how these ids are created.
+     *
+     * This function call must use less than 30 000 gas.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+// File: @openzeppelin/contracts/utils/introspection/ERC165.sol
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev Implementation of the {IERC165} interface.
+ *
+ * Contracts that want to implement ERC165 should inherit from this contract and override {supportsInterface} to check
+ * for the additional interface id that will be supported. For example:
+ *
+ * ```solidity
+ * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+ *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);
+ * }
+ * ```
+ *
+ * Alternatively, {ERC165Storage} provides an easier to use but more expensive implementation.
+ */
+abstract contract ERC165 is IERC165 {
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IERC165).interfaceId;
+    }
+}
+
+// File: @openzeppelin/contracts/access/AccessControl.sol
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev External interface of AccessControl declared to support ERC165 detection.
+ */
+interface IAccessControl {
+    function hasRole(bytes32 role, address account) external view returns (bool);
+
+    function getRoleAdmin(bytes32 role) external view returns (bytes32);
+
+    function grantRole(bytes32 role, address account) external;
+
+    function revokeRole(bytes32 role, address account) external;
+
+    function renounceRole(bytes32 role, address account) external;
+}
+
+/**
+ * @dev Contract module that allows children to implement role-based access
+ * control mechanisms. This is a lightweight version that doesn't allow enumerating role
+ * members except through off-chain means by accessing the contract event logs. Some
+ * applications may benefit from on-chain enumerability, for those cases see
+ * {AccessControlEnumerable}.
+ *
+ * Roles are referred to by their `bytes32` identifier. These should be exposed
+ * in the external API and be unique. The best way to achieve this is by
+ * using `public constant` hash digests:
+ *
+ * ```
+ * bytes32 public constant MY_ROLE = keccak256("MY_ROLE");
+ * ```
+ *
+ * Roles can be used to represent a set of permissions. To restrict access to a
+ * function call, use {hasRole}:
+ *
+ * ```
+ * function foo() public {
+ *     require(hasRole(MY_ROLE, msg.sender));
+ *     ...
+ * }
+ * ```
+ *
+ * Roles can be granted and revoked dynamically via the {grantRole} and
+ * {revokeRole} functions. Each role has an associated admin role, and only
+ * accounts that have a role's admin role can call {grantRole} and {revokeRole}.
+ *
+ * By default, the admin role for all roles is `DEFAULT_ADMIN_ROLE`, which means
+ * that only accounts with this role will be able to grant or revoke other
+ * roles. More complex role relationships can be created by using
+ * {_setRoleAdmin}.
+ *
+ * WARNING: The `DEFAULT_ADMIN_ROLE` is also its own admin: it has permission to
+ * grant and revoke this role. Extra precautions should be taken to secure
+ * accounts that have been granted it.
+ */
+abstract contract AccessControl is Context, IAccessControl, ERC165 {
+    struct RoleData {
+        mapping(address => bool) members;
+        bytes32 adminRole;
+    }
+
+    mapping(bytes32 => RoleData) private _roles;
+
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
+
+    /**
+     * @dev Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole`
+     *
+     * `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite
+     * {RoleAdminChanged} not being emitted signaling this.
+     *
+     * _Available since v3.1._
+     */
+    event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);
+
+    /**
+     * @dev Emitted when `account` is granted `role`.
+     *
+     * `sender` is the account that originated the contract call, an admin role
+     * bearer except when using {_setupRole}.
+     */
+    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
+
+    /**
+     * @dev Emitted when `account` is revoked `role`.
+     *
+     * `sender` is the account that originated the contract call:
+     *   - if using `revokeRole`, it is the admin role bearer
+     *   - if using `renounceRole`, it is the role bearer (i.e. `account`)
+     */
+    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
+
+    /**
+     * @dev Modifier that checks that an account has a specific role. Reverts
+     * with a standardized message including the required role.
+     *
+     * The format of the revert reason is given by the following regular expression:
+     *
+     *  /^AccessControl: account (0x[0-9a-f]{20}) is missing role (0x[0-9a-f]{32})$/
+     *
+     * _Available since v4.1._
+     */
+    modifier onlyRole(bytes32 role) {
+        _checkRole(role, _msgSender());
         _;
     }
 
     /**
-     * @dev Leaves the contract without operator. It will not be possible to call
-     * `onlyOperator` functions anymore. Can only be called by an operator.
+     * @dev See {IERC165-supportsInterface}.
      */
-    function removeOperator(address removingOperator) public virtual onlyOperator {
-        require(operator[removingOperator], 'Operable: address is not an operator');
-        operator[removingOperator] = false;
-        for (uint8 i; i < operators.length; i++) {
-            if (operators[i] == removingOperator) {
-                operators[i] = operators[i+1];
-                operators.pop();
-                emit OperatorUpdated(removingOperator, false);
-                return;
-            }
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IAccessControl).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    /**
+     * @dev Returns `true` if `account` has been granted `role`.
+     */
+    function hasRole(bytes32 role, address account) public view override returns (bool) {
+        return _roles[role].members[account];
+    }
+
+    /**
+     * @dev Revert with a standard message if `account` is missing `role`.
+     *
+     * The format of the revert reason is given by the following regular expression:
+     *
+     *  /^AccessControl: account (0x[0-9a-f]{20}) is missing role (0x[0-9a-f]{32})$/
+     */
+    function _checkRole(bytes32 role, address account) internal view {
+        if (!hasRole(role, account)) {
+            revert(
+                string(
+                    abi.encodePacked(
+                        "AccessControl: account ",
+                        Strings.toHexString(uint160(account), 20),
+                        " is missing role ",
+                        Strings.toHexString(uint256(role), 32)
+                    )
+                )
+            );
         }
     }
 
     /**
-     * @dev Adds address as operator of the contract.
-     * Can only be called by an operator.
+     * @dev Returns the admin role that controls `role`. See {grantRole} and
+     * {revokeRole}.
+     *
+     * To change a role's admin, use {_setRoleAdmin}.
      */
-    function addOperator(address newOperator) public virtual onlyOperator {
-        require(newOperator != address(0), "Operable: new operator is the zero address");
-        require(!operator[newOperator], 'Operable: address is already an operator');
-        operator[newOperator] = true;
-        operators.push(newOperator);
-        emit OperatorUpdated(newOperator, true);
+    function getRoleAdmin(bytes32 role) public view override returns (bytes32) {
+        return _roles[role].adminRole;
+    }
+
+    /**
+     * @dev Grants `role` to `account`.
+     *
+     * If `account` had not been already granted `role`, emits a {RoleGranted}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     */
+    function grantRole(bytes32 role, address account) public virtual override onlyRole(getRoleAdmin(role)) {
+        _grantRole(role, account);
+    }
+
+    /**
+     * @dev Revokes `role` from `account`.
+     *
+     * If `account` had been granted `role`, emits a {RoleRevoked} event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     */
+    function revokeRole(bytes32 role, address account) public virtual override onlyRole(getRoleAdmin(role)) {
+        _revokeRole(role, account);
+    }
+
+    /**
+     * @dev Revokes `role` from the calling account.
+     *
+     * Roles are often managed via {grantRole} and {revokeRole}: this function's
+     * purpose is to provide a mechanism for accounts to lose their privileges
+     * if they are compromised (such as when a trusted device is misplaced).
+     *
+     * If the calling account had been granted `role`, emits a {RoleRevoked}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must be `account`.
+     */
+    function renounceRole(bytes32 role, address account) public virtual override {
+        require(account == _msgSender(), "AccessControl: can only renounce roles for self");
+
+        _revokeRole(role, account);
+    }
+
+    /**
+     * @dev Grants `role` to `account`.
+     *
+     * If `account` had not been already granted `role`, emits a {RoleGranted}
+     * event. Note that unlike {grantRole}, this function doesn't perform any
+     * checks on the calling account.
+     *
+     * [WARNING]
+     * ====
+     * This function should only be called from the constructor when setting
+     * up the initial roles for the system.
+     *
+     * Using this function in any other way is effectively circumventing the admin
+     * system imposed by {AccessControl}.
+     * ====
+     */
+    function _setupRole(bytes32 role, address account) internal virtual {
+        _grantRole(role, account);
+    }
+
+    /**
+     * @dev Sets `adminRole` as ``role``'s admin role.
+     *
+     * Emits a {RoleAdminChanged} event.
+     */
+    function _setRoleAdmin(bytes32 role, bytes32 adminRole) internal virtual {
+        emit RoleAdminChanged(role, getRoleAdmin(role), adminRole);
+        _roles[role].adminRole = adminRole;
+    }
+
+    function _grantRole(bytes32 role, address account) private {
+        if (!hasRole(role, account)) {
+            _roles[role].members[account] = true;
+            emit RoleGranted(role, account, _msgSender());
+        }
+    }
+
+    function _revokeRole(bytes32 role, address account) private {
+        if (hasRole(role, account)) {
+            _roles[role].members[account] = false;
+            emit RoleRevoked(role, account, _msgSender());
+        }
     }
 }
 
 // File: contracts/SoulPower.sol
 
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
+contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
+    
+    // divinated roles
+    bytes32 public anunnaki; // alpha supreme
+    bytes32 public thoth; // god of wisdom and magic
 
+    event RoleDivinated(bytes32 divine, bytes32 anunnaki);
 
-// SoulPower with Governance.
-contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
-    function mint(address _to, uint256 _amount) public onlyOperator {
+    // restricted to the council of the divine passed as an object to obey (divine role)
+    modifier obey(bytes32 divine) {
+        require(hasRole(divine, _msgSender()), "restricted to divine.");
+        _;
+
+    }
+    
+    // channels the power of the anunnaki and thoth to the deployer (deployer)
+    constructor() {
+
+        anunnaki = keccak256("anunnaki"); // alpha supreme
+        thoth = keccak256("thoth"); // god of wisdom and magic
+
+        _divinationCeremony(DEFAULT_ADMIN_ROLE, anunnaki, msg.sender);
+        _divinationCeremony(anunnaki, anunnaki, msg.sender); 
+        _divinationCeremony(thoth, anunnaki, msg.sender);
+    }
+
+    
+    function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 
+        internal returns (bool) {
+            _setupRole(_role, _account);
+            _setRoleAdmin(_role, _adminRole);
+
+        return true;
+
+    }
+    
+    // mint soul power as the council of thoth so wills
+    // thoth is the self-created, egytian god of knowledge, creator of magic itself
+    function mint(address _to, uint _amount) public obey(thoth) { 
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
+
+    function hasDivineRole(bytes32 role) external view returns (bool) {
+        bool isDivine = hasRole(role, msg.sender);
+        return isDivine;
     
+    }
+
+
     // record of each accounts delegate
     mapping (address => address) internal _delegates;
 
     // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
-        uint256 fromTime;
-        uint256 votes;
+        uint fromTime;
+        uint votes;
     }
 
     // record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint256 => Checkpoint)) public checkpoints;
+    mapping (address => mapping (uint => Checkpoint)) public checkpoints;
 
     // number of checkpoints for each account
-    mapping (address => uint256) public numCheckpoints;
+    mapping (address => uint) public numCheckpoints;
 
     // EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint chainId,address verifyingContract)");
 
     // EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
+    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint nonce,uint expiry)");
 
     // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
@@ -676,48 +1006,27 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
     }
 
     /**
-     * @dev Delegates votes from signatory to `delegatee`
-     * @param delegatee The address to delegate votes to
-     * @param nonce The contract state required to match the signature
-     * @param expiry The time at which to expire the signature
-     * @param v The recovery byte of the signature
-     * @param r Half of the ECDSA signature pair
-     * @param s Half of the ECDSA signature pair
+     * @dev delegates votes from signatory to `delegatee`
+     * @param delegatee address to delegate votes to
+     * @param nonce contract state required to match the signature
+     * @param expiry time at which to expire the signature
+     * @param v recovery byte of the signature
+     * @param r first half [1/2] of the ECDSA signature pair
+     * @param s second half [2/2] of the ECDSA signature pair
      */
-    function delegateBySig(
-        address delegatee,
-        uint nonce,
-        uint expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    )
-        external
-    {
+    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s)
+        external {
+
         bytes32 domainSeparator = keccak256(
-            abi.encode(
-                DOMAIN_TYPEHASH,
-                keccak256(bytes(name())),
-                getChainId(),
-                address(this)
-            )
+            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), getChainId(), address(this))
         );
 
         bytes32 structHash = keccak256(
-            abi.encode(
-                DELEGATION_TYPEHASH,
-                delegatee,
-                nonce,
-                expiry
-            )
+            abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry)
         );
 
         bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                domainSeparator,
-                structHash
-            )
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
         );
 
         address signatory = ecrecover(digest, v, r, s);
@@ -727,61 +1036,37 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
         return _delegate(signatory, delegatee);
     }
 
-    /**
-     * @dev Gets the current votes balance for `account`
-     * @param account The address to get votes balance
-     * @return The number of current votes for `account`
-     */
-    function getCurrentVotes(address account)
-        external
-        view
-        returns (uint256)
-    {
-        uint256 nCheckpoints = numCheckpoints[account];
+    // returns: current votes balance for `account`
+    function getCurrentVotes(address account) external view returns (uint) {
+        uint nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    /**
-     * @dev Determine the prior number of votes for an account as of a block timestamp
-     * @dev Block timestamp must be a finalized block or else this function will revert to prevent misinformation.
-     * @param account The address of the account to check
-     * @param blockTimestamp The block timestamp to get the vote balance at
-     * @return The number of votes the account had as of the given block timestamp
-     */
-    function getPriorVotes(address account, uint blockTimestamp)
-        external
-        view
-        returns (uint256)
-    {
+    // returns: an account's prior vote count as of a given timestamp
+    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint) {
         require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
+        uint nCheckpoints = numCheckpoints[account];
+        
+        if (nCheckpoints == 0) { return 0; }
 
-        uint256 nCheckpoints = numCheckpoints[account];
-        if (nCheckpoints == 0) {
-            return 0;
-        }
-
-        // First check most recent balance
+        // first check most recent balance
         if (checkpoints[account][nCheckpoints - 1].fromTime <= blockTimestamp) {
             return checkpoints[account][nCheckpoints - 1].votes;
         }
 
-        // Next check implicit zero balance
-        if (checkpoints[account][0].fromTime > blockTimestamp) {
-            return 0;
-        }
+        // next check implicit zero balance
+        if (checkpoints[account][0].fromTime > blockTimestamp) { return 0; }
 
-        uint256 lower = 0;
-        uint256 upper = nCheckpoints - 1;
+        uint lower = 0;
+        uint upper = nCheckpoints - 1;
         while (upper > lower) {
-            uint256 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+            uint center = upper - (upper - lower) / 2; // ceil, avoiding overflow
             Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromTime == blockTimestamp) {
-                return cp.votes;
-            } else if (cp.fromTime < blockTimestamp) {
-                lower = center;
-            } else {
-                upper = center - 1;
-            }
+            if (cp.fromTime == blockTimestamp) 
+                { return cp.votes; }
+             else if (cp.fromTime < blockTimestamp) 
+                { lower = center; }
+              else { upper = center - 1; }
         }
         return checkpoints[account][lower].votes;
     }
@@ -790,7 +1075,7 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
         internal
     {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOULs (not scaled);
+        uint delegatorBalance = balanceOf(delegator); // balance of underlying SOULs (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -798,21 +1083,21 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint256 amount) internal {
+    function _moveDelegates(address srcRep, address dstRep, uint amount) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 // decrease old representative
-                uint256 srcRepNum = numCheckpoints[srcRep];
-                uint256 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint256 srcRepNew = srcRepOld - amount;
+                uint srcRepNum = numCheckpoints[srcRep];
+                uint srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
+                uint srcRepNew = srcRepOld - amount;
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 // increase new representative
-                uint256 dstRepNum = numCheckpoints[dstRep];
-                uint256 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint256 dstRepNew = dstRepOld + amount;
+                uint dstRepNum = numCheckpoints[dstRep];
+                uint dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
+                uint dstRepNew = dstRepOld + amount;
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
         }
@@ -820,13 +1105,11 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
 
     function _writeCheckpoint(
         address delegatee,
-        uint256 nCheckpoints,
-        uint256 oldVotes,
-        uint256 newVotes
-    )
-        internal
-    {
-        uint256 blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
+        uint nCheckpoints,
+        uint oldVotes,
+        uint newVotes
+    ) internal {
+        uint blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromTime == blockTimestamp) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
@@ -838,13 +1121,13 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
         emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
 
-    function safe256(uint n, string memory errorMessage) internal pure returns (uint256) {
-        require(n < type(uint256).max, errorMessage);
-        return uint256(n);
+    function safe256(uint n, string memory errorMessage) internal pure returns (uint) {
+        require(n < type(uint).max, errorMessage);
+        return uint(n);
     }
 
     function getChainId() internal view returns (uint) {
-        uint256 chainId;
+        uint chainId;
         assembly { chainId := chainid() }
         return chainId;
     }

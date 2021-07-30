@@ -2,35 +2,84 @@
 
 pragma solidity ^0.8.0;
 import './libraries/ERC20.sol';
-import "./libraries/Operable.sol";
+import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/access/AccessControl.sol';
 
-// SoulPower with Governance.
-contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
-    function mint(address _to, uint256 _amount) public onlyOperator {
+// soul power
+// File: contracts/SoulPower.sol
+
+pragma solidity ^0.8.0;
+
+contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
+    
+    // divinated roles
+    bytes32 public anunnaki; // alpha supreme
+    bytes32 public thoth; // god of wisdom and magic
+
+    event RoleDivinated(bytes32 divine, bytes32 anunnaki);
+
+    // restricted to the council of the divine passed as an object to obey (divine role)
+    modifier obey(bytes32 divine) {
+        require(hasRole(divine, _msgSender()), "restricted to divine.");
+        _;
+
+    }
+    
+    // channels the power of the anunnaki and thoth to the deployer (deployer)
+    constructor() {
+
+        anunnaki = keccak256("anunnaki"); // alpha supreme
+        thoth = keccak256("thoth"); // god of wisdom and magic
+
+        _divinationCeremony(DEFAULT_ADMIN_ROLE, anunnaki, msg.sender);
+        _divinationCeremony(anunnaki, anunnaki, msg.sender); 
+        _divinationCeremony(thoth, anunnaki, msg.sender);
+    }
+
+    
+    function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 
+        internal returns (bool) {
+            _setupRole(_role, _account);
+            _setRoleAdmin(_role, _adminRole);
+
+        return true;
+
+    }
+    
+    // mint soul power as the council of thoth so wills
+    // thoth is the self-created, egytian god of knowledge, creator of magic itself
+    function mint(address _to, uint _amount) public obey(thoth) { 
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
+
+    function hasDivineRole(bytes32 role) external view returns (bool) {
+        bool isDivine = hasRole(role, msg.sender);
+        return isDivine;
     
+    }
+
+
     // record of each accounts delegate
     mapping (address => address) internal _delegates;
 
     // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
-        uint256 fromTime;
-        uint256 votes;
+        uint fromTime;
+        uint votes;
     }
 
     // record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint256 => Checkpoint)) public checkpoints;
+    mapping (address => mapping (uint => Checkpoint)) public checkpoints;
 
     // number of checkpoints for each account
-    mapping (address => uint256) public numCheckpoints;
+    mapping (address => uint) public numCheckpoints;
 
     // EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint chainId,address verifyingContract)");
 
     // EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
+    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint nonce,uint expiry)");
 
     // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
@@ -50,48 +99,27 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
     }
 
     /**
-     * @dev Delegates votes from signatory to `delegatee`
-     * @param delegatee The address to delegate votes to
-     * @param nonce The contract state required to match the signature
-     * @param expiry The time at which to expire the signature
-     * @param v The recovery byte of the signature
-     * @param r Half of the ECDSA signature pair
-     * @param s Half of the ECDSA signature pair
+     * @dev delegates votes from signatory to `delegatee`
+     * @param delegatee address to delegate votes to
+     * @param nonce contract state required to match the signature
+     * @param expiry time at which to expire the signature
+     * @param v recovery byte of the signature
+     * @param r first half [1/2] of the ECDSA signature pair
+     * @param s second half [2/2] of the ECDSA signature pair
      */
-    function delegateBySig(
-        address delegatee,
-        uint nonce,
-        uint expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    )
-        external
-    {
+    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s)
+        external {
+
         bytes32 domainSeparator = keccak256(
-            abi.encode(
-                DOMAIN_TYPEHASH,
-                keccak256(bytes(name())),
-                getChainId(),
-                address(this)
-            )
+            abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), getChainId(), address(this))
         );
 
         bytes32 structHash = keccak256(
-            abi.encode(
-                DELEGATION_TYPEHASH,
-                delegatee,
-                nonce,
-                expiry
-            )
+            abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry)
         );
 
         bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                domainSeparator,
-                structHash
-            )
+            abi.encodePacked("\x19\x01", domainSeparator, structHash)
         );
 
         address signatory = ecrecover(digest, v, r, s);
@@ -101,61 +129,37 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
         return _delegate(signatory, delegatee);
     }
 
-    /**
-     * @dev Gets the current votes balance for `account`
-     * @param account The address to get votes balance
-     * @return The number of current votes for `account`
-     */
-    function getCurrentVotes(address account)
-        external
-        view
-        returns (uint256)
-    {
-        uint256 nCheckpoints = numCheckpoints[account];
+    // returns: current votes balance for `account`
+    function getCurrentVotes(address account) external view returns (uint) {
+        uint nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    /**
-     * @dev Determine the prior number of votes for an account as of a block timestamp
-     * @dev Block timestamp must be a finalized block or else this function will revert to prevent misinformation.
-     * @param account The address of the account to check
-     * @param blockTimestamp The block timestamp to get the vote balance at
-     * @return The number of votes the account had as of the given block timestamp
-     */
-    function getPriorVotes(address account, uint blockTimestamp)
-        external
-        view
-        returns (uint256)
-    {
+    // returns: an account's prior vote count as of a given timestamp
+    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint) {
         require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
+        uint nCheckpoints = numCheckpoints[account];
+        
+        if (nCheckpoints == 0) { return 0; }
 
-        uint256 nCheckpoints = numCheckpoints[account];
-        if (nCheckpoints == 0) {
-            return 0;
-        }
-
-        // First check most recent balance
+        // first check most recent balance
         if (checkpoints[account][nCheckpoints - 1].fromTime <= blockTimestamp) {
             return checkpoints[account][nCheckpoints - 1].votes;
         }
 
-        // Next check implicit zero balance
-        if (checkpoints[account][0].fromTime > blockTimestamp) {
-            return 0;
-        }
+        // next check implicit zero balance
+        if (checkpoints[account][0].fromTime > blockTimestamp) { return 0; }
 
-        uint256 lower = 0;
-        uint256 upper = nCheckpoints - 1;
+        uint lower = 0;
+        uint upper = nCheckpoints - 1;
         while (upper > lower) {
-            uint256 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+            uint center = upper - (upper - lower) / 2; // ceil, avoiding overflow
             Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromTime == blockTimestamp) {
-                return cp.votes;
-            } else if (cp.fromTime < blockTimestamp) {
-                lower = center;
-            } else {
-                upper = center - 1;
-            }
+            if (cp.fromTime == blockTimestamp) 
+                { return cp.votes; }
+             else if (cp.fromTime < blockTimestamp) 
+                { lower = center; }
+              else { upper = center - 1; }
         }
         return checkpoints[account][lower].votes;
     }
@@ -164,7 +168,7 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
         internal
     {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOULs (not scaled);
+        uint delegatorBalance = balanceOf(delegator); // balance of underlying SOULs (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -172,21 +176,21 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint256 amount) internal {
+    function _moveDelegates(address srcRep, address dstRep, uint amount) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 // decrease old representative
-                uint256 srcRepNum = numCheckpoints[srcRep];
-                uint256 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint256 srcRepNew = srcRepOld - amount;
+                uint srcRepNum = numCheckpoints[srcRep];
+                uint srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
+                uint srcRepNew = srcRepOld - amount;
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 // increase new representative
-                uint256 dstRepNum = numCheckpoints[dstRep];
-                uint256 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint256 dstRepNew = dstRepOld + amount;
+                uint dstRepNum = numCheckpoints[dstRep];
+                uint dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
+                uint dstRepNew = dstRepOld + amount;
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
         }
@@ -194,13 +198,11 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
 
     function _writeCheckpoint(
         address delegatee,
-        uint256 nCheckpoints,
-        uint256 oldVotes,
-        uint256 newVotes
-    )
-        internal
-    {
-        uint256 blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
+        uint nCheckpoints,
+        uint oldVotes,
+        uint newVotes
+    ) internal {
+        uint blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromTime == blockTimestamp) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
@@ -212,13 +214,13 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), Ownable, Operable {
         emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
 
-    function safe256(uint n, string memory errorMessage) internal pure returns (uint256) {
-        require(n < type(uint256).max, errorMessage);
-        return uint256(n);
+    function safe256(uint n, string memory errorMessage) internal pure returns (uint) {
+        require(n < type(uint).max, errorMessage);
+        return uint(n);
     }
 
     function getChainId() internal view returns (uint) {
-        uint256 chainId;
+        uint chainId;
         assembly { chainId := chainid() }
         return chainId;
     }
