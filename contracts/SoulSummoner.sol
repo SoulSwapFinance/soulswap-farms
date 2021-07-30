@@ -11,7 +11,7 @@ import './interfaces/IMigrator.sol';
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
+contract SoulSummoner is Ownable, ReentrancyGuard {
 
     // user info
     struct Users {
@@ -149,7 +149,7 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
         emit Initialized(team, dao, soulAddress, seanceAddress, totalAllocPoint, weight);
     }
 
-    function updateMultiplier(uint _bonusMultiplier) external onlyRole(maat) { // maat -- goddess of cosmic order
+    function updateMultiplier(uint _bonusMultiplier) external onlyRole(maat) { // maat -- goddess of cosmic order  // todo: mirror soulPower logic
         bonusMultiplier = _bonusMultiplier;
     }
 
@@ -210,20 +210,20 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
     }
 
     // update: weight (operator)
-    function updateWeight(uint updatedWeight) external isSummoned onlyRole(maat) { // maat -- goddess of cosmic order
-        require(weight != updatedWeight, 'must be new weight value');
+    function updateWeight(uint newWeight) external isSummoned onlyRole(maat) { // maat -- goddess of cosmic order
+        require(weight != newWeight, 'must be new weight value');
         
-        if (weight < updatedWeight) { // if weight is gained
-            uint gain = updatedWeight - weight; // calculates weight gained
-            totalWeight += gain; // increases totalWeight
-
-            if (weight > updatedWeight)  { // if weight is lost
-                uint loss = weight - updatedWeight; // calculates weight gained
-                totalWeight -= loss; // decreases totalWeight
-            }
-
-            weight = updatedWeight; // updates weight variable      
+        if (weight < newWeight) {           // if weight is gained
+            uint gain = newWeight - weight; // calculates weight gained
+            totalWeight += gain;            // increases totalWeight
         }
+        
+        if (weight > newWeight)  {          // if weight is lost
+            uint loss = weight - newWeight; // calculates weight gained
+            totalWeight -= loss;            // decreases totalWeight
+        }
+
+        weight = newWeight; // updates weight variable      
         
         updateRewards(weight, totalWeight);
 
@@ -233,7 +233,7 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
     // update: staking pool (internal)
     function updateStakingPool() internal {
         uint length = poolInfo.length;
-        uint points = 0;
+        uint points;
         
         for (uint pid = 1; pid < length; ++pid) { 
             points = points + poolInfo[pid].allocPoint; 
@@ -271,7 +271,7 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
 
     // view: pending soul rewards (external)
     function pendingSoul(uint pid, address _user) external view returns (uint) {
-        Pools storage pool = poolInfo[pid];
+        Pools memory pool = poolInfo[pid];
         Users storage user = userInfo[pid][_user];
 
         uint accSoulPerShare = pool.accSoulPerShare;
@@ -320,7 +320,7 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
     function deposit(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
         require (pid != 0, 'deposit SOUL by staking');
 
-        Pools storage pool = poolInfo[pid];
+        Pools memory pool = poolInfo[pid];
         Users storage user = userInfo[pid][msg.sender];
         updatePool(pid);
 
@@ -342,9 +342,8 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
 
     // withdraw: lp tokens (external farmers)
     function withdraw(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
-
         require (pid != 0, 'withdraw SOUL by unstaking');
-        Pools storage pool = poolInfo[pid];
+        Pools memory pool = poolInfo[pid];
         Users storage user = userInfo[pid][msg.sender];
 
         require(user.amount >= amount, 'withdraw not good');
@@ -366,7 +365,7 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
 
     // stake: soul into summoner (external)
     function enterStaking(uint _amount) external nonReentrant {
-        Pools storage pool = poolInfo[0];
+        Pools memory pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
         updatePool(0);
 
@@ -390,7 +389,7 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
 
     // unstake: your soul (external staker)
     function leaveStaking(uint amount) external nonReentrant {
-        Pools storage pool = poolInfo[0];
+        Pools memory pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
 
         require(user.amount >= amount, "withdraw: not good");
@@ -427,8 +426,7 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
         dao = _dao;
         team = _team;
 
-    emit AccountsUpdated(dao, team);
-
+        emit AccountsUpdated(dao, team);
     }
 
     // update token addresses: soul and seance addresses (owner)
@@ -439,8 +437,6 @@ contract SoulSummoner is AccessControlEnumerable, Ownable, ReentrancyGuard {
         soul = SoulPower(_soul);
         seance = SeanceCircle(_seance);
 
-    emit TokensUpdated(_soul, _seance);
-
+        emit TokensUpdated(_soul, _seance);
     }
-
 }
