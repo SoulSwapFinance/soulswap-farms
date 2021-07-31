@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.0;
 import './libraries/ERC20.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-import './libraries/Operable.sol';
 
 // spell is the neatest bound around. come in with some soul, and leave with some more! 
 // handles swapping to and from spell -- our dex reward token.
 
-contract SpellBound is ERC20("SpellBound", "SPELL"), Operable, ReentrancyGuard {
+contract SpellBound is ERC20("SpellBound", "SPELL"), Ownable, ReentrancyGuard {
     IERC20 public soul;
 
     bool isInitialized; // stores whether contract has been initialized

@@ -1,4 +1,5 @@
 {
     "solidity.compileUsingRemoteVersion": "v0.8.0+commit.c7dfd78e",
-    "solidity.defaultCompiler": "remote"
+    "solidity.defaultCompiler": "remote",
+    "eth-abi-interactive.nodeURI": "https://rpc.testnet.fantom.network/"
 }

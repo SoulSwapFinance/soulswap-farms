@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: MIT
 
+// soul power
 pragma solidity ^0.8.0;
 import './libraries/ERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
-
-// soul power
-// File: contracts/SoulPower.sol
-
-pragma solidity ^0.8.0;
 
 contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
     
@@ -16,22 +12,20 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
     bytes32 public anunnaki; // alpha supreme
     bytes32 public thoth; // god of wisdom and magic
 
-    event RoleDivinated(bytes32 divine, bytes32 anunnaki);
+    event RoleDivinated(bytes32 role, bytes32 anunnaki);
 
-    // restricted to the council of the divine passed as an object to obey (divine role)
-    modifier obey(bytes32 divine) {
-        require(hasRole(divine, _msgSender()), "restricted to divine.");
+    // restricted to the council of the role passed as an object to obey (divine role)
+    modifier obey(bytes32 role) {
+        _checkRole(role, _msgSender());
         _;
-
     }
-    
+
     // channels the power of the anunnaki and thoth to the deployer (deployer)
     constructor() {
-
         anunnaki = keccak256("anunnaki"); // alpha supreme
         thoth = keccak256("thoth"); // god of wisdom and magic
 
-        _divinationCeremony(DEFAULT_ADMIN_ROLE, anunnaki, msg.sender);
+        _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
         _divinationCeremony(anunnaki, anunnaki, msg.sender); 
         _divinationCeremony(thoth, anunnaki, msg.sender);
     }
@@ -46,19 +40,30 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
 
     }
     
-    // mint soul power as the council of thoth so wills
+    // mints soul power as the council of thoth so wills
     // thoth is the self-created, egytian god of knowledge, creator of magic itself
     function mint(address _to, uint _amount) public obey(thoth) { 
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    function hasDivineRole(bytes32 role) external view returns (bool) {
-        bool isDivine = hasRole(role, msg.sender);
-        return isDivine;
-    
+    // @dev Destroys `amount` tokens from the caller.
+    function burn(uint amount) public {
+        _burn(_msgSender(), amount); // eternal damnation
+        _moveDelegates(_delegates[_msgSender()], address(0), amount); // sends delegates to hell
     }
 
+    function burnFrom(address account, uint amount) public {
+        uint currentAllowance = allowance(account, _msgSender());
+        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+        _approve(account, _msgSender(), currentAllowance - amount);
+        _burn(account, amount);
+        _moveDelegates(_delegates[account], address(0), amount); // sends delegates to hell
+    }
+
+    function hasDivineRole(bytes32 role) public view returns (bool) {
+        return hasRole(role, msg.sender);
+    }
 
     // record of each accounts delegate
     mapping (address => address) internal _delegates;

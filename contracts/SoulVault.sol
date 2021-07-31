@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 
 /**
-    SoulVault stakes everyone's SOUL (as a single entity) & distributes the rewards accordingly to 
-    the user's share of the total stake, calculated with the same logic as SoulSummoner.
+    vault that stakes your soul (as a single entity) & distributes the rewards accordingly to 
+    the user's share of the total stake, calculated with the same logic as soul summoner.
 
-    The user needs to approve the contract address with SOUL `allowance()` in order to deposit.
+    the user needs to approve the contract address with soul `allowance()` in order to deposit.
  */
 
 pragma solidity ^0.8.0;
@@ -26,9 +26,7 @@ contract SoulVault is Ownable, Pausable {
 
     IERC20 public soul; // soul power
     IERC20 public seance; // seance circle
-
     ISummoner public immutable summoner;
-
     mapping(address => UserInfo) public userInfo;
 
     uint public totalShares;
@@ -53,43 +51,31 @@ contract SoulVault is Ownable, Pausable {
     event Pause();
     event Unpause();
 
-    constructor(
-        IERC20 _soul,
-        IERC20 _seance,
-        ISummoner _summoner
-    ) {
+    constructor(IERC20 _soul, IERC20 _seance, ISummoner _summoner) {
         soul = _soul;
         seance = _seance;
         summoner = _summoner;
 
-        // Infinite approve
+        // infinite approve
         soul.approve(address(_summoner), type(uint).max);
     }
 
-    /**
-     * @notice Checks if the msg.sender is the admin address
-     */
+    // checks if the msg.sender is the admin address
     modifier onlyAdmin() {
         require(msg.sender == admin, "admin: wut?");
         _;
     }
 
-    /**
-     * @notice Checks if the msg.sender is a contract or a proxy
-     */
+    // checks if the msg.sender is a contract or a proxy
     modifier notContract() {
         require(!_isContract(msg.sender), "contract not allowed");
         require(msg.sender == tx.origin, "proxy contract not allowed");
         _;
     }
 
-    /**
-     * @notice Deposits funds into the Soul Vault
-     * @dev Only possible when contract not paused & user has approved tokens for transferFrom.
-     * @param _amount: number of tokens to deposit (in SOUL)
-     */
+    // deposits: into soul vaul (unpaused, blocks contracts)
     function deposit(uint _amount) external whenNotPaused notContract {
-        require(_amount > 0, "Nothing to deposit");
+        require(_amount > 0, "nothing to deposit");
 
         uint pool = balanceOf();
         soul.transferFrom(msg.sender, address(this), _amount);
@@ -114,17 +100,12 @@ contract SoulVault is Ownable, Pausable {
         emit Deposit(msg.sender, _amount, currentShares, block.timestamp);
     }
 
-    /**
-     * @notice Withdraws all funds for the caller
-     */
+    // withdraws: all claimable funds for the caller (blocks contracts)
     function withdrawAll() external notContract {
         withdraw(userInfo[msg.sender].shares);
     }
 
-    /**
-     * @notice Reinvests SOUL powers into SoulSummoner
-     * @dev Only possible when contract not paused.
-     */
+    // reinvests: soul power into soul summoner (whenNotPaused)
     function harvest() external notContract whenNotPaused {
         ISummoner(summoner).leaveStaking(0);
 
@@ -142,37 +123,37 @@ contract SoulVault is Ownable, Pausable {
         emit Harvest(msg.sender, currentPerformanceFee, currentCallFee);
     }
 
-    // sets admin address (owner)
+    // sets: admin address (owner)
     function setAdmin(address _admin) external onlyOwner {
         require(_admin != address(0), "Cannot be zero address");
         admin = _admin;
     }
 
-    // sets treasury address (owner)
+    // sets: treasury address (owner)
     function setTreasury(address _treasury) external onlyOwner {
         require(_treasury != address(0), "Cannot be zero address");
         treasury = _treasury;
     }
 
-    // sets performance fee
+    // sets: performance fee (admin)
     function setPerformanceFee(uint _performanceFee) external onlyAdmin {
         require(_performanceFee <= MAX_PERFORMANCE_FEE, "performanceFee cannot be more than MAX_PERFORMANCE_FEE");
         performanceFee = _performanceFee;
     }
 
-    // sets call fee
+    // sets: call fee (admin)
     function setCallFee(uint _callFee) external onlyAdmin {
         require(_callFee <= MAX_CALL_FEE, "callFee cannot be more than MAX_CALL_FEE");
         callFee = _callFee;
     }
 
-    // sets withdraw fee
+    // sets: withdraw fee (admin)
     function setWithdrawFee(uint _withdrawFee) external onlyAdmin {
         require(_withdrawFee <= MAX_WITHDRAW_FEE, "withdrawFee cannot be more than MAX_WITHDRAW_FEE");
         withdrawFee = _withdrawFee;
     }
 
-    // sets withdraw fee period
+    // sets: withdraw fee period (admin)
     function setWithdrawFeePeriod(uint _withdrawFeePeriod) external onlyAdmin {
         require(
             _withdrawFeePeriod <= MAX_WITHDRAW_FEE_PERIOD,
@@ -181,7 +162,7 @@ contract SoulVault is Ownable, Pausable {
         withdrawFeePeriod = _withdrawFeePeriod;
     }
 
-    // withdraw unexpected tokens sent to the soul vault
+    // withdraws: unexpected tokens sent to the soul vault
     function inCaseTokensGetStuck(address _token) external onlyAdmin {
         require(_token != address(soul), "Token cannot be same as deposit token");
         require(_token != address(seance), "Token cannot be same as receipt token");
@@ -190,19 +171,19 @@ contract SoulVault is Ownable, Pausable {
         IERC20(_token).transfer(msg.sender, amount);
     }
 
-    // triggers stopped state
+    // triggers: stopped state
     function pause() external onlyAdmin whenNotPaused {
         _pause();
         emit Pause();
     }
 
-    // returns to normal state (when pausdd)
+    // returns: to normal state (when paused)
     function unpause() external onlyAdmin whenPaused {
         _unpause();
         emit Unpause();
     }
 
-    // calc expected SOUL harvest reward from third party
+    // calculates: expected soul harvest reward from third party (view)
     function calculateHarvestSoulRewards() external view returns (uint) {
         uint amount = ISummoner(summoner).pendingSoul(0, address(this));
         amount = amount + available();
@@ -211,7 +192,7 @@ contract SoulVault is Ownable, Pausable {
         return currentCallFee;
     }
 
-    // calc the ttl pending rewards that may be restaked
+    // calcuates: the ttl pending rewards that may be restaked (view)
     function calculateTotalPendingSoulRewards() external view returns (uint) {
         uint amount = ISummoner(summoner).pendingSoul(0, address(this));
         amount = amount + available();
@@ -219,12 +200,12 @@ contract SoulVault is Ownable, Pausable {
         return amount;
     }
 
-    // calcs the price per share
+    // calculates: the price per share (view)
     function getPricePerFullShare() external view returns (uint) {
         return totalShares == 0 ? 1e18 : (balanceOf() * 1e18) / totalShares;
     }
 
-    // withdraws from funds from the Soul Vault
+    // withdraws: from funds from the soul vault (not contract)
     function withdraw(uint _shares) public notContract {
         UserInfo storage user = userInfo[msg.sender];
         require(_shares > 0, "Nothing to withdraw");
@@ -253,43 +234,35 @@ contract SoulVault is Ownable, Pausable {
 
         if (user.shares > 0) {
             user.soulAtLastUserAction = (user.shares * balanceOf()) / totalShares;
-        } else {
-            user.soulAtLastUserAction = 0;
-        }
+        } else { user.soulAtLastUserAction = 0; }
 
         user.lastUserActionTime = block.timestamp;
-
         soul.transfer(msg.sender, currentAmount);
 
         emit Withdraw(msg.sender, currentAmount, _shares);
     }
 
-    // checks the ttl SOUL deposited by users
+    // returns: ttl soul deposited by users (view)
     function available() public view returns (uint) {
         return soul.balanceOf(address(this));
     }
 
-
-    // ttl underlying soul | vault + SoulSummoner
+    // returns: total underlying soul | vault + soul summoner (view)
     function balanceOf() public view returns (uint) {
         (uint amount, ) = ISummoner(summoner).userInfo(0, address(this));
         return soul.balanceOf(address(this)) + amount;
     }
 
-    // deposits into summoner to earn rewards
+    // deposits: into summoner to earn rewards
     function _earn() internal {
         uint bal = available();
-        if (bal > 0) {
-            ISummoner(summoner).enterStaking(bal);
-        }
+        if (bal > 0) { ISummoner(summoner).enterStaking(bal); }
     }
 
-    // checks whether sender is contract to prev targeted attacks
+    // returns: whether sender is contract to prevent targeted attacks (internal view)
     function _isContract(address addr) internal view returns (bool) {
         uint size;
-        assembly {
-            size := extcodesize(addr)
-        }
+        assembly { size := extcodesize(addr) }
         return size > 0;
     }
 }

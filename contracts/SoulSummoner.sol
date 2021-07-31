@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
+import '@openzeppelin/contracts/access/AccessControl.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-// import '@openzeppelin/contracts/access/Ownable.sol';
-// import '@openzeppelin/contracts/access/AccessControlEnumerable.sol';
 import './SoulPower.sol';
 import './SeanceCircle.sol';
 import './interfaces/IMigrator.sol';
@@ -11,7 +11,7 @@ import './interfaces/IMigrator.sol';
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract SoulSummoner is Ownable, ReentrancyGuard {
+contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
 
     // user info
     struct Users {
@@ -77,6 +77,18 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
     Pools[] public poolInfo; // pool info
     mapping (uint => mapping (address => Users)) public userInfo; // staker data
 
+    // divinated roles
+    bytes32 public isis; // soul summoning goddess whose power transcends them all
+    bytes32 public maat; // goddess of cosmic order
+
+    event RoleDivinated(bytes32 role, bytes32 supreme);
+
+    // restricted to the council of the role passed as an object to obey (divine role)
+    modifier obey(bytes32 role) {
+        _checkRole(role, _msgSender());
+        _;
+    }
+
     // prevents: early reward distribution
     modifier isSummoned {
         require(isInitialized, 'rewards have not yet begun');
@@ -101,6 +113,28 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
         _;
     }
 
+    // channels the power of the anunnaki and thoth to the deployer (deployer)
+    constructor() {
+        isis = keccak256("isis"); // alpha supreme -- creates pools
+        maat = keccak256("maat"); // god of wisdom and magic -- sets allocations
+
+        _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
+        _divinationCeremony(isis, isis, msg.sender); // isis role created -- owner divined admin
+        _divinationCeremony(maat, isis, msg.sender); // maat role created -- isis divined admin
+    } 
+
+    function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 
+        internal returns (bool) {
+            _setupRole(_role, _account);
+            _setRoleAdmin(_role, _adminRole);
+
+        return true;
+    }
+
+    function hasDivineRole(bytes32 role) public view returns (bool) {
+        return hasRole(role, msg.sender);
+    }
+
     // validate: pool uniqueness to eliminate duplication risk (internal view)
     function checkPoolDuplicate(IERC20 _token) internal view {
         uint length = poolInfo.length;
@@ -110,6 +144,7 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
         }
     }
 
+    // activates rewards (owner)
     function initialize(
         address _soulAddress, 
         address _seanceAddress, 
@@ -149,7 +184,7 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
         emit Initialized(team, dao, soulAddress, seanceAddress, totalAllocPoint, weight);
     }
 
-    function updateMultiplier(uint _bonusMultiplier) external onlyRole(maat) { // maat -- goddess of cosmic order  // todo: mirror soulPower logic
+    function updateMultiplier(uint _bonusMultiplier) external obey(maat) {
         bonusMultiplier = _bonusMultiplier;
     }
 
@@ -165,9 +200,9 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
         return poolInfo.length;
     }
 
-    // add: new pool (operator)
+    // add: new pool (isis)
     function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate) 
-        public isSummoned onlyRole(isis) { // isis: the soul summoning goddess whose power transcends them all
+        public isSummoned obey(isis) { // isis: the soul summoning goddess whose power transcends them all
             checkPoolDuplicate(_lpToken);
             _addPool(_allocPoint, _lpToken, _withUpdate);
     }
@@ -192,38 +227,38 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
         emit PoolAdded(pid, _allocPoint, _lpToken, totalAllocPoint);
     }
 
-    // set: allocation points (operator)
+    // set: allocation points (maat)
     function set(uint pid, uint allocPoint, bool withUpdate) 
-        external isSummoned validatePoolByPid(pid) onlyRole(maat) { // maat -- goddess of cosmic order
-                if (withUpdate) { massUpdatePools(); } // updates all pools
+        external isSummoned validatePoolByPid(pid) obey(maat) {
+            if (withUpdate) { massUpdatePools(); } // updates all pools
+            
+            uint prevAllocPoint = poolInfo[pid].allocPoint;
+            poolInfo[pid].allocPoint = allocPoint;
+            
+            if (prevAllocPoint != allocPoint) {
+                totalAllocPoint = totalAllocPoint - prevAllocPoint + allocPoint;
                 
-                uint prevAllocPoint = poolInfo[pid].allocPoint;
-                poolInfo[pid].allocPoint = allocPoint;
-                
-                if (prevAllocPoint != allocPoint) {
-                    totalAllocPoint = totalAllocPoint - prevAllocPoint + allocPoint;
-                    
-                    updateStakingPool(); // updates only selected pool
-            }
+                updateStakingPool(); // updates only selected pool
+        }
 
         emit PoolSet(pid, allocPoint);
     }
 
-    // update: weight (operator)
-    function updateWeight(uint newWeight) external isSummoned onlyRole(maat) { // maat -- goddess of cosmic order
-        require(weight != newWeight, 'must be new weight value');
-        
-        if (weight < newWeight) {           // if weight is gained
-            uint gain = newWeight - weight; // calculates weight gained
+    // update: weight (maat)
+    function updateWeight(uint _weight) external isSummoned obey(maat) {
+        require(weight != _weight, 'must be new weight value');
+
+        if (weight < _weight) {             // if weight is gained
+            uint gain = _weight - weight;   // calculates weight gained
             totalWeight += gain;            // increases totalWeight
         }
         
-        if (weight > newWeight)  {          // if weight is lost
-            uint loss = weight - newWeight; // calculates weight gained
+        if (weight > _weight)  {            // if weight is lost
+            uint loss = weight - _weight;   // calculates weight gained
             totalWeight -= loss;            // decreases totalWeight
         }
 
-        weight = newWeight; // updates weight variable      
+        weight = _weight; // updates weight variable      
         
         updateRewards(weight, totalWeight);
 
@@ -260,6 +295,7 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
         uint bal = lpToken.balanceOf(address(this));
         lpToken.approve(address(migrator), bal);
         IERC20 _lpToken = migrator.migrate(lpToken);
+        
         require(bal == _lpToken.balanceOf(address(this)), "migrate: insufficient balance");
         pool.lpToken = _lpToken;
     }
@@ -271,7 +307,7 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
 
     // view: pending soul rewards (external)
     function pendingSoul(uint pid, address _user) external view returns (uint) {
-        Pools memory pool = poolInfo[pid];
+        Pools storage pool = poolInfo[pid];
         Users storage user = userInfo[pid][_user];
 
         uint accSoulPerShare = pool.accSoulPerShare;
@@ -320,7 +356,7 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
     function deposit(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
         require (pid != 0, 'deposit SOUL by staking');
 
-        Pools memory pool = poolInfo[pid];
+        Pools storage pool = poolInfo[pid];
         Users storage user = userInfo[pid][msg.sender];
         updatePool(pid);
 
@@ -343,7 +379,7 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
     // withdraw: lp tokens (external farmers)
     function withdraw(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
         require (pid != 0, 'withdraw SOUL by unstaking');
-        Pools memory pool = poolInfo[pid];
+        Pools storage pool = poolInfo[pid];
         Users storage user = userInfo[pid][msg.sender];
 
         require(user.amount >= amount, 'withdraw not good');
@@ -365,7 +401,7 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
 
     // stake: soul into summoner (external)
     function enterStaking(uint _amount) external nonReentrant {
-        Pools memory pool = poolInfo[0];
+        Pools storage pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
         updatePool(0);
 
@@ -389,7 +425,7 @@ contract SoulSummoner is Ownable, ReentrancyGuard {
 
     // unstake: your soul (external staker)
     function leaveStaking(uint amount) external nonReentrant {
-        Pools memory pool = poolInfo[0];
+        Pools storage pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
 
         require(user.amount >= amount, "withdraw: not good");
