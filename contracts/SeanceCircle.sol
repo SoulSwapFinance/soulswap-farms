@@ -25,6 +25,8 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
     function initialize(SoulPower _soul) external onlyOwner {
         require(!isInitialized, 'the circle has already begun');
         soul = _soul;
+
+        isInitialized = true;
     }
 
     // safe soul transfer function, just in case if rounding error causes pool to not have enough SOUL.
