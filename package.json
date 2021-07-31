@@ -12,6 +12,7 @@
     "flat:soul": "truffle-flattener contracts/SoulPower.sol > flats/SoulPower_flat.sol",
     "flat:seance": "truffle-flattener contracts/SeanceCircle.sol > flats/SeanceCircle_flat.sol",
     "flat:spell": "truffle-flattener contracts/SpellBound.sol > flats/SpellBound_flat.sol",
+    "flat:spellv2": "truffle-flattener contracts/SpellBoundV2.sol > flats/SpellBoundV2_flat.sol",
     "flat:summoner": "truffle-flattener contracts/SoulSummoner.sol > flats/SoulSummoner_flat.sol",
 
     "flat:vault": "truffle-flattener contracts/SoulVault.sol > flats/SoulVault_flat.sol",
@@ -38,7 +39,7 @@
     "@openzeppelin/contracts": "^4.1.0",
     "@openzeppelin/test-helpers": "^0.5.6",
     "@soulswap/swap-core":"^0.0.3",
-    "@soulswap/swap-periphery":"^0.0.2",
+    "@soulswap/swap-periphery":"^0.0.3",
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "dotenv": "^8.2.0",
