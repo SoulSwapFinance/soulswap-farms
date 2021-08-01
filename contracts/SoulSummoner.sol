@@ -115,8 +115,8 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
 
     // channels the power of the isis and ma'at to the deployer (deployer)
     constructor() {
-        isis = keccak256("isis"); // alpha supreme -- creates pools
-        maat = keccak256("maat"); // god of wisdom and magic -- sets allocations
+        isis = keccak256("isis"); // goddess of magic who creates pools
+        maat = keccak256("maat"); // goddess of cosmic order who sets allocations
 
         _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
         _divinationCeremony(isis, isis, msg.sender); // isis role created -- owner divined admin
