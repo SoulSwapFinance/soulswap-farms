@@ -1,7 +1,7 @@
 # soulswap-farms
 🕯 SoulSwap smart contracts for the SOUL farms and SEANCE circles.
 
-## Contract: Hash
+## Contract: Address
 
 ### Fantom Testnet [V1 and V2]
 
