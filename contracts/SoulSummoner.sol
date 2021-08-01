@@ -113,7 +113,7 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
         _;
     }
 
-    // channels the power of the anunnaki and thoth to the deployer (deployer)
+    // channels the power of the isis and ma'at to the deployer (deployer)
     constructor() {
         isis = keccak256("isis"); // alpha supreme -- creates pools
         maat = keccak256("maat"); // god of wisdom and magic -- sets allocations
