@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-// soul power
 pragma solidity ^0.8.0;
 import './libraries/ERC20.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
@@ -8,12 +7,16 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 
 contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
     
+    // default admin role
+    address public team;
+    
     // divinated roles
-    bytes32 public anunnaki; // alpha supreme
-    bytes32 public thoth; // god of wisdom and magic
+    bytes32 public anunnaki;    // admin role
+    bytes32 public thoth;       // minter
 
     event RoleDivinated(bytes32 role, bytes32 anunnaki);
 
+    
     // restricted to the council of the role passed as an object to obey (divine role)
     modifier obey(bytes32 role) {
         _checkRole(role, _msgSender());
@@ -21,25 +24,41 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
     }
 
     // channels the power of the anunnaki and thoth to the deployer (deployer)
-    constructor() {
-        anunnaki = keccak256("anunnaki"); // alpha supreme
-        thoth = keccak256("thoth"); // god of wisdom and magic
+    constructor(address _team) {
+        team = _team;
+        // = 0x24D9E0Ba5d79C15D7EEAbD632214430D6F1677cA; // testnet
 
-        _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
-        _divinationCeremony(anunnaki, anunnaki, msg.sender); 
-        _divinationCeremony(thoth, anunnaki, msg.sender);
+        anunnaki = keccak256("anunnaki");   // alpha supreme
+        thoth = keccak256("thoth");         // god of wisdom and magic
+
+        _divinationRitual(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, team); // sets team as default-admin (root)
+        _divinationRitual(anunnaki, anunnaki, team);                     // sets anunnaki as self-admin
+        _divinationRitual(thoth, anunnaki, team);                        // sets anunnaki as admin of thoth
     }
 
-    
-    function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 
-        internal returns (bool) {
-            _setupRole(_role, _account);
-            _setRoleAdmin(_role, _adminRole);
+    function newTeam (address _team) public obey(anunnaki) {
+        require(team != _team, 'make a change, be the change'); // prevents self-destruct
+        _rethroneRitual(DEFAULT_ADMIN_ROLE, team, _team);       // empowers new supreme
 
-        return true;
-
+        team = _team;
     }
+
+    function _divinationRitual(bytes32 _role, bytes32 _adminRole, address _account) internal {
+        _setupRole(_role, _account);
+        _setRoleAdmin(_role, _adminRole);
+    }
+
+    function _rethroneRitual(bytes32 _role, address _oldAccount, address _newAccount) internal {
+        require(_oldAccount != _newAccount, 'new account must be a new address');
+        grantRole(_role, _newAccount);
+        renounceRole(_role, _oldAccount);
+
+    }    
     
+    function hasDivineRole(bytes32 role) public view returns (bool) {
+        return hasRole(role, msg.sender);
+    }
+
     // mints soul power as the council of thoth so wills
     // thoth is the self-created, egytian god of knowledge, creator of magic itself
     function mint(address _to, uint _amount) public obey(thoth) { 
@@ -56,14 +75,11 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
     function burnFrom(address account, uint amount) public {
         uint currentAllowance = allowance(account, _msgSender());
         require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-        _approve(account, _msgSender(), currentAllowance - amount);
+        _approve(account, _msgSender(), currentAllowance - amount); // owner, spender, amount
         _burn(account, amount);
         _moveDelegates(_delegates[account], address(0), amount); // sends delegates to hell
     }
 
-    function hasDivineRole(bytes32 role) public view returns (bool) {
-        return hasRole(role, msg.sender);
-    }
 
     // record of each accounts delegate
     mapping (address => address) internal _delegates;
@@ -170,8 +186,7 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
     }
 
     function _delegate(address delegator, address delegatee)
-        internal
-    {
+        internal {
         address currentDelegate = _delegates[delegator];
         uint delegatorBalance = balanceOf(delegator); // balance of underlying SOULs (not scaled);
         _delegates[delegator] = delegatee;
@@ -229,5 +244,4 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
         assembly { chainId := chainid() }
         return chainId;
     }
-
 }

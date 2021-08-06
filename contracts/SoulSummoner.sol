@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/security/Pausable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './SoulPower.sol';
 import './SeanceCircle.sol';
@@ -11,20 +12,16 @@ import './interfaces/IMigrator.sol';
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
+contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // user info
     struct Users {
-        uint amount;     // ttl lp tokens user has provided
+        uint amount;     // total tokens user has provided
         uint rewardDebt; // reward debt (see below)
-        //
-        // we do some fancy math here. basically, any point in time, the amount of SOUL
-        // entitled to a user but is pending to be distributed is:
-        //
         //   pending reward = (user.amount * pool.accSoulPerShare) - user.rewardDebt
-        //
-        // the following occurs when anyone deposits or withdraws lp tokens to a pool:
-        //   1. pool: `accSoulPerShare` and `lastRewardTime` get updated.
+
+        // the following occurs when a user +/- tokens to a pool:
+        //   1. pool: `accSoulPerShare` and `lastRewardTime` update.
         //   2. user: receives pending reward.
         //   3. user: `amount` updates(+/-).
         //   4. user: `rewardDebt` updates (+/-).
@@ -78,12 +75,12 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
     mapping (uint => mapping (address => Users)) public userInfo; // staker data
 
     // divinated roles
-    bytes32 public isis; // soul summoning goddess whose power transcends them all
+    bytes32 public isis; // soul summoning goddess of magic
     bytes32 public maat; // goddess of cosmic order
 
     event RoleDivinated(bytes32 role, bytes32 supreme);
 
-    // restricted to the council of the role passed as an object to obey (divine role)
+    // restricted to the council of the role passed as an object to obey (role)
     modifier obey(bytes32 role) {
         _checkRole(role, _msgSender());
         _;
@@ -115,12 +112,15 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
 
     // channels the power of the isis and ma'at to the deployer (deployer)
     constructor() {
+        team = 0x24D9E0Ba5d79C15D7EEAbD632214430D6F1677cA; // multisig // FANTOM TESTNET
+        dao = 0x2ffbDFB8f48EDD34Cb2727F4357d321bD71ddF25; // multisig // FANTOM TESTNET
+        
         isis = keccak256("isis"); // goddess of magic who creates pools
-        maat = keccak256("maat"); // goddess of cosmic order who sets allocations
+        maat = keccak256("maat"); // goddess of cosmic order who allocates emissions
 
-        _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
-        _divinationCeremony(isis, isis, msg.sender); // isis role created -- owner divined admin
-        _divinationCeremony(maat, isis, msg.sender); // maat role created -- isis divined admin
+        _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, team);
+        _divinationCeremony(isis, isis, team); // isis role created -- owner divined admin
+        _divinationCeremony(maat, isis, dao); // maat role created -- isis divined admin
     } 
 
     function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 
@@ -151,7 +151,7 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
         uint _totalWeight,
         uint _weight,
         uint _stakingAlloc 
-       ) external onlyOwner {
+       ) external obey(isis) {
         require(!isInitialized, 'already initialized');
 
         soulAddress = _soulAddress;
@@ -282,7 +282,7 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
     }
 
     // set: migrator contract (owner)
-    function setMigrator(IMigrator _migrator) external isSummoned onlyOwner {
+    function setMigrator(IMigrator _migrator) external isSummoned obey(isis) {
         migrator = _migrator;
     }
 
@@ -301,8 +301,8 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
     }
 
     // view: bonus multiplier (public)
-    function getMultiplier(uint _from, uint _to) public view returns (uint) {
-        return (_to - _from) * bonusMultiplier; // todo: minus parens
+    function getMultiplier(uint from, uint to) public view returns (uint) {
+        return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
     // view: pending soul rewards (external)
@@ -315,8 +315,8 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
 
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
-            uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
-            accSoulPerShare = accSoulPerShare + soulReward * 1e12 / lpSupply;
+            uint soulReward = (multiplier * soulPerSecond * pool.allocPoint) / totalAllocPoint;
+            accSoulPerShare = accSoulPerShare + (soulReward * 1e12 / lpSupply);
         }
 
         return user.amount * accSoulPerShare / 1e12 - user.rewardDebt;
@@ -348,12 +348,12 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
         soul.mint(dao, divi);
         soul.mint(address(seance), shares);
 
-        pool.accSoulPerShare = pool.accSoulPerShare + soulReward * shares / lpSupply;
+        pool.accSoulPerShare = pool.accSoulPerShare + (soulReward * 1e12 / lpSupply);
         pool.lastRewardTime = block.timestamp;
     }
 
     // deposit: lp tokens (lp owner)
-    function deposit(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
+    function deposit(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) whenNotPaused {
         require (pid != 0, 'deposit SOUL by staking');
 
         Pools storage pool = poolInfo[pid];
@@ -398,9 +398,8 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
         emit Withdraw(msg.sender, pid, amount);
     }
 
-
     // stake: soul into summoner (external)
-    function enterStaking(uint _amount) external nonReentrant {
+    function enterStaking(uint amount) external nonReentrant whenNotPaused {
         Pools storage pool = poolInfo[0];
         Users storage user = userInfo[0][msg.sender];
         updatePool(0);
@@ -412,15 +411,15 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
             }
         } 
         
-        if(_amount > 0) {
-            pool.lpToken.transferFrom(address(msg.sender), address(this), _amount);
-            user.amount = user.amount + _amount;
+        if(amount > 0) {
+            pool.lpToken.transferFrom(address(msg.sender), address(this), amount);
+            user.amount = user.amount + amount;
         }
 
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
-        seance.mint(msg.sender, _amount);
-        emit Deposit(msg.sender, 0, _amount);
+        seance.mint(msg.sender, amount);
+        emit Deposit(msg.sender, 0, amount);
     }
 
     // unstake: your soul (external staker)
@@ -455,9 +454,8 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
 
 
     // update accounts: dao and team addresses (owner)
-    function updateAccounts(address _dao, address _team) external onlyOwner {
-        require(dao != _dao, 'must be a new account');
-        require(team != _team, 'must be a new account');
+    function updateAccounts(address _dao, address _team) external obey(isis) {
+        require(dao != _dao || team != _team, 'must be a new account');
 
         dao = _dao;
         team = _team;
@@ -466,9 +464,8 @@ contract SoulSummoner is AccessControl, Ownable, ReentrancyGuard {
     }
 
     // update token addresses: soul and seance addresses (owner)
-    function updateTokens(address _soul, address _seance) external onlyOwner {
-        require(soul != IERC20(_soul), 'must be a new token address');
-        require(seance != IERC20(_seance), 'must be a new token address');
+    function updateTokens(address _soul, address _seance) external obey(isis) {
+        require(soul != IERC20(_soul) || seance != IERC20(_seance), 'must be a new token address');
 
         soul = SoulPower(_soul);
         seance = SeanceCircle(_seance);
