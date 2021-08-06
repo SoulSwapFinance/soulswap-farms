@@ -356,7 +356,6 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         _divinationRitual(thoth, anunnaki, supreme);                      // anunnaki as admin of thoth
 
         mint(supreme, 50000000 * 1e18); // mints initial supply of 50M
-
     }
 
     // solidifies roles (internal)
