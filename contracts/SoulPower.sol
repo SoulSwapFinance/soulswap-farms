@@ -1,8 +1,14 @@
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
+
 import './libraries/ERC20.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
+
+// --------------------------------------------------------------------------------------
+//
+// (c) SoulPower 06/08/2021 | SPDX-License-Identifier: MIT
+// Designed by, 0xBuns + DeGatchi.
+// 
+// --------------------------------------------------------------------------------------
 
 contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
     // address of multi-sig admin
