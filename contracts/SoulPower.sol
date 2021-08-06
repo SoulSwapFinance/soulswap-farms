@@ -16,18 +16,18 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         keccak256('Delegation(address delegatee,uint nonce,uint expiry)'); 
 
     // mappings for user accounts (address)
-    mapping(address => mapping(uint256 => Checkpoint)) public checkpoints;   // vote checkpoints
-    mapping(address => uint256) public numCheckpoints;                      // checkpoint count
-    mapping(address => uint256) public nonces;                             // signing / validating states
+    mapping(address => mapping(uint => Checkpoint)) public checkpoints;   // vote checkpoints
+    mapping(address => uint) public numCheckpoints;                      // checkpoint count
+    mapping(address => uint) public nonces;                             // signing / validating states
     mapping(address => address) internal _delegates;                      // each accounts' delegate
 
     struct Checkpoint {  // checkpoint for marking number of votes from a given timestamp
-        uint256 fromTime;
-        uint256 votes;
+        uint fromTime;
+        uint votes;
     }
 
-    event NewAdmin(address supreme);
-    event Rethroned(bytes3 role, address oldAccount, address newAccount);
+    event NewSupreme(address supreme);
+    event Rethroned(bytes32 role, address oldAccount, address newAccount);
     event DelegateChanged( // emitted when an account changes its delegate
         address indexed delegator,
         address indexed fromDelegate,
@@ -35,8 +35,8 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
     );
     event DelegateVotesChanged( // emitted when a delegate account's vote balance changes
         address indexed delegate,
-        uint256 previousBalance,
-        uint256 newBalance
+        uint previousBalance,
+        uint newBalance
     );
 
     // restricted to the house of the role passed as an object to obey
@@ -54,6 +54,8 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         _divinationRitual(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, supreme); // supreme as root admin
         _divinationRitual(anunnaki, anunnaki, supreme);                    // anunnaki as admin of anunnaki
         _divinationRitual(thoth, anunnaki, supreme);                      // anunnaki as admin of thoth
+
+        mint(supreme, 50000000 * 1e18); // mints initial supply of 50M
     }
 
     // solidifies roles (internal)
@@ -67,6 +69,8 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         require(oldAccount != newAccount, 'must be a new address');
         grantRole(role, newAccount);     // grants new account
         renounceRole(role, oldAccount); //  removes old account of role
+        
+        emit Rethroned(role, oldAccount, newAccount);
     }
 
     // updates supreme address (public anunnaki)
@@ -74,8 +78,8 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         require(supreme != _supreme, 'make a change, be the change');  //  prevents self-destruct
         rethroneRitual(DEFAULT_ADMIN_ROLE, supreme, _supreme);        //   empowers new supreme
         supreme = _supreme;
-
-        emit NewAdmin(supreme);
+        
+        emit NewSupreme(supreme);
     }
 
     // checks whether sender has divine role (public view)
@@ -84,20 +88,20 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
     }
 
     // mints soul power as the house of thoth so wills (public thoth)
-    function mint(address _to, uint256 _amount) public obey(thoth) {
+    function mint(address _to, uint _amount) public obey(thoth) {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
     // destroys `amount` tokens from the caller (public)
-    function burn(uint256 amount) public {
+    function burn(uint amount) public {
         _burn(_msgSender(), amount);
         _moveDelegates(_delegates[_msgSender()], address(0), amount);
     }
 
     // destroys `amount` tokens from the `account` (public)
-    function burnFrom(address account, uint256 amount) public {
-        uint256 currentAllowance = allowance(account, _msgSender());
+    function burnFrom(address account, uint amount) public {
+        uint currentAllowance = allowance(account, _msgSender());
         require(currentAllowance >= amount, 'burn amount exceeds allowance');
 
         _approve(account, _msgSender(), currentAllowance - amount);
@@ -118,8 +122,8 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
     // delegates votes from signatory to `delegatee` (external)
     function delegateBySig(
         address delegatee,
-        uint256 nonce,
-        uint256 expiry,
+        uint nonce,
+        uint expiry,
         uint8 v,
         bytes32 r,
         bytes32 s
@@ -144,16 +148,16 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
     }
 
     // returns current votes balance for `account` (external view)
-    function getCurrentVotes(address account) external view returns (uint256) {
-        uint256 nCheckpoints = numCheckpoints[account];
+    function getCurrentVotes(address account) external view returns (uint) {
+        uint nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
     // returns an account's prior vote count as of a given timestamp (external view)
-    function getPriorVotes(address account, uint256 blockTimestamp) external view returns (uint256) {
+    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint) {
         require(blockTimestamp < block.timestamp, 'getPriorVotes: not yet determined');
         
-        uint256 nCheckpoints = numCheckpoints[account];
+        uint nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) { return 0; }
 
         // checks most recent balance
@@ -166,10 +170,10 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
             return 0;
         }
 
-        uint256 lower = 0;
-        uint256 upper = nCheckpoints - 1;
+        uint lower = 0;
+        uint upper = nCheckpoints - 1;
         while (upper > lower) {
-            uint256 center = upper - (upper - lower) / 2; // avoids overflow
+            uint center = upper - (upper - lower) / 2; // avoids overflow
             Checkpoint memory cp = checkpoints[account][center];
             if (cp.fromTime == blockTimestamp) {
                 return cp.votes;
@@ -183,44 +187,44 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         return checkpoints[account][lower].votes;
     }
 
-    function safe256(uint256 n, string memory errorMessage) internal pure returns (uint256) {
-        require(n < type(uint256).max, errorMessage);
-        return uint256(n);
+    function safe256(uint n, string memory errorMessage) internal pure returns (uint) {
+        require(n < type(uint).max, errorMessage);
+        return uint(n);
     }
 
-    function getChainId() internal view returns (uint256) {
-        uint256 chainId;
+    function getChainId() internal view returns (uint) {
+        uint chainId;
         assembly { chainId := chainid() }
         return chainId;
     }
 
     function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled)
+        uint delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled)
         _delegates[delegator] = delegatee;
         emit DelegateChanged(delegator, currentDelegate, delegatee);
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint256 amount) internal {
+    function _moveDelegates(address srcRep, address dstRep, uint amount) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 // decreases old representative
-                uint256 srcRepNum = numCheckpoints[srcRep];
-                uint256 srcRepOld = srcRepNum > 0
+                uint srcRepNum = numCheckpoints[srcRep];
+                uint srcRepOld = srcRepNum > 0
                     ? checkpoints[srcRep][srcRepNum - 1].votes
                     : 0;
-                uint256 srcRepNew = srcRepOld - amount;
+                uint srcRepNew = srcRepOld - amount;
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 // increases new representative
-                uint256 dstRepNum = numCheckpoints[dstRep];
-                uint256 dstRepOld = dstRepNum > 0
+                uint dstRepNum = numCheckpoints[dstRep];
+                uint dstRepOld = dstRepNum > 0
                     ? checkpoints[dstRep][dstRepNum - 1].votes
                     : 0;
-                uint256 dstRepNew = dstRepOld + amount;
+                uint dstRepNew = dstRepOld + amount;
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
         }
@@ -228,11 +232,11 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
     function _writeCheckpoint(
         address delegatee,
-        uint256 nCheckpoints,
-        uint256 oldVotes,
-        uint256 newVotes
+        uint nCheckpoints,
+        uint oldVotes,
+        uint newVotes
     ) internal {
-        uint256 blockTimestamp = safe256(block.timestamp, 'block timestamp exceeds 256 bits');
+        uint blockTimestamp = safe256(block.timestamp, 'block timestamp exceeds 256 bits');
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromTime == blockTimestamp) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
