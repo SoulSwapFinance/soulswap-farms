@@ -4,9 +4,13 @@ pragma solidity ^0.8.0;
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-// @dev Interface of the ERC20 standard as defined in the EIP.
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
 interface IERC20 {
-    // @dev Returns the amount of tokens in existence.
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
     function totalSupply() external view returns (uint256);
 
     /**
@@ -473,76 +477,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     ) internal virtual {}
 }
 
-// File: @openzeppelin/contracts/access/Ownable.sol
-
-pragma solidity ^0.8.0;
-
-/**
- * @dev Contract module which provides a basic access control mechanism, where
- * there is an account (an owner) that can be granted exclusive access to
- * specific functions.
- *
- * By default, the owner account will be the one that deploys the contract. This
- * can later be changed with {transferOwnership}.
- *
- * This module is used through inheritance. It will make available the modifier
- * `onlyOwner`, which can be applied to your functions to restrict their use to
- * the owner.
- */
-abstract contract Ownable is Context {
-    address private _owner;
-
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    constructor() {
-        _setOwner(_msgSender());
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        _setOwner(address(0));
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _setOwner(newOwner);
-    }
-
-    function _setOwner(address newOwner) private {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
-    }
-}
-
 // File: @openzeppelin/contracts/utils/Strings.sol
 
 pragma solidity ^0.8.0;
@@ -913,132 +847,146 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 
 pragma solidity ^0.8.0;
 
-contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
-    
-    // default admin role
-    address public team;
-    
-    // divinated roles
-    bytes32 public anunnaki;    // admin role
-    bytes32 public thoth;       // minter
+contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
+    // address of multi-sig admin
+    address public admin;
 
-    event RoleDivinated(bytes32 role, bytes32 anunnaki);
+    // divine roles
+    bytes32 public anunnaki; // admin role
+    bytes32 public thoth;   // minter
 
-    
-    // restricted to the council of the role passed as an object to obey (divine role)
+    event NewAdmin(address admin);
+    event Rethroned(bytes3 role, address oldAccount, address newAccount);
+
+    // restricted to the council of the role passed as an object to obey (role)
     modifier obey(bytes32 role) {
         _checkRole(role, _msgSender());
         _;
     }
 
-    // channels the power of the anunnaki and thoth to the deployer (deployer)
-    constructor(address _team) {
-        team = _team;
-        // = 0x24D9E0Ba5d79C15D7EEAbD632214430D6F1677cA; // testnet
+    // channels the power of the anunnaki and thoth to the admin (admin)
+    constructor(address _admin) {
+        admin = _admin;
+        anunnaki = keccak256('anunnaki'); // alpha supreme
+        thoth = keccak256('thoth');      // god of wisdom and magic
 
-        anunnaki = keccak256("anunnaki");   // alpha supreme
-        thoth = keccak256("thoth");         // god of wisdom and magic
-
-        _divinationRitual(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, team); // sets team as default-admin (root)
-        _divinationRitual(anunnaki, anunnaki, team);                     // sets anunnaki as self-admin
-        _divinationRitual(thoth, anunnaki, team);                        // sets anunnaki as admin of thoth
+        _divinationRitual(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, admin); // sets admin as default-admin (root)
+        _divinationRitual(anunnaki, anunnaki, admin);                    // sets anunnaki as self-admin
+        _divinationRitual(thoth, anunnaki, admin);                      // sets anunnaki as admin of thoth
     }
 
-    function newTeam (address _team) public obey(anunnaki) {
-        require(team != _team, 'make a change, be the change'); // prevents self-destruct
-        _rethroneRitual(DEFAULT_ADMIN_ROLE, team, _team);       // empowers new supreme
-
-        team = _team;
-    }
-
+    // solidifies roles (internal)
     function _divinationRitual(bytes32 _role, bytes32 _adminRole, address _account) internal {
         _setupRole(_role, _account);
         _setRoleAdmin(_role, _adminRole);
     }
 
-    function _rethroneRitual(bytes32 _role, address _oldAccount, address _newAccount) internal {
-        require(_oldAccount != _newAccount, 'new account must be a new address');
-        grantRole(_role, _newAccount);
-        renounceRole(_role, _oldAccount);
+    // grants `role` to `newAccount` && renounces `role` from `oldAccount`
+    function rethroneRitual(
+        bytes32 role,               //  updated
+        address oldAccount,        //   renounces role
+        address newAccount        //    thrones role
+    ) public obey(role) {
+        require(oldAccount != newAccount, 'must be a new address');
+        grantRole(role, newAccount);     // grants new account
+        renounceRole(role, oldAccount); //  removes old account of role
+    }
 
-    }    
-    
+    // updates admin address
+    function newAdmin(address _admin) public obey(anunnaki) {
+        require(admin != _admin, 'make a change, be the change');  //  prevents self-destruct
+        rethroneRitual(DEFAULT_ADMIN_ROLE, admin, _admin);        //   empowers new supreme
+        admin = _admin;
+
+        emit NewAdmin(admin);
+    }
+
+    // checks whether sender has divine role (view)
     function hasDivineRole(bytes32 role) public view returns (bool) {
         return hasRole(role, msg.sender);
     }
 
     // mints soul power as the council of thoth so wills
-    // thoth is the self-created, egytian god of knowledge, creator of magic itself
-    function mint(address _to, uint _amount) public obey(thoth) { 
+    function mint(address _to, uint256 _amount) public obey(thoth) {
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    // @dev Destroys `amount` tokens from the caller.
-    function burn(uint amount) public {
-        _burn(_msgSender(), amount); // eternal damnation
-        _moveDelegates(_delegates[_msgSender()], address(0), amount); // sends delegates to hell
+    // destroys `amount` tokens from the caller (public sender, token holder)
+    function burn(uint256 amount) public {
+        _burn(_msgSender(), amount);
+        _moveDelegates(_delegates[_msgSender()], address(0), amount);
     }
 
-    function burnFrom(address account, uint amount) public {
-        uint currentAllowance = allowance(account, _msgSender());
-        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-        _approve(account, _msgSender(), currentAllowance - amount); // owner, spender, amount
+    // destroys `amount` tokens from the `account` (public sender, with allowance)
+    function burnFrom(address account, uint256 amount) public {
+        uint256 currentAllowance = allowance(account, _msgSender());
+        require(currentAllowance >= amount, 'ERC20: burn amount exceeds allowance');
+
+        _approve(account, _msgSender(), currentAllowance - amount);
         _burn(account, amount);
-        _moveDelegates(_delegates[account], address(0), amount); // sends delegates to hell
+        _moveDelegates(_delegates[account], address(0), amount);
     }
 
+    // record of each accounts' delegate
+    mapping(address => address) internal _delegates;
 
-    // record of each accounts delegate
-    mapping (address => address) internal _delegates;
-
-    // checkpoint for marking number of votes from a given block timestamp
+    // checkpoint for marking number of votes from a given timestamp
     struct Checkpoint {
-        uint fromTime;
-        uint votes;
+        uint256 fromTime;
+        uint256 votes;
     }
 
     // record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint => Checkpoint)) public checkpoints;
+    mapping(address => mapping(uint256 => Checkpoint)) public checkpoints;
 
     // number of checkpoints for each account
-    mapping (address => uint) public numCheckpoints;
+    mapping(address => uint256) public numCheckpoints;
 
     // EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint chainId,address verifyingContract)");
+    bytes32 public constant DOMAIN_TYPEHASH =
+        keccak256('EIP712Domain(string name,uint chainId,address verifyingContract)');
 
     // EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint nonce,uint expiry)");
+    bytes32 public constant DELEGATION_TYPEHASH =
+        keccak256('Delegation(address delegatee,uint nonce,uint expiry)');
 
     // record of states for signing / validating signatures
-    mapping (address => uint) public nonces;
+    mapping(address => uint256) public nonces;
 
     // emitted when an account changes its delegate
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
+    event DelegateChanged(
+        address indexed delegator,
+        address indexed fromDelegate,
+        address indexed toDelegate
+    );
 
     // emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
+    event DelegateVotesChanged(
+        address indexed delegate,
+        uint256 previousBalance,
+        uint256 newBalance
+    );
 
-    function delegates(address delegator) external view returns (address)  {
+    // returns the address delegated by a given delegator
+    function delegates(address delegator) external view returns (address) {
         return _delegates[delegator];
     }
 
+    // delegates to the `delegatee` (external sender)
     function delegate(address delegatee) external {
         return _delegate(msg.sender, delegatee);
     }
 
-    /**
-     * @dev delegates votes from signatory to `delegatee`
-     * @param delegatee address to delegate votes to
-     * @param nonce contract state required to match the signature
-     * @param expiry time at which to expire the signature
-     * @param v recovery byte of the signature
-     * @param r first half [1/2] of the ECDSA signature pair
-     * @param s second half [2/2] of the ECDSA signature pair
-     */
-    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s)
-        external {
-
+    // delegates votes from signatory to `delegatee` (external)
+    function delegateBySig(
+        address delegatee,
+        uint256 nonce,
+        uint256 expiry,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), getChainId(), address(this))
         );
@@ -1048,77 +996,88 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
         );
 
         bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+            abi.encodePacked('\x19\x01', domainSeparator, structHash)
         );
 
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "SOUL::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "SOUL::delegateBySig: invalid nonce");
-        require(block.timestamp <= expiry, "SOUL::delegateBySig: signature expired");
+        require(signatory != address(0), 'delegateBySig: invalid signature');
+        require(nonce == nonces[signatory]++, 'delegateBySig: invalid nonce');
+        require(block.timestamp <= expiry, 'delegateBySig: signature expired');
         return _delegate(signatory, delegatee);
     }
 
-    // returns: current votes balance for `account`
-    function getCurrentVotes(address account) external view returns (uint) {
-        uint nCheckpoints = numCheckpoints[account];
+    // returns current votes balance for `account`
+    function getCurrentVotes(address account) external view returns (uint256) {
+        uint256 nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    // returns: an account's prior vote count as of a given timestamp
-    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint) {
-        require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
-        uint nCheckpoints = numCheckpoints[account];
+    // returns an account's prior vote count as of a given timestamp
+    function getPriorVotes(address account, uint256 blockTimestamp) external view returns (uint256) {
+        require(blockTimestamp < block.timestamp, 'getPriorVotes: not yet determined');
         
+        uint256 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) { return 0; }
 
-        // first check most recent balance
+        // checks most recent balance
         if (checkpoints[account][nCheckpoints - 1].fromTime <= blockTimestamp) {
             return checkpoints[account][nCheckpoints - 1].votes;
         }
 
-        // next check implicit zero balance
-        if (checkpoints[account][0].fromTime > blockTimestamp) { return 0; }
-
-        uint lower = 0;
-        uint upper = nCheckpoints - 1;
-        while (upper > lower) {
-            uint center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromTime == blockTimestamp) 
-                { return cp.votes; }
-             else if (cp.fromTime < blockTimestamp) 
-                { lower = center; }
-              else { upper = center - 1; }
+        // next checks implicit zero balance
+        if (checkpoints[account][0].fromTime > blockTimestamp) {
+            return 0;
         }
+
+        uint256 lower = 0;
+        uint256 upper = nCheckpoints - 1;
+        while (upper > lower) {
+            uint256 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+            Checkpoint memory cp = checkpoints[account][center];
+            if (cp.fromTime == blockTimestamp) {
+                return cp.votes;
+            } else if (cp.fromTime < blockTimestamp) {
+                lower = center;
+            } else {
+                upper = center - 1;
+            }
+        }
+
         return checkpoints[account][lower].votes;
     }
 
-    function _delegate(address delegator, address delegatee)
-        internal {
+    function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = _delegates[delegator];
-        uint delegatorBalance = balanceOf(delegator); // balance of underlying SOULs (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
-
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint amount) internal {
+    function _moveDelegates(
+        address srcRep,
+        address dstRep,
+        uint256 amount
+    ) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
-                // decrease old representative
-                uint srcRepNum = numCheckpoints[srcRep];
-                uint srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint srcRepNew = srcRepOld - amount;
+                // decreases old representative
+                uint256 srcRepNum = numCheckpoints[srcRep];
+                uint256 srcRepOld = srcRepNum > 0
+                    ? checkpoints[srcRep][srcRepNum - 1].votes
+                    : 0;
+                uint256 srcRepNew = srcRepOld - amount;
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
             if (dstRep != address(0)) {
-                // increase new representative
-                uint dstRepNum = numCheckpoints[dstRep];
-                uint dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint dstRepNew = dstRepOld + amount;
+                // increases new representative
+                uint256 dstRepNum = numCheckpoints[dstRep];
+                uint256 dstRepOld = dstRepNum > 0
+                    ? checkpoints[dstRep][dstRepNum - 1].votes
+                    : 0;
+                uint256 dstRepNew = dstRepOld + amount;
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
         }
@@ -1126,15 +1085,15 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
 
     function _writeCheckpoint(
         address delegatee,
-        uint nCheckpoints,
-        uint oldVotes,
-        uint newVotes
+        uint256 nCheckpoints,
+        uint256 oldVotes,
+        uint256 newVotes
     ) internal {
-        uint blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
+        uint256 blockTimestamp = safe256(block.timestamp, 'block timestamp exceeds 256 bits');
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromTime == blockTimestamp) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
-        } else {
+        } else { 
             checkpoints[delegatee][nCheckpoints] = Checkpoint(blockTimestamp, newVotes);
             numCheckpoints[delegatee] = nCheckpoints + 1;
         }
@@ -1142,13 +1101,14 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
         emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
 
-    function safe256(uint n, string memory errorMessage) internal pure returns (uint) {
-        require(n < type(uint).max, errorMessage);
-        return uint(n);
+    function safe256(uint256 n, string memory errorMessage) internal pure returns (uint256) {
+        require(n < type(uint256).max, errorMessage);
+        return uint256(n);
     }
 
-    function getChainId() internal view returns (uint) {
-        uint chainId;
+    // returns chainId
+    function getChainId() internal view returns (uint256) {
+        uint256 chainId;
         assembly { chainId := chainid() }
         return chainId;
     }
