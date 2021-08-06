@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
@@ -847,13 +846,17 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 
 pragma solidity ^0.8.0;
 
+// ----------------------------------------------
+//       SoulPower 2021 | 0xBuns + DeGatchi
+// ----------------------------------------------
+
 contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
-    // address of multi-sig admin
+    // multi-sig admin
     address public admin;
 
     // divine roles
     bytes32 public anunnaki; // admin role
-    bytes32 public thoth;   // minter
+    bytes32 public thoth;   // minter role
 
     event NewAdmin(address admin);
     event Rethroned(bytes3 role, address oldAccount, address newAccount);
@@ -870,9 +873,9 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         anunnaki = keccak256('anunnaki'); // alpha supreme
         thoth = keccak256('thoth');      // god of wisdom and magic
 
-        _divinationRitual(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, admin); // sets admin as default-admin (root)
-        _divinationRitual(anunnaki, anunnaki, admin);                    // sets anunnaki as self-admin
-        _divinationRitual(thoth, anunnaki, admin);                      // sets anunnaki as admin of thoth
+        _divinationRitual(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, admin); // admin as root admin
+        _divinationRitual(anunnaki, anunnaki, admin);                    // anunnaki as admin of anunnaki
+        _divinationRitual(thoth, anunnaki, admin);                      // anunnaki as admin of thoth
     }
 
     // solidifies roles (internal)
@@ -883,7 +886,7 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
     // grants `role` to `newAccount` && renounces `role` from `oldAccount`
     function rethroneRitual(
-        bytes32 role,               //  updated
+        bytes32 role,               //  updated role
         address oldAccount,        //   renounces role
         address newAccount        //    thrones role
     ) public obey(role) {

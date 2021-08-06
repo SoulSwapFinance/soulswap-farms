@@ -11,12 +11,12 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 // --------------------------------------------------------------------------------------
 
 contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
-    // address of multi-sig admin
+    // multi-sig admin
     address public admin;
 
     // divine roles
     bytes32 public anunnaki; // admin role
-    bytes32 public thoth;   // minter
+    bytes32 public thoth;   // minter role
 
     event NewAdmin(address admin);
     event Rethroned(bytes3 role, address oldAccount, address newAccount);
@@ -46,7 +46,7 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
     // grants `role` to `newAccount` && renounces `role` from `oldAccount`
     function rethroneRitual(
-        bytes32 role,               //  updated
+        bytes32 role,               //  updated role
         address oldAccount,        //   renounces role
         address newAccount        //    thrones role
     ) public obey(role) {
