@@ -1,35 +1,25 @@
 const { expect } = require('chai');
-const { increaseTime, toWei } = require('./utils/testHelper.js');
+const { increaseTime, toWei, deployContract } = require('./utils/testHelper.js');
 
 describe('SoulVaultEthers', () => {
     const ethers = hre.ethers;
 
     beforeEach(async () => {
-        MockSoul = await ethers.getContractFactory('MockToken');
-        soul = await MockSoul.deploy();
-        await soul.deployed();
-
-        MockSeance = await ethers.getContractFactory('MockToken');
-        seance = await MockSeance.deploy();
-        await seance.deployed();
-
-        MockSummoner = await ethers.getContractFactory('MockSummoner');
-        summoner = await MockSummoner.deploy();
-        await summoner.deployed();
+        soul = await deployContract('MockToken')
+        seance = await deployContract('MockToken')
+        summoner = await deployContract('MockSummoner')
 
         await summoner.initialize(soul.address, seance.address, 0, 100, 50);
 
-        SoulVault = await ethers.getContractFactory('SoulVault');
-        vault = await SoulVault.deploy(soul.address, seance.address, summoner.address);
-        await vault.deployed();
+        vault = await deployContract('MockVault', soul.address, seance.address, summoner.address)
     });
 
     describe('deposit', function() {
         it('deposits correctly', async () => {
-            await soul.mint(1000)
-            await soul.approve(vault.address, 1000)
+            await soul.mint(toWei(100))
+            await soul.approve(vault.address, toWei(100))
 
-            await vault.deposit(1000)
+            await vault.deposit(toWei(100))
             // expect(await vault.soul()).to.equal(soul);
         });
     });
