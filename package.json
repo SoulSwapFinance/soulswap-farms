@@ -5,29 +5,23 @@
   "scripts": {
     "migrate": "truffle migrate --reset",
     "migrate:test": "truffle migrate --reset --network testnet",
-    
     "compile": "truffle compile",
     "compile:test": "truffle compile --network testnet",
-
     "flat:soul": "truffle-flattener contracts/SoulPower.sol > flats/SoulPower_flat.sol",
     "flat:seance": "truffle-flattener contracts/SeanceCircle.sol > flats/SeanceCircle_flat.sol",
     "flat:spell": "truffle-flattener contracts/SpellBound.sol > flats/SpellBound_flat.sol",
     "flat:spellv2": "truffle-flattener contracts/SpellBoundV2.sol > flats/SpellBoundV2_flat.sol",
     "flat:summoner": "truffle-flattener contracts/SoulSummoner.sol > flats/SoulSummoner_flat.sol",
-
     "flat:vault": "truffle-flattener contracts/SoulVault.sol > flats/SoulVault_flat.sol",
     "flat:sous": "truffle-flattener contracts/SousSummoner.sol > flats/SousSummoner_flat.sol",
     "flat:maker": "truffle-flattener contracts/SoulMaker.sol > flats/SoulMaker_flat.sol",
-
     "verify:soul": "truffle run verify SoulPower --network testnet --license SPDX-License-Identifier",
     "verify:seance": "truffle run verify SeanceCircle --network testnet --license SPDX-License-Identifier",
     "verify:spell": "truffle run verify SpellBound --network testnet --license SPDX-License-Identifier",
     "verify:summoner": "truffle run verify SoulSummoner --network testnet --license SPDX-License-Identifier",
-
     "verify:vault": "truffle run verify SoulVault --network testnet --license SPDX-License-Identifier",
     "verify:sous": "truffle run verify SousSummoner --network testnet --license SPDX-License-Identifier",
     "verify:maker": "truffle run verify SoulMaker --network testnet --license SPDX-License-Identifier",
-
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage"
   },
@@ -38,10 +32,11 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/contracts": "^4.1.0",
     "@openzeppelin/test-helpers": "^0.5.6",
-    "@soulswap/swap-core":"^0.0.3",
-    "@soulswap/swap-periphery":"^0.0.3",
+    "@soulswap/swap-core": "^0.0.3",
+    "@soulswap/swap-periphery": "^0.0.3",
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
+    "chai-as-promised": "^7.1.1",
     "dotenv": "^8.2.0",
     "hardhat": "^2.3.0",
     "solc": "^0.8.0",
