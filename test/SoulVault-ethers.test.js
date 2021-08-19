@@ -1,10 +1,11 @@
 const { expect } = require('chai');
 const { increaseTime, toWei, deployContract } = require('./utils/testHelper.js');
 
-describe('SoulVaultEthers', () => {
-    const ethers = hre.ethers;
 
+describe('SoulVaultEthers', function () {    
     beforeEach(async () => {
+        accounts = await hre.ethers.getSigners()
+
         soul = await deployContract('MockToken')
         seance = await deployContract('MockToken')
         summoner = await deployContract('MockSummoner')
@@ -14,16 +15,20 @@ describe('SoulVaultEthers', () => {
         vault = await deployContract('MockVault', soul.address, seance.address, summoner.address)
     });
 
-    describe('deposit', function() {
-        it('deposits correctly', async () => {
-            await soul.mint(toWei(100))
-            await soul.approve(vault.address, toWei(100))
+    describe('deposit', async () => {
+        it('deposits transfer soul correctly', async () => {
+            soul.connect(accounts[0]).approve(vault.address, toWei(100))
+            soul.connect(accounts[0]).mint(toWei(100))
 
-            await vault.deposit(toWei(100))
-            // expect(await vault.soul()).to.equal(soul);
+            vault.connect(accounts[0]).deposit(toWei(100))
+            
+            expect(await soul.balanceOf(accounts[0].address)).to.equal(0)
+
+            const tx = await vault.userInfo(accounts[0].address)
+        
+            // expect(tx[0]).to.equal(0)
         });
     });
-
     // describe('check days passed', function() {
     //     it('should return 1 days passed', async function() {
     //         increaseTime(86499);
