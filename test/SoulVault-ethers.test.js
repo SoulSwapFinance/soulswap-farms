@@ -16,19 +16,55 @@ describe('SoulVaultEthers', function () {
     });
 
     describe('deposit', async () => {
-        it('deposits transfer soul correctly', async () => {
+        it('transfers soul correctly', async () => {
             soul.connect(accounts[0]).approve(vault.address, toWei(100))
             soul.connect(accounts[0]).mint(toWei(100))
 
             vault.connect(accounts[0]).deposit(toWei(100))
             
             expect(await soul.balanceOf(accounts[0].address)).to.equal(0)
+            
+            // increaseTime(86400)
+            vault.connect(accounts[0]).withdrawAll()
+            expect(await soul.balanceOf(accounts[0].address)).to.equal(toWei(100))
 
-            const tx = await vault.userInfo(accounts[0].address)
-        
+            // const tx = await vault.userInfo(accounts[0].address)
             // expect(tx[0]).to.equal(0)
         });
+
+        it('receives the right amount of shares for deposit', async () => {
+
+        })
+
+        it('receives correct soul amount when multiple people in pool', async () => {
+
+        })
+
+        it('receives the correct pending soul rewards', async () => {
+
+        })
     });
+
+    describe('withdraw', async () => {
+        it('charges fee when withdraw before end period', async () => {
+
+        })
+
+        it('doesnt charge fee when withdraw after end period', async () => {
+
+        })
+
+        it('reverts when trying to withdraw funds when null share balance', async () => {
+
+        })
+    });
+
+    describe('compound', async () => {
+        it('reinvests available shares when someone uses harvest', async () => {
+
+        })
+    });
+
     // describe('check days passed', function() {
     //     it('should return 1 days passed', async function() {
     //         increaseTime(86499);
