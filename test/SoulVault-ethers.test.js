@@ -1,32 +1,41 @@
 const { expect } = require('chai');
 const { increaseTime, toWei, fromWei, deployContract } = require('./utils/testHelper.js');
 
+describe('SoulVault', () => {    
+    const ethers = hre.ethers;
 
-describe('SoulVaultEthers', function () {    
     beforeEach(async () => {
-        accounts = await hre.ethers.getSigners()
+        // accounts = await ethers.getSigners('SoulVault');
+        SoulVault = await hre.ethers.getContractFactory('SoulVault');
+        const MockToken = await hre.ethers.getContractFactory('MockToken');
 
-        soul = await deployContract('MockToken')
-        console.log(soul.address)
-        seance = await deployContract('MockToken')
-        console.log(seance.address)
-        summoner = await deployContract('MockSummoner')
+        // const SoulPower = await hre.ethers.getContractFactory('MockToken');
+        const soul = await MockToken.deploy('MockToken', "SoulPower", "SOUL");
+        console.log('Soul Address: `%s`', soul.address);
+        
+        const SeanceCircle = await hre.ethers.getContractFactory('MockToken');
+        const seance = await SeanceCircle.deploy('MockToken', "SeanceCircle", "SEANCE");
+        console.log('Soul Address: `%s`', seance.address);
+        
+        const Summoner = await hre.ethers.getContractFactory('MockSummoner');
+        summoner = await deploy('MockSummoner');
+        console.log('Summoner Address: `%s`', summoner.address);
 
         await summoner.initialize(soul.address, seance.address, 0, 100, 50);
 
-        vault = await deployContract('MockVault', soul.address, seance.address, summoner.address)
+        vault = await SoulVault.deploy('MockVault', soul.address, seance.address, summoner.address);
     });
 
-    describe('deposit', async () => {
-        it('transfers soul correctly', async () => {
-            soul.connect(accounts[0]).approve(vault.address, toWei(100))
-            soul.connect(accounts[0]).mint(toWei(100))
+    describe('deposit', function() {
+        it('transfers soul correctly', async function() {
+            soul.approve(vault.address, toWei(100));
+            soul.mint(toWei(100));
 
-            vault.connect(accounts[0]).deposit(toWei(100))
-            const vBal = await soul.balanceOf(vault.address)
-            console.log('vault soul bal', fromWei(vBal))
+            vault.deposit(toWei(100));
+            const vBal = await soul.balanceOf(vault.address);
+            console.log('vault soul bal', fromWei(vBal));
 
-            expect(await soul.balanceOf(accounts[0].address)).to.equal(toWei(100))
+            expect(await soul.balanceOf(accounts[0].address)).to.equal(toWei(100));
             
             // increaseTime(86400)
             // vault.connect(accounts[0]).withdrawAll()
