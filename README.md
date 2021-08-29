@@ -3,6 +3,12 @@
 
 ## Contract: Address
 
+## Fantom Mainnet
+- [SoulPower.sol](https://ftmscan.com/address/0xe2fb177009FF39F52C0134E8007FA0e4BaAcBd07#code): 0xe2fb177009FF39F52C0134E8007FA0e4BaAcBd07
+- [SeanceCircle.sol](https://ftmscan.com/address/0x124B06C5ce47De7A6e9EFDA71a946717130079E6#code): 0x124B06C5ce47De7A6e9EFDA71a946717130079E6
+
+- [Multicall.sol](https://ftmscan.com/address/0x6858a26bbbc8e185274969f6baf99674929cf766#code): 0x6858a26bbbc8e185274969f6baf99674929cf766
+
 ### Fantom Testnet [V3 SoulSummoner]
 - [SoulPower.sol](https://testnet.ftmscan.com/address/0x814974a103c9a72c15c52ce7d1be0f2c084576f3#code): 
 - [SeanceCircle.sol](https://testnet.ftmscan.com/address/#code): 

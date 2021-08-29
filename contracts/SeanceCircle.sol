@@ -7,7 +7,10 @@ import './libraries/Operable.sol';
 
 // SeanceCircle with Governance.
 contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
-    /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (SoulSummoner).
+
+    SoulPower public soul;
+    bool isInitialized;
+
     function mint(address _to, uint256 _amount) public onlyOperator {
         require(isInitialized, 'the circle has not yet begun');
         _mint(_to, _amount);
@@ -19,13 +22,9 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
         _moveDelegates(_delegates[_from], address(0), _amount);
     }
 
-    SoulPower public soul;
-    bool isInitialized;
-
     function initialize(SoulPower _soul) external onlyOwner {
         require(!isInitialized, 'the circle has already begun');
         soul = _soul;
-
         isInitialized = true;
     }
 
@@ -69,35 +68,13 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
     // emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
-    /**
-     * @dev Delegate votes from `msg.sender` to `delegatee`
-     * @param delegator The address to get delegatee for
-     */
-    function delegates(address delegator)
-        external
-        view
-        returns (address)
-    {
-        return _delegates[delegator];
-    }
+    // returns the address delegated by a given delegator (external view)
+    function delegates(address delegator) external view returns (address) { return _delegates[delegator]; }
 
-   /**
-    * @dev Delegate votes from `msg.sender` to `delegatee`
-    * @param delegatee The address to delegate votes to
-    */
-    function delegate(address delegatee) external {
-        return _delegate(msg.sender, delegatee);
-    }
+    // delegates to the `delegatee` (external)
+    function delegate(address delegatee) external { return _delegate(msg.sender, delegatee); }
 
-    /**
-     * @dev Delegates votes from signatory to `delegatee`
-     * @param delegatee The address to delegate votes to
-     * @param nonce The contract state required to match the signature
-     * @param expiry The time at which to expire the signature
-     * @param v The recovery byte of the signature
-     * @param r Half of the ECDSA signature pair
-     * @param s Half of the ECDSA signature pair
-     */
+    // delegates votes from signatory to `delegatee` (external)
     function delegateBySig(
         address delegatee,
         uint nonce,
@@ -141,27 +118,13 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
         return _delegate(signatory, delegatee);
     }
 
-    /**
-     * @dev Gets the current votes balance for `account`
-     * @param account The address to get votes balance
-     * @return The number of current votes for `account`
-     */
-    function getCurrentVotes(address account)
-        external
-        view
-        returns (uint256)
-    {
-        uint256 nCheckpoints = numCheckpoints[account];
+    // returns current votes balance for `account` (external view)
+    function getCurrentVotes(address account) external view returns (uint) {
+        uint nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    /**
-     * @dev Determine the prior number of votes for an account as of a block timestamp
-     * @dev Block timestamp must be a finalized block or else this function will revert to prevent misinformation.
-     * @param account The address of the account to check
-     * @param blockTimestamp The block timestamp to get the vote balance at
-     * @return The number of votes the account had as of the given block timestamp
-     */
+    // returns an account's prior vote count as of a given timestamp (external view)
     function getPriorVotes(address account, uint blockTimestamp) external view returns (uint256) {
         require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
 
@@ -170,12 +133,12 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
             return 0;
         }
 
-        // First check most recent balance
+        // checks most recent balance
         if (checkpoints[account][nCheckpoints - 1].fromTime <= blockTimestamp) {
             return checkpoints[account][nCheckpoints - 1].votes;
         }
 
-        // Next check implicit zero balance
+        // checks implicit zero balance
         if (checkpoints[account][0].fromTime > blockTimestamp) {
             return 0;
         }
