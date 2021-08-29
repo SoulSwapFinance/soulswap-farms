@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity >=0.8.0;
 
 interface IERC20 {
     function totalSupply() external view returns (uint);
@@ -119,11 +119,11 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 contract Multicall {
 
-    ERC20 public wftm;
-    ERC20 public fusd;
+    ERC20 public immutable wftm = ERC20(0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83);
+    ERC20 public immutable fusd = ERC20(0xAd84341756Bf337f5a0164515b1f6F993D194E1f);
 
+    address public ftmFusdPool = 0x11b5B41b55724427B44A8625AE14F24e0CaAD586;
     address public summoner;
-    address public ftmFusdPool;
     address private buns = msg.sender;
 
     bool isInitialized;
@@ -134,10 +134,9 @@ contract Multicall {
         bytes callData;
     }
 
-    constructor(ERC20 _wftm, ERC20 _fusd, address _ftmFusdPool) {
-        wftm = _wftm;
-        fusd = _fusd;
-        ftmFusdPool = _ftmFusdPool;
+    struct Result {
+        bool success;
+        bytes returnData;
     }
 
     function initialize(address _summoner) public {
@@ -150,19 +149,43 @@ contract Multicall {
         emit Initialized(summoner);
     }
 
-    function aggregate(Call[] memory calls) public returns (uint blockNumber, bytes[] memory returnData) {
+    function aggregate(Call[] memory calls) public returns (uint256 blockNumber, bytes[] memory returnData) {
         blockNumber = block.number;
         returnData = new bytes[](calls.length);
-        for(uint i = 0; i < calls.length; i++) {
+        for(uint256 i = 0; i < calls.length; i++) {
             (bool success, bytes memory ret) = calls[i].target.call(calls[i].callData);
-            require(success);
+            require(success, "aggregate: call failed");
             returnData[i] = ret;
         }
+    }
+
+    function blockAndAggregate(Call[] memory calls) public returns (uint256 blockNumber, bytes32 blockHash, Result[] memory returnData) {
+        (blockNumber, blockHash, returnData) = tryBlockAndAggregate(true, calls);
+    }
+
+    function tryAggregate(bool requireSuccess, Call[] memory calls) public returns (Result[] memory returnData) {
+        returnData = new Result[](calls.length);
+        for(uint256 i = 0; i < calls.length; i++) {
+            (bool success, bytes memory ret) = calls[i].target.call(calls[i].callData);
+            if (requireSuccess) { require(success, "aggregate: call failed"); }
+            returnData[i] = Result(success, ret);
+        }
+    }
+
+    function tryBlockAndAggregate(bool requireSuccess, Call[] memory calls) 
+        public returns (uint256 blockNumber, bytes32 blockHash, Result[] memory returnData) {
+            blockNumber = block.number;
+            blockHash = blockhash(block.number);
+            returnData = tryAggregate(requireSuccess, calls);
     }
     
     // helper functions
     function getEthBalance(address addr) public view returns (uint balance) {
         balance = addr.balance;
+    }
+
+    function getBlockNumber() public view returns (uint256 blockNumber) {
+        blockNumber = block.number;
     }
 
     function getBlockHash(uint blockNumber) public view returns (bytes32 blockHash) {
@@ -231,7 +254,7 @@ contract Multicall {
         uint lockedAmount = pool.balanceOf(summoner);
         uint fusdValue = getFusdValue(address(pool));      // gets value in FUSD ($)
         uint ftmValue = getFtmValue(address(pool));       // gets value in FTM
-        uint ftmUsdValue = getFtmFusdValue();              // gets ftm USD($) value
+        uint ftmUsdValue = getFtmFusdValue(); // gets ftm USD($) value
 
         bool isFusdPool = fusdValue >= ftmValue;
 
@@ -241,4 +264,6 @@ contract Multicall {
         
         value = lpValue * lockedAmount; // value ($) of each lp * amount locked
     }
+
+    
 }
