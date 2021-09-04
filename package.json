@@ -22,7 +22,7 @@
     "verify:vault": "truffle run verify SoulVault --network testnet --license SPDX-License-Identifier",
     "verify:sous": "truffle run verify SousSummoner --network testnet --license SPDX-License-Identifier",
     "verify:maker": "truffle run verify SoulMaker --network testnet --license SPDX-License-Identifier",
-    "test:summoner": "npx hardhat test/SoulSummoner-ethers.test.js",
+    "test:summoner": "npx hardhat test test/SoulSummoner.test.js",
     "test:vault": "npx hardhat test test/SoulVault-ethers.test.js",
     "coverage": "npx hardhat coverage"
   },

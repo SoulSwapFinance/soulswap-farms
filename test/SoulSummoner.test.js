@@ -1,37 +1,38 @@
-const { expectRevert, time } = require('@openzeppelin/test-helpers');
-// const { BigNumber } = require('ethers');
-// const SoulPower = artifacts.require('SoulPower');
-// const SeanceCircle = artifacts.require('SeanceCircle');
-// const SoulSummoner = artifacts.require('SoulSummoner');
-// const MockERC20 = artifacts.require('libs/MockERC20');
+const { expect } = require('chai');
+const { increaseTime, toWei, fromWei, deployContract } = require('./utils/testHelper.js');
 
-// const SoulPower = require('./SoulPower.test');
-// const SeanceCircle = require('./SeanceCircle.test');
-
-describe("SoulPower", function() {
-    it("should return the address of SoulPower", async function() {
-      const SoulPower = await ethers.getContractFactory("SoulPower");
-      const soulPower = await SoulPower.deploy();
-      await soulPower.deployed();
+// describe("SoulPower", function() {
+//     it("should return the address of SoulPower", async function() {
+//       const SoulPower = await ethers.getContractFactory("SoulPower");
+//       const soulPower = await SoulPower.deploy();
+//       await soulPower.deployed();
   
-      expect(await address(address)).to.equal(address(soulPower));
+//       expect(await address(address)).to.equal(address(soulPower));
   
-    });
-  });
+//     });
+//   });
 
-describe("SeanceCircle", function() {
-  it("should return the address of SoulPower", async function() {
-    const SeanceCircle = await ethers.getContractFactory("SeanceCircle");
-    const seanceCircle = await SeanceCircle.deploy();
-    await seanceCircle.deployed();
+// describe("SeanceCircle", function() {
+//   it("should return the address of SoulPower", async function() {
+//     const SeanceCircle = await ethers.getContractFactory("SeanceCircle");
+//     const seanceCircle = await SeanceCircle.deploy();
+//     await seanceCircle.deployed();
 
-    expect(await seanceCircle.address()).to.equal(address(seanceCircle));
+//     expect(await seanceCircle.address()).to.equal(address(seanceCircle));
 
-  });
-});
+//   });
+// });
 
-describe('SoulSummoner', function(alice, bob, team, treasury, minter) {
+describe('SoulSummoner', (alice, bob, team, treasury, minter) => {
+  const ethers = hre.ethers;
+
     beforeEach(async () => {
+            const SoulPower = await ethers.getContractFactory("MockSoulPower");
+            const soulPower = await SoulPower.deploy(minter.address);
+            await soulPower.deployed();
+            expect(await address(address)).to.equal(address(soulPower));
+    
+
         this.soul = await soulPower.new({ from: minter });
         this.seance = await SeanceCircle.new(this.soul.address, { from: minter });
         this.lp1 = await MockERC20.new('LPToken', 'LP1', '1000000', { from: minter });
@@ -49,6 +50,8 @@ describe('SoulSummoner', function(alice, bob, team, treasury, minter) {
         await this.lp2.transfer(alice, '2000', { from: minter });
         await this.lp3.transfer(alice, '2000', { from: minter });
     });
+
+
     it('real case', async () => {
       this.lp4 = await MockERC20.new('LPToken', 'LP1', '1000000', { from: minter });
       this.lp5 = await MockERC20.new('LPToken', 'LP2', '1000000', { from: minter });
