@@ -2,9 +2,96 @@
 
 pragma solidity ^0.8.0;
 
+// File: @openzeppelin/contracts/access/IAccessControl.sol
+/**
+ * @dev External interface of AccessControl declared to support ERC165 detection.
+ */
+interface IAccessControl {
+    /**
+     * @dev Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole`
+     *
+     * `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite
+     * {RoleAdminChanged} not being emitted signaling this.
+     *
+     * _Available since v3.1._
+     */
+    event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);
+
+    /**
+     * @dev Emitted when `account` is granted `role`.
+     *
+     * `sender` is the account that originated the contract call, an admin role
+     * bearer except when using {AccessControl-_setupRole}.
+     */
+    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
+
+    /**
+     * @dev Emitted when `account` is revoked `role`.
+     *
+     * `sender` is the account that originated the contract call:
+     *   - if using `revokeRole`, it is the admin role bearer
+     *   - if using `renounceRole`, it is the role bearer (i.e. `account`)
+     */
+    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
+
+    /**
+     * @dev Returns `true` if `account` has been granted `role`.
+     */
+    function hasRole(bytes32 role, address account) external view returns (bool);
+
+    /**
+     * @dev Returns the admin role that controls `role`. See {grantRole} and
+     * {revokeRole}.
+     *
+     * To change a role's admin, use {AccessControl-_setRoleAdmin}.
+     */
+    function getRoleAdmin(bytes32 role) external view returns (bytes32);
+
+    /**
+     * @dev Grants `role` to `account`.
+     *
+     * If `account` had not been already granted `role`, emits a {RoleGranted}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     */
+    function grantRole(bytes32 role, address account) external;
+
+    /**
+     * @dev Revokes `role` from `account`.
+     *
+     * If `account` had been granted `role`, emits a {RoleRevoked} event.
+     *
+     * Requirements:
+     *
+     * - the caller must have ``role``'s admin role.
+     */
+    function revokeRole(bytes32 role, address account) external;
+
+    /**
+     * @dev Revokes `role` from the calling account.
+     *
+     * Roles are often managed via {grantRole} and {revokeRole}: this function's
+     * purpose is to provide a mechanism for accounts to lose their privileges
+     * if they are compromised (such as when a trusted device is misplaced).
+     *
+     * If the calling account had been granted `role`, emits a {RoleRevoked}
+     * event.
+     *
+     * Requirements:
+     *
+     * - the caller must be `account`.
+     */
+    function renounceRole(bytes32 role, address account) external;
+}
+
 // File: @openzeppelin/contracts/utils/Context.sol
 
-/*
+pragma solidity ^0.8.0;
+
+/**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
  * via msg.sender and msg.data, they should not be accessed in such a direct
@@ -148,20 +235,9 @@ abstract contract ERC165 is IERC165 {
 
 pragma solidity ^0.8.0;
 
-/**
- * @dev External interface of AccessControl declared to support ERC165 detection.
- */
-interface IAccessControl {
-    function hasRole(bytes32 role, address account) external view returns (bool);
 
-    function getRoleAdmin(bytes32 role) external view returns (bytes32);
 
-    function grantRole(bytes32 role, address account) external;
 
-    function revokeRole(bytes32 role, address account) external;
-
-    function renounceRole(bytes32 role, address account) external;
-}
 
 /**
  * @dev Contract module that allows children to implement role-based access
@@ -212,39 +288,12 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
     bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
 
     /**
-     * @dev Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole`
-     *
-     * `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite
-     * {RoleAdminChanged} not being emitted signaling this.
-     *
-     * _Available since v3.1._
-     */
-    event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);
-
-    /**
-     * @dev Emitted when `account` is granted `role`.
-     *
-     * `sender` is the account that originated the contract call, an admin role
-     * bearer except when using {_setupRole}.
-     */
-    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
-
-    /**
-     * @dev Emitted when `account` is revoked `role`.
-     *
-     * `sender` is the account that originated the contract call:
-     *   - if using `revokeRole`, it is the admin role bearer
-     *   - if using `renounceRole`, it is the role bearer (i.e. `account`)
-     */
-    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
-
-    /**
      * @dev Modifier that checks that an account has a specific role. Reverts
      * with a standardized message including the required role.
      *
      * The format of the revert reason is given by the following regular expression:
      *
-     *  /^AccessControl: account (0x[0-9a-f]{20}) is missing role (0x[0-9a-f]{32})$/
+     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/
      *
      * _Available since v4.1._
      */
@@ -272,7 +321,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * The format of the revert reason is given by the following regular expression:
      *
-     *  /^AccessControl: account (0x[0-9a-f]{20}) is missing role (0x[0-9a-f]{32})$/
+     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/
      */
     function _checkRole(bytes32 role, address account) internal view {
         if (!hasRole(role, account)) {
@@ -372,8 +421,9 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
      * Emits a {RoleAdminChanged} event.
      */
     function _setRoleAdmin(bytes32 role, bytes32 adminRole) internal virtual {
-        emit RoleAdminChanged(role, getRoleAdmin(role), adminRole);
+        bytes32 previousAdminRole = getRoleAdmin(role);
         _roles[role].adminRole = adminRole;
+        emit RoleAdminChanged(role, previousAdminRole, adminRole);
     }
 
     function _grantRole(bytes32 role, address account) private {
@@ -465,7 +515,6 @@ abstract contract Ownable is Context {
 // File: @openzeppelin/contracts/security/Pausable.sol
 
 pragma solidity ^0.8.0;
-
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -1071,118 +1120,132 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: contracts/SoulPower.sol
 
-// soul power
 pragma solidity ^0.8.0;
 
-contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
-    
-    // divinated roles
-    bytes32 public anunnaki; // alpha supreme
-    bytes32 public thoth; // god of wisdom and magic
+contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
-    event RoleDivinated(bytes32 role, bytes32 anunnaki);
+    address public supreme;     // supreme divine
+    bytes32 public anunnaki;   // admin role
+    bytes32 public thoth;     // minter role
 
-    // restricted to the council of the role passed as an object to obey (divine role)
+    bytes32 public constant DOMAIN_TYPEHASH = // EIP-712 typehash for the contract's domain
+        keccak256('EIP712Domain(string name,uint chainId,address verifyingContract)');
+    bytes32 public constant DELEGATION_TYPEHASH = // EIP-712 typehash for the delegation struct used by the contract
+        keccak256('Delegation(address delegatee,uint nonce,uint expiry)'); 
+
+    // mappings for user accounts (address)
+    mapping(address => mapping(uint => Checkpoint)) public checkpoints;   // vote checkpoints
+    mapping(address => uint) public numCheckpoints;                      // checkpoint count
+    mapping(address => uint) public nonces;                             // signing / validating states
+    mapping(address => address) internal _delegates;                      // each accounts' delegate
+
+    struct Checkpoint {  // checkpoint for marking number of votes from a given timestamp
+        uint fromTime;
+        uint votes;
+    }
+
+    event NewSupreme(address supreme);
+    event Rethroned(bytes32 role, address oldAccount, address newAccount);
+    event DelegateChanged( // emitted when an account changes its delegate
+        address indexed delegator,
+        address indexed fromDelegate,
+        address indexed toDelegate
+    );
+    event DelegateVotesChanged( // emitted when a delegate account's vote balance changes
+        address indexed delegate,
+        uint previousBalance,
+        uint newBalance
+    );
+
+    // restricted to the house of the role passed as an object to obey
     modifier obey(bytes32 role) {
         _checkRole(role, _msgSender());
         _;
     }
 
-    // channels the power of the anunnaki and thoth to the deployer (deployer)
-    constructor() {
-        anunnaki = keccak256("anunnaki"); // alpha supreme
-        thoth = keccak256("thoth"); // god of wisdom and magic
+    // channels the authority vested in anunnaki and thoth to the supreme
+    constructor(address _supreme) {
+        supreme = _supreme;
+        anunnaki = keccak256('anunnaki'); // alpha supreme
+        thoth = keccak256('thoth');      // god of wisdom and magic
 
-        _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
-        _divinationCeremony(anunnaki, anunnaki, msg.sender); 
-        _divinationCeremony(thoth, anunnaki, msg.sender);
+        _divinationRitual(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, supreme); // supreme as root admin
+        _divinationRitual(anunnaki, anunnaki, supreme);                    // anunnaki as admin of anunnaki
+        _divinationRitual(thoth, anunnaki, supreme);                      // anunnaki as admin of thoth
+
+        mint(supreme, 50000000 * 1e18); // mints initial supply of 50M
     }
 
-    
-    function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 
-        internal returns (bool) {
-            _setupRole(_role, _account);
-            _setRoleAdmin(_role, _adminRole);
-
-        return true;
-
-    }
-    
-    // mints soul power as the council of thoth so wills
-    // thoth is the self-created, egytian god of knowledge, creator of magic itself
-    function mint(address _to, uint _amount) public obey(thoth) { 
-        _mint(_to, _amount);
-        _moveDelegates(address(0), _delegates[_to], _amount);
+    // solidifies roles (internal)
+    function _divinationRitual(bytes32 _role, bytes32 _adminRole, address _account) internal {
+        _setupRole(_role, _account);
+        _setRoleAdmin(_role, _adminRole);
     }
 
-    // @dev Destroys `amount` tokens from the caller.
-    function burn(uint amount) public {
-        _burn(_msgSender(), amount); // eternal damnation
-        _moveDelegates(_delegates[_msgSender()], address(0), amount); // sends delegates to hell
+    // grants `role` to `newAccount` && renounces `role` from `oldAccount` (public role)
+    function rethroneRitual(bytes32 role, address oldAccount, address newAccount) public obey(role) {
+        require(oldAccount != newAccount, 'must be a new address');
+        grantRole(role, newAccount);     // grants new account
+        renounceRole(role, oldAccount); //  removes old account of role
+        
+        emit Rethroned(role, oldAccount, newAccount);
     }
 
-    function burnFrom(address account, uint amount) public {
-        uint currentAllowance = allowance(account, _msgSender());
-        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-        _approve(account, _msgSender(), currentAllowance - amount);
-        _burn(account, amount);
-        _moveDelegates(_delegates[account], address(0), amount); // sends delegates to hell
+    // updates supreme address (public anunnaki)
+    function newSupreme(address _supreme) public obey(anunnaki) {
+        require(supreme != _supreme, 'make a change, be the change');  //  prevents self-destruct
+        rethroneRitual(DEFAULT_ADMIN_ROLE, supreme, _supreme);        //   empowers new supreme
+        supreme = _supreme;
+        
+        emit NewSupreme(supreme);
     }
 
+    // checks whether sender has divine role (public view)
     function hasDivineRole(bytes32 role) public view returns (bool) {
         return hasRole(role, msg.sender);
     }
 
-    // record of each accounts delegate
-    mapping (address => address) internal _delegates;
-
-    // checkpoint for marking number of votes from a given block timestamp
-    struct Checkpoint {
-        uint fromTime;
-        uint votes;
+    // mints soul power as the house of thoth so wills (public thoth)
+    function mint(address _to, uint _amount) public obey(thoth) {
+        _mint(_to, _amount);
+        _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    // record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint => Checkpoint)) public checkpoints;
+    // destroys `amount` tokens from the caller (public)
+    function burn(uint amount) public {
+        _burn(_msgSender(), amount);
+        _moveDelegates(_delegates[_msgSender()], address(0), amount);
+    }
 
-    // number of checkpoints for each account
-    mapping (address => uint) public numCheckpoints;
+    // destroys `amount` tokens from the `account` (public)
+    function burnFrom(address account, uint amount) public {
+        uint currentAllowance = allowance(account, _msgSender());
+        require(currentAllowance >= amount, 'burn amount exceeds allowance');
 
-    // EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint chainId,address verifyingContract)");
+        _approve(account, _msgSender(), currentAllowance - amount);
+        _burn(account, amount);
+        _moveDelegates(_delegates[account], address(0), amount);
+    }
 
-    // EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint nonce,uint expiry)");
-
-    // record of states for signing / validating signatures
-    mapping (address => uint) public nonces;
-
-    // emitted when an account changes its delegate
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
-
-    // emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
-
-    function delegates(address delegator) external view returns (address)  {
+    // returns the address delegated by a given delegator (external view)
+    function delegates(address delegator) external view returns (address) {
         return _delegates[delegator];
     }
 
+    // delegates to the `delegatee` (external)
     function delegate(address delegatee) external {
         return _delegate(msg.sender, delegatee);
     }
 
-    /**
-     * @dev delegates votes from signatory to `delegatee`
-     * @param delegatee address to delegate votes to
-     * @param nonce contract state required to match the signature
-     * @param expiry time at which to expire the signature
-     * @param v recovery byte of the signature
-     * @param r first half [1/2] of the ECDSA signature pair
-     * @param s second half [2/2] of the ECDSA signature pair
-     */
-    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s)
-        external {
-
+    // delegates votes from signatory to `delegatee` (external)
+    function delegateBySig(
+        address delegatee,
+        uint nonce,
+        uint expiry,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name())), getChainId(), address(this))
         );
@@ -1192,99 +1255,54 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
         );
 
         bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", domainSeparator, structHash)
+            abi.encodePacked('\x19\x01', domainSeparator, structHash)
         );
 
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "SOUL::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "SOUL::delegateBySig: invalid nonce");
-        require(block.timestamp <= expiry, "SOUL::delegateBySig: signature expired");
+        require(signatory != address(0), 'delegateBySig: invalid signature');
+        require(nonce == nonces[signatory]++, 'delegateBySig: invalid nonce');
+        require(block.timestamp <= expiry, 'delegateBySig: signature expired');
         return _delegate(signatory, delegatee);
     }
 
-    // returns: current votes balance for `account`
+    // returns current votes balance for `account` (external view)
     function getCurrentVotes(address account) external view returns (uint) {
         uint nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    // returns: an account's prior vote count as of a given timestamp
+    // returns an account's prior vote count as of a given timestamp (external view)
     function getPriorVotes(address account, uint blockTimestamp) external view returns (uint) {
-        require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
-        uint nCheckpoints = numCheckpoints[account];
+        require(blockTimestamp < block.timestamp, 'getPriorVotes: not yet determined');
         
+        uint nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) { return 0; }
 
-        // first check most recent balance
+        // checks most recent balance
         if (checkpoints[account][nCheckpoints - 1].fromTime <= blockTimestamp) {
             return checkpoints[account][nCheckpoints - 1].votes;
         }
 
-        // next check implicit zero balance
-        if (checkpoints[account][0].fromTime > blockTimestamp) { return 0; }
+        // checks implicit zero balance
+        if (checkpoints[account][0].fromTime > blockTimestamp) {
+            return 0;
+        }
 
         uint lower = 0;
         uint upper = nCheckpoints - 1;
         while (upper > lower) {
-            uint center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+            uint center = upper - (upper - lower) / 2; // avoids overflow
             Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromTime == blockTimestamp) 
-                { return cp.votes; }
-             else if (cp.fromTime < blockTimestamp) 
-                { lower = center; }
-              else { upper = center - 1; }
+            if (cp.fromTime == blockTimestamp) {
+                return cp.votes;
+            } else if (cp.fromTime < blockTimestamp) {
+                lower = center;
+            } else {
+                upper = center - 1;
+            }
         }
+
         return checkpoints[account][lower].votes;
-    }
-
-    function _delegate(address delegator, address delegatee)
-        internal
-    {
-        address currentDelegate = _delegates[delegator];
-        uint delegatorBalance = balanceOf(delegator); // balance of underlying SOULs (not scaled);
-        _delegates[delegator] = delegatee;
-
-        emit DelegateChanged(delegator, currentDelegate, delegatee);
-
-        _moveDelegates(currentDelegate, delegatee, delegatorBalance);
-    }
-
-    function _moveDelegates(address srcRep, address dstRep, uint amount) internal {
-        if (srcRep != dstRep && amount > 0) {
-            if (srcRep != address(0)) {
-                // decrease old representative
-                uint srcRepNum = numCheckpoints[srcRep];
-                uint srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint srcRepNew = srcRepOld - amount;
-                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
-            }
-
-            if (dstRep != address(0)) {
-                // increase new representative
-                uint dstRepNum = numCheckpoints[dstRep];
-                uint dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint dstRepNew = dstRepOld + amount;
-                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
-            }
-        }
-    }
-
-    function _writeCheckpoint(
-        address delegatee,
-        uint nCheckpoints,
-        uint oldVotes,
-        uint newVotes
-    ) internal {
-        uint blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
-
-        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromTime == blockTimestamp) {
-            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
-        } else {
-            checkpoints[delegatee][nCheckpoints] = Checkpoint(blockTimestamp, newVotes);
-            numCheckpoints[delegatee] = nCheckpoints + 1;
-        }
-
-        emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
 
     function safe256(uint n, string memory errorMessage) internal pure returns (uint) {
@@ -1298,6 +1316,55 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl, Ownable {
         return chainId;
     }
 
+    function _delegate(address delegator, address delegatee) internal {
+        address currentDelegate = _delegates[delegator];
+        uint delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled)
+        _delegates[delegator] = delegatee;
+        emit DelegateChanged(delegator, currentDelegate, delegatee);
+        _moveDelegates(currentDelegate, delegatee, delegatorBalance);
+    }
+
+    function _moveDelegates(address srcRep, address dstRep, uint amount) internal {
+        if (srcRep != dstRep && amount > 0) {
+            if (srcRep != address(0)) {
+                // decreases old representative
+                uint srcRepNum = numCheckpoints[srcRep];
+                uint srcRepOld = srcRepNum > 0
+                    ? checkpoints[srcRep][srcRepNum - 1].votes
+                    : 0;
+                uint srcRepNew = srcRepOld - amount;
+                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
+            }
+
+            if (dstRep != address(0)) {
+                // increases new representative
+                uint dstRepNum = numCheckpoints[dstRep];
+                uint dstRepOld = dstRepNum > 0
+                    ? checkpoints[dstRep][dstRepNum - 1].votes
+                    : 0;
+                uint dstRepNew = dstRepOld + amount;
+                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
+            }
+        }
+    }
+
+    function _writeCheckpoint(
+        address delegatee,
+        uint nCheckpoints,
+        uint oldVotes,
+        uint newVotes
+    ) internal {
+        uint blockTimestamp = safe256(block.timestamp, 'block timestamp exceeds 256 bits');
+
+        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromTime == blockTimestamp) {
+            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
+        } else { 
+            checkpoints[delegatee][nCheckpoints] = Checkpoint(blockTimestamp, newVotes);
+            numCheckpoints[delegatee] = nCheckpoints + 1;
+        }
+
+        emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
+    }
 }
 
 // File: contracts/libraries/Operable.sol
@@ -1366,7 +1433,10 @@ pragma solidity ^0.8.0;
 
 // SeanceCircle with Governance.
 contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
-    /// @dev Creates `_amount` token to `_to`. Must only be called by the owner (SoulSummoner).
+
+    SoulPower public soul;
+    bool isInitialized;
+
     function mint(address _to, uint256 _amount) public onlyOperator {
         require(isInitialized, 'the circle has not yet begun');
         _mint(_to, _amount);
@@ -1378,13 +1448,9 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
         _moveDelegates(_delegates[_from], address(0), _amount);
     }
 
-    SoulPower public soul;
-    bool isInitialized;
-
     function initialize(SoulPower _soul) external onlyOwner {
         require(!isInitialized, 'the circle has already begun');
         soul = _soul;
-
         isInitialized = true;
     }
 
@@ -1428,35 +1494,13 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
     // emitted when a delegate account's vote balance changes
     event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
 
-    /**
-     * @dev Delegate votes from `msg.sender` to `delegatee`
-     * @param delegator The address to get delegatee for
-     */
-    function delegates(address delegator)
-        external
-        view
-        returns (address)
-    {
-        return _delegates[delegator];
-    }
+    // returns the address delegated by a given delegator (external view)
+    function delegates(address delegator) external view returns (address) { return _delegates[delegator]; }
 
-   /**
-    * @dev Delegate votes from `msg.sender` to `delegatee`
-    * @param delegatee The address to delegate votes to
-    */
-    function delegate(address delegatee) external {
-        return _delegate(msg.sender, delegatee);
-    }
+    // delegates to the `delegatee` (external)
+    function delegate(address delegatee) external { return _delegate(msg.sender, delegatee); }
 
-    /**
-     * @dev Delegates votes from signatory to `delegatee`
-     * @param delegatee The address to delegate votes to
-     * @param nonce The contract state required to match the signature
-     * @param expiry The time at which to expire the signature
-     * @param v The recovery byte of the signature
-     * @param r Half of the ECDSA signature pair
-     * @param s Half of the ECDSA signature pair
-     */
+    // delegates votes from signatory to `delegatee` (external)
     function delegateBySig(
         address delegatee,
         uint nonce,
@@ -1500,27 +1544,13 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
         return _delegate(signatory, delegatee);
     }
 
-    /**
-     * @dev Gets the current votes balance for `account`
-     * @param account The address to get votes balance
-     * @return The number of current votes for `account`
-     */
-    function getCurrentVotes(address account)
-        external
-        view
-        returns (uint256)
-    {
-        uint256 nCheckpoints = numCheckpoints[account];
+    // returns current votes balance for `account` (external view)
+    function getCurrentVotes(address account) external view returns (uint) {
+        uint nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
     }
 
-    /**
-     * @dev Determine the prior number of votes for an account as of a block timestamp
-     * @dev Block timestamp must be a finalized block or else this function will revert to prevent misinformation.
-     * @param account The address of the account to check
-     * @param blockTimestamp The block timestamp to get the vote balance at
-     * @return The number of votes the account had as of the given block timestamp
-     */
+    // returns an account's prior vote count as of a given timestamp (external view)
     function getPriorVotes(address account, uint blockTimestamp) external view returns (uint256) {
         require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
 
@@ -1529,12 +1559,12 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
             return 0;
         }
 
-        // First check most recent balance
+        // checks most recent balance
         if (checkpoints[account][nCheckpoints - 1].fromTime <= blockTimestamp) {
             return checkpoints[account][nCheckpoints - 1].votes;
         }
 
-        // Next check implicit zero balance
+        // checks implicit zero balance
         if (checkpoints[account][0].fromTime > blockTimestamp) {
             return 0;
         }
@@ -1647,8 +1677,14 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // user info
     struct Users {
-        uint amount;     // total tokens user has provided
-        uint rewardDebt; // reward debt (see below)
+        uint amount;           // total tokens user has provided.
+        uint rewardDebt;       // reward debt (see below).
+        uint rewardDebtAtTime; // the last time user stake.
+        uint lastWithdrawTime; // the last time a user withdrew at.
+        uint firstDepositTime; // the last time a user deposited at.
+        uint timeDelta;        // time passed since withdrawals.
+        uint lastDepositTime;  // most recent deposit time.
+
         //   pending reward = (user.amount * pool.accSoulPerShare) - user.rewardDebt
 
         // the following occurs when a user +/- tokens to a pool:
@@ -1702,6 +1738,12 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // summoner initialized state.
     bool public isInitialized;
 
+    // decay rate on withdrawal fee.
+    uint dailyDecay;
+
+    // start rate for the withdrawal fee.
+    uint startRate;
+
     Pools[] public poolInfo; // pool info
     mapping (uint => mapping (address => Users)) public userInfo; // staker data
 
@@ -1724,7 +1766,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     event Deposit(address indexed user, uint indexed pid, uint amount);
-    event Withdraw(address indexed user, uint indexed pid, uint amount);
+    event Withdraw(address indexed user, uint indexed pid, uint amount, uint timeStamp);
 
     event Initialized(address team, address dao, address soul, address seance, uint totalAllocPoint, uint weight);
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
@@ -1743,8 +1785,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // channels the power of the isis and ma'at to the deployer (deployer)
     constructor() {
-        team = 0x24D9E0Ba5d79C15D7EEAbD632214430D6F1677cA; // multisig // FANTOM TESTNET
-        dao = 0x2ffbDFB8f48EDD34Cb2727F4357d321bD71ddF25; // multisig // FANTOM TESTNET
+        team = msg.sender; // todo: update to multisig
+        dao = msg.sender; // todo: update to multisig
         
         isis = keccak256("isis"); // goddess of magic who creates pools
         maat = keccak256("maat"); // goddess of cosmic order who allocates emissions
@@ -1781,19 +1823,21 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         address _seanceAddress, 
         uint _totalWeight,
         uint _weight,
-        uint _stakingAlloc 
+        uint _stakingAlloc ,
+        uint _startRate,
+        uint _dailyDecay
        ) external obey(isis) {
         require(!isInitialized, 'already initialized');
 
         soulAddress = _soulAddress;
         seanceAddress = _seanceAddress;
-        dao = msg.sender;
-        team = msg.sender;
 
         startTime = block.timestamp;
 
         totalWeight = _totalWeight + _weight;
         weight = _weight;
+        startRate = enWei(_startRate);
+        dailyDecay = oneHundreth(_dailyDecay);
         uint allocPoint = _stakingAlloc;
 
         soul  = SoulPower(soulAddress);
@@ -1917,6 +1961,18 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         migrator = _migrator;
     }
 
+    // view: user delta
+	function userDelta(uint256 _pid) public view returns (uint256) {
+        Users storage user = userInfo[_pid][msg.sender];
+		if (user.lastWithdrawTime > 0) {
+			uint256 estDelta = block.number - user.lastWithdrawTime;
+			return estDelta;
+		} else {
+		    uint256 estDelta = block.number - user.firstDepositTime;
+			return estDelta;
+		}
+	}
+
     // migrate: lp tokens to another contract (migrator)
     function migrate(uint pid) external isSummoned validatePoolByPid(pid) {
         require(address(migrator) != address(0), 'no migrator set');
@@ -1936,6 +1992,14 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
+    // acquires decay rate at a given moment (unix)
+    function getFee(uint timeDelta) public view returns (uint) {
+        uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
+        uint decreaseAmount = daysSince * dailyDecay;
+
+        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+    }
+
     // view: pending soul rewards (external)
     function pendingSoul(uint pid, address _user) external view returns (uint) {
         Pools storage pool = poolInfo[pid];
@@ -1946,8 +2010,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
-            uint soulReward = (multiplier * soulPerSecond * pool.allocPoint) / totalAllocPoint;
-            accSoulPerShare = accSoulPerShare + (soulReward * 1e12 / lpSupply);
+            uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
+            accSoulPerShare = accSoulPerShare + soulReward * 1e12 / lpSupply;
         }
 
         return user.amount * accSoulPerShare / 1e12 - user.rewardDebt;
@@ -1969,11 +2033,11 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         if (lpSupply == 0) { pool.lastRewardTime = block.timestamp; return; } // first staker in pool
 
         uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
-        uint soulReward = (multiplier * soulPerSecond * pool.allocPoint) / totalAllocPoint;
+        uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
         
-        uint divi = soulReward * 1e12 / 8e12; // 12.5% rewards x divi
-        uint divis = divi * 2; // total divis
-        uint shares = soulReward - divis; // net shares
+        uint divi = soulReward * 1e12 / 8e12;   // 12.5% rewards
+        uint divis = divi * 2;                  // total divis
+        uint shares = soulReward - divis;       // net shares
         
         soul.mint(team, divi);
         soul.mint(dao, divi);
@@ -2004,6 +2068,11 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         }
 
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
+
+        user.firstDepositTime > 0 
+            ? user.firstDepositTime = user.firstDepositTime
+            : user.firstDepositTime = block.timestamp;
+
         emit Deposit(msg.sender, pid, amount);
     }
 
@@ -2021,12 +2090,21 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         if(pending > 0) { safeSoulTransfer(msg.sender, pending); }
 
         if(amount > 0) {
+            if(user.lastDepositTime > 0){
+				user.timeDelta = block.timestamp - user.lastDepositTime; }
+			else { user.timeDelta = block.timestamp - user.firstDepositTime; }
+            
             user.amount = user.amount - amount;
-            pool.lpToken.transfer(address(msg.sender), amount);
-        }
+            uint fee = getFee(user.timeDelta); // acquires fee for user at timestamp
+            uint withdrawable = amount - fee;
 
+            pool.lpToken.transfer(address(msg.sender), withdrawable);
+        }
+      
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
-        emit Withdraw(msg.sender, pid, amount);
+        user.lastWithdrawTime = block.timestamp;
+
+        emit Withdraw(msg.sender, pid, amount, block.timestamp);
     }
 
     // stake: soul into summoner (external)
@@ -2075,14 +2153,13 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
         seance.burn(msg.sender, amount);
-        emit Withdraw(msg.sender, 0, amount);
+        emit Withdraw(msg.sender, 0, amount, block.timestamp);
     }
     
     // transfer: seance (internal)
     function safeSoulTransfer(address account, uint amount) internal {
         seance.safeSoulTransfer(account, amount);
     }
-
 
     // update accounts: dao and team addresses (owner)
     function updateAccounts(address _dao, address _team) external obey(isis) {
@@ -2103,4 +2180,15 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         emit TokensUpdated(_soul, _seance);
     }
+
+    function reviseDeposit(uint _pid, address _user, uint256 _time) public obey(maat) {
+        Users storage user = userInfo[_pid][_user];
+        user.firstDepositTime = _time;
+	    
+	}
+
+    // helper functions to convert to wei and 1/100th
+    function enWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
+    
+    function oneHundreth(uint amount) public pure returns (uint) { return amount * 1e16; }
 }
