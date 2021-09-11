@@ -340,7 +340,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
     }
 
-    // gets the seconds remaining until the next withdrawal decrease
+    // returns the seconds remaining until the next withdrawal decrease
     function timeUntilNextDecrease(uint pid) public view returns (uint) {
         uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
         if (secondsPassed == 0) return 0;
@@ -348,6 +348,14 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         uint untilNextDecay = secondsPassed - (86400 * daysPassed);
 
         return untilNextDecay;
+    }
+
+    // returns the actual amount taxed and withdrawed
+    function getWithdrawable(uint pid, uint amount) public view returns (uint fee, uint withdrawable) {
+        uint fee = getFee(pid); // acquires fee for user at timestamp
+        uint withdrawable = amount - fee;
+
+        return (fee, withdrawable);
     }
 
     // view: pending soul rewards (external)
@@ -445,8 +453,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 			else { user.timeDelta = block.timestamp - user.firstDepositTime; }
             
             user.amount = user.amount - amount;
-            uint fee = getFee(pid); // acquires fee for user at timestamp
-            uint withdrawable = amount - fee;
+            
+            (, uint withdrawable) = getWithdrawable(pid, amount);
 
             pool.lpToken.transfer(address(msg.sender), withdrawable);
         }
