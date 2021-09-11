@@ -340,6 +340,16 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
     }
 
+    // gets the seconds remaining until the next withdrawal decrease
+    function timeUntilNextDecrease(uint pid) public view returns (uint) {
+        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
+        if (secondsPassed == 0) return 0;
+        uint daysPassed = secondsPassed / 86400;
+        uint untilNextDecay = secondsPassed - (86400 * daysPassed);
+
+        return untilNextDecay;
+    }
+
     // view: pending soul rewards (external)
     function pendingSoul(uint pid, address _user) external view returns (uint) {
         Pools storage pool = poolInfo[pid];
