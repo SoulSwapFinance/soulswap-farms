@@ -78,10 +78,10 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     bool public isInitialized;
 
     // decay rate on withdrawal fee.
-    uint dailyDecay;
+    uint public dailyDecay;
 
     // start rate for the withdrawal fee.
-    uint startRate;
+    uint public startRate;
 
     Pools[] public poolInfo; // pool info
     mapping (uint => mapping (address => Users)) public userInfo; // staker data
