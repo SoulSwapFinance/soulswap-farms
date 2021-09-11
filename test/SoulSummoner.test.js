@@ -1,73 +1,54 @@
 const { expect } = require('chai');
 const { increaseTime, toWei, fromWei, deployContract } = require('./utils/testHelper.js');
 
-// describe("SoulPower", function() {
-//     it("should return the address of SoulPower", async function() {
-//       const SoulPower = await ethers.getContractFactory("SoulPower");
-//       const soulPower = await SoulPower.deploy();
-//       await soulPower.deployed();
-  
-//       expect(await address(address)).to.equal(address(soulPower));
-  
-//     });
-//   });
-
-// describe("SeanceCircle", function() {
-//   it("should return the address of SoulPower", async function() {
-//     const SeanceCircle = await ethers.getContractFactory("SeanceCircle");
-//     const seanceCircle = await SeanceCircle.deploy();
-//     await seanceCircle.deployed();
-
-//     expect(await seanceCircle.address()).to.equal(address(seanceCircle));
-
-//   });
-// });
-
 describe('SoulSummoner', (alice, bob, team, treasury, minter) => {
   const ethers = hre.ethers;
 
-    beforeEach(async () => {
-            const SoulPower = await ethers.getContractFactory("MockSoulPower");
-            const soulPower = await SoulPower.deploy(minter.address);
-            await soulPower.deployed();
-            expect(await address(address)).to.equal(address(soulPower));
+  beforeEach(async () => {
+    const SoulPower = await ethers.getContractFactory("MockSoulPower");
+    const soul = await SoulPower.deploy();
+    await soul.deployed();
     
+    const SeanceCircle = await ethers.getContractFactory("MockSeanceCircle");
+    const seance = await SeanceCircle.deploy();
+    await seance.deployed();
+    const initSeanceTx = await seance.initialize(soul.address);
+    await initSeanceTx;
 
-        this.soul = await soulPower.new({ from: minter });
-        this.seance = await SeanceCircle.new(this.soul.address, { from: minter });
-        this.lp1 = await MockERC20.new('LPToken', 'LP1', '1000000', { from: minter });
-        this.lp2 = await MockERC20.new('LPToken', 'LP2', '1000000', { from: minter });
-        this.lp3 = await MockERC20.new('LPToken', 'LP3', '1000000', { from: minter });
-        this.summoner = await SoulSummoner.new(this.soul.address, this.seance.address, team, treasury, await time.latest(), { from: minter });
-        await this.soul.transferOwnership(this.summoner.address, { from: minter });
-        await this.seance.transferOwnership(this.summoner.address, { from: minter });
+    ///
 
-        await this.lp1.transfer(bob, '2000', { from: minter });
-        await this.lp2.transfer(bob, '2000', { from: minter });
-        await this.lp3.transfer(bob, '2000', { from: minter });
+    this.lp1 = await MockERC20.deploy('LPToken', 'LP1', '1000000')
+    this.lp2 = await MockERC20.deploy('LPToken', 'LP2', '1000000')
+    this.lp3 = await MockERC20.deploy('LPToken', 'LP3', '1000000')
+    this.summoner = await SoulSummoner.new(this.soul.address, this.seance.address, team, treasury, await time.latest())
+    await this.soul.transferOwnership(this.summoner.address)
+    await this.seance.transferOwnership(this.summoner.address)
 
-        await this.lp1.transfer(alice, '2000', { from: minter });
-        await this.lp2.transfer(alice, '2000', { from: minter });
-        await this.lp3.transfer(alice, '2000', { from: minter });
-    });
+    await this.lp1.transfer(bob, '2000')
+    await this.lp2.transfer(bob, '2000')
+    await this.lp3.transfer(bob, '2000')
 
+    await this.lp1.transfer(alice, '2000')
+    await this.lp2.transfer(alice, '2000')
+      await this.lp3.transfer(alice, '2000')
+  });
 
     it('real case', async () => {
-      this.lp4 = await MockERC20.new('LPToken', 'LP1', '1000000', { from: minter });
-      this.lp5 = await MockERC20.new('LPToken', 'LP2', '1000000', { from: minter });
-      this.lp6 = await MockERC20.new('LPToken', 'LP3', '1000000', { from: minter });
-      this.lp7 = await MockERC20.new('LPToken', 'LP1', '1000000', { from: minter });
-      this.lp8 = await MockERC20.new('LPToken', 'LP2', '1000000', { from: minter });
-      this.lp9 = await MockERC20.new('LPToken', 'LP3', '1000000', { from: minter });
-      await this.summoner.add('2000', this.lp1.address, true, { from: minter });
-      await this.summoner.add('1000', this.lp2.address, true, { from: minter });
-      await this.summoner.add('500', this.lp3.address, true, { from: minter });
-      await this.summoner.add('500', this.lp3.address, true, { from: minter });
-      await this.summoner.add('500', this.lp3.address, true, { from: minter });
-      await this.summoner.add('500', this.lp3.address, true, { from: minter });
-      await this.summoner.add('500', this.lp3.address, true, { from: minter });
-      await this.summoner.add('100', this.lp3.address, true, { from: minter });
-      await this.summoner.add('100', this.lp3.address, true, { from: minter });
+      this.lp4 = await MockERC20.new('LPToken', 'LP1', '1000000')
+      this.lp5 = await MockERC20.new('LPToken', 'LP2', '1000000')
+      this.lp6 = await MockERC20.new('LPToken', 'LP3', '1000000')
+      this.lp7 = await MockERC20.new('LPToken', 'LP1', '1000000')
+      this.lp8 = await MockERC20.new('LPToken', 'LP2', '1000000')
+      this.lp9 = await MockERC20.new('LPToken', 'LP3', '1000000')
+      await this.summoner.add('2000', this.lp1.address, true)
+      await this.summoner.add('1000', this.lp2.address, true)
+      await this.summoner.add('500', this.lp3.address, true)
+      await this.summoner.add('500', this.lp3.address, true)
+      await this.summoner.add('500', this.lp3.address, true)
+      await this.summoner.add('500', this.lp3.address, true)
+      await this.summoner.add('500', this.lp3.address, true)
+      await this.summoner.add('100', this.lp3.address, true)
+      await this.summoner.add('100', this.lp3.address, true)
       assert.equal((await this.summoner.poolLength()).toString(), "10");
 
       await time.increase('70');
@@ -89,9 +70,9 @@ describe('SoulSummoner', (alice, bob, team, treasury, minter) => {
 
 
     it('deposit/withdraw', async () => {
-      await this.summoner.add('1000', this.lp1.address, true, { from: minter });
-      await this.summoner.add('1000', this.lp2.address, true, { from: minter });
-      await this.summoner.add('1000', this.lp3.address, true, { from: minter });
+      await this.summoner.add('1000', this.lp1.address, true)
+      await this.summoner.add('1000', this.lp2.address, true)
+      await this.summoner.add('1000', this.lp3.address, true)
 
       await this.lp1.approve(this.summoner.address, '100', { from: alice });
       await this.summoner.deposit(1, '20', { from: alice });
@@ -114,9 +95,9 @@ describe('SoulSummoner', (alice, bob, team, treasury, minter) => {
     })
 
     it('staking/unstaking', async () => {
-      await this.summoner.add('1000', this.lp1.address, true, { from: minter });
-      await this.summoner.add('1000', this.lp2.address, true, { from: minter });
-      await this.summoner.add('1000', this.lp3.address, true, { from: minter });
+      await this.summoner.add('1000', this.lp1.address, true)
+      await this.summoner.add('1000', this.lp2.address, true)
+      await this.summoner.add('1000', this.lp3.address, true)
 
       await this.lp1.approve(this.summoner.address, '10', { from: alice });
       await this.summoner.deposit(1, '2', { from: alice }); //0
@@ -137,9 +118,9 @@ describe('SoulSummoner', (alice, bob, team, treasury, minter) => {
 
 
     it('update multiplier', async () => {
-      await this.summoner.add('1000', this.lp1.address, true, { from: minter });
-      await this.summoner.add('1000', this.lp2.address, true, { from: minter });
-      await this.summoner.add('1000', this.lp3.address, true, { from: minter });
+      await this.summoner.add('1000', this.lp1.address, true)
+      await this.summoner.add('1000', this.lp2.address, true)
+      await this.summoner.add('1000', this.lp3.address, true)
 
       await this.lp1.approve(this.summoner.address, '100', { from: alice });
       await this.lp1.approve(this.summoner.address, '100', { from: bob });
@@ -153,7 +134,7 @@ describe('SoulSummoner', (alice, bob, team, treasury, minter) => {
       await this.summoner.enterStaking('50', { from: alice });
       await this.summoner.enterStaking('100', { from: bob });
 
-      await this.summoner.updateMultiplier('0', { from: minter });
+      await this.summoner.updateMultiplier('0')
 
       await this.summoner.enterStaking('0', { from: alice });
       await this.summoner.enterStaking('0', { from: bob });

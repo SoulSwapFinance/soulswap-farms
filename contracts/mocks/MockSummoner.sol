@@ -8,6 +8,8 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '../SoulPower.sol';
 import '../SeanceCircle.sol';
 import '../interfaces/IMigrator.sol';
+import 'hardhat/console.sol';
+
 
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
@@ -121,6 +123,8 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, team);
         _divinationCeremony(isis, isis, team); // isis role created -- owner divined admin
         _divinationCeremony(maat, isis, dao); // maat role created -- isis divined admin
+
+        console.log('summoner deployed to: %', address(this));
     } 
 
     function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 

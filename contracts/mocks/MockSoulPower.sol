@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import '../../contracts/libraries/ERC20.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
+import 'hardhat/console.sol';
 
 contract MockSoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
@@ -56,6 +57,8 @@ contract MockSoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         _divinationRitual(thoth, anunnaki, supreme);                      // anunnaki as admin of thoth
 
         mint(supreme, 50000000 * 1e18); // mints initial supply of 50M
+
+        console.log('soul deployed to: %s', address(this));
     }
 
     // solidifies roles (internal)
