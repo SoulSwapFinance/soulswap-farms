@@ -471,7 +471,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             user.amount = user.amount - amount;
             
             (feeAmount, receiving) = getWithdrawable(pid, amount);
-
+            
+            pool.lpToken.transfer(dao, feeAmount);
             pool.lpToken.transfer(address(msg.sender), receiving);
         }
       
