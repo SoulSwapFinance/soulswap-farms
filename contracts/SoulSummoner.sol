@@ -332,6 +332,13 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     // acquires decay rate at a given moment (unix)
+    function getFeeTime(uint timeDelta) public view returns (uint) {
+        uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
+        uint decreaseAmount = daysSince * dailyDecay;
+        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+    }
+
+    // acquires decay rate for a pid
     function getFee(uint pid) public view returns (uint) {
         uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
         uint daysPassed = secondsPassed < 1 days ? 0 : secondsPassed / 86400;
