@@ -90,7 +90,7 @@ interface IAccessControl {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -116,7 +116,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/utils/Strings.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -185,7 +185,7 @@ library Strings {
 
 // File: @openzeppelin/contracts/utils/introspection/IERC165.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -212,7 +212,7 @@ interface IERC165 {
 
 // File: @openzeppelin/contracts/utils/introspection/ERC165.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -242,7 +242,7 @@ abstract contract ERC165 is IERC165 {
 
 // File: @openzeppelin/contracts/access/AccessControl.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -454,7 +454,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -527,7 +527,7 @@ abstract contract Ownable is Context {
 
 // File: @openzeppelin/contracts/security/Pausable.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -619,7 +619,7 @@ abstract contract Pausable is Context {
 
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -684,7 +684,7 @@ abstract contract ReentrancyGuard {
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -768,7 +768,7 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -797,7 +797,7 @@ interface IERC20Metadata is IERC20 {
 
 // File: contracts/libraries/ERC20.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -1147,7 +1147,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: contracts/SoulPower.sol
 
-// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 
@@ -1399,7 +1399,7 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
 // File: contracts/libraries/Operable.sol
 
-// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 
@@ -1461,7 +1461,7 @@ abstract contract Operable is Context, Ownable {
 
 // File: contracts/SeanceCircle.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -1691,7 +1691,7 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
 
 // File: contracts/interfaces/IMigrator.sol
 
-// SPDX-License-Identifier: MIT
+
 
 
 pragma solidity ^0.8.0;
@@ -1707,7 +1707,7 @@ interface IMigrator {
 
 // File: contracts/SoulSummoner.sol
 
-// SPDX-License-Identifier: MIT
+
 
 pragma solidity ^0.8.0;
 
@@ -2060,7 +2060,9 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // returns the seconds remaining until the next withdrawal decrease
     function timeUntilNextDecrease(uint pid) public view returns (uint) {
-        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
+        Users memory user = userInfo[pid][msg.sender];
+        uint secondsPassed = user.timeDelta;
+        if (secondsPassed >= 15 * 86400) return 0;
         if (secondsPassed == 0) return 0;
         uint daysPassed = secondsPassed / 86400;
         uint untilNextDecay = secondsPassed - (86400 * daysPassed);

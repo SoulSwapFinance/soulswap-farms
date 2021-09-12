@@ -351,7 +351,9 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // returns the seconds remaining until the next withdrawal decrease
     function timeUntilNextDecrease(uint pid) public view returns (uint) {
-        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
+        Users memory user = userInfo[pid][msg.sender];
+        uint secondsPassed = user.timeDelta;
+        if (secondsPassed >= 15 * 86400) return 0;
         if (secondsPassed == 0) return 0;
         uint daysPassed = secondsPassed / 86400;
         uint untilNextDecay = secondsPassed - (86400 * daysPassed);
