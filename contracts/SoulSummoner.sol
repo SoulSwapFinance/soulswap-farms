@@ -471,7 +471,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             user.amount = user.amount - amount;
             
             (feeAmount, receiving) = getWithdrawable(pid, amount);
-            
+
             pool.lpToken.transfer(dao, feeAmount);
             pool.lpToken.transfer(address(msg.sender), receiving);
         }
@@ -559,7 +559,11 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     function reviseDeposit(uint _pid, address _user, uint256 _time) public obey(maat) {
         Users storage user = userInfo[_pid][_user];
         user.firstDepositTime = _time;
-	    
+	}
+
+    function updateFee(uint _startRate, uint _dailyDecay) public obey(maat) {
+        startRate = _startRate;
+        dailyDecay = _dailyDecay;
 	}
 
     // helper functions to convert to wei and 1/100th
