@@ -1,8 +1,9 @@
+// File: @openzeppelin/contracts/access/IAccessControl.sol
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
-// File: @openzeppelin/contracts/access/IAccessControl.sol
 /**
  * @dev External interface of AccessControl declared to support ERC165 detection.
  */
@@ -89,6 +90,8 @@ interface IAccessControl {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /**
@@ -112,6 +115,8 @@ abstract contract Context {
 }
 
 // File: @openzeppelin/contracts/utils/Strings.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -180,6 +185,8 @@ library Strings {
 
 // File: @openzeppelin/contracts/utils/introspection/IERC165.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /**
@@ -204,6 +211,8 @@ interface IERC165 {
 }
 
 // File: @openzeppelin/contracts/utils/introspection/ERC165.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -232,6 +241,8 @@ abstract contract ERC165 is IERC165 {
 }
 
 // File: @openzeppelin/contracts/access/AccessControl.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -443,6 +454,8 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 
@@ -514,7 +527,10 @@ abstract contract Ownable is Context {
 
 // File: @openzeppelin/contracts/security/Pausable.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -603,6 +619,8 @@ abstract contract Pausable is Context {
 
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 /**
@@ -665,6 +683,8 @@ abstract contract ReentrancyGuard {
 }
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -748,6 +768,8 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 
@@ -775,7 +797,12 @@ interface IERC20Metadata is IERC20 {
 
 // File: contracts/libraries/ERC20.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
+
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -1120,7 +1147,10 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: contracts/SoulPower.sol
 
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
+
 
 contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
@@ -1369,7 +1399,9 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
 // File: contracts/libraries/Operable.sol
 
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 
 // --------------------------------------------------------------------------------------
 //  Allows multiple contracts to act as `owner`, from `Ownable.sol`, with `onlyOperator`.
@@ -1429,7 +1461,11 @@ abstract contract Operable is Context, Ownable {
 
 // File: contracts/SeanceCircle.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
+
 
 // SeanceCircle with Governance.
 contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
@@ -1655,6 +1691,9 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
 
 // File: contracts/interfaces/IMigrator.sol
 
+// SPDX-License-Identifier: MIT
+
+
 pragma solidity ^0.8.0;
 
 interface IMigrator {
@@ -1668,7 +1707,16 @@ interface IMigrator {
 
 // File: contracts/SoulSummoner.sol
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
+
+
+
+
+
+
+
 
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
@@ -1739,10 +1787,10 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     bool public isInitialized;
 
     // decay rate on withdrawal fee.
-    uint dailyDecay;
+    uint public dailyDecay;
 
     // start rate for the withdrawal fee.
-    uint startRate;
+    uint public startRate;
 
     Pools[] public poolInfo; // pool info
     mapping (uint => mapping (address => Users)) public userInfo; // staker data
@@ -1766,7 +1814,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     event Deposit(address indexed user, uint indexed pid, uint amount);
-    event Withdraw(address indexed user, uint indexed pid, uint amount, uint timeStamp);
+    event Withdraw(address indexed user, uint indexed pid, uint received, uint feeAmount, uint timeStamp);
 
     event Initialized(address team, address dao, address soul, address seance, uint totalAllocPoint, uint weight);
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
@@ -1836,8 +1884,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         totalWeight = _totalWeight + _weight;
         weight = _weight;
-        startRate = enWei(_startRate);
-        dailyDecay = oneHundreth(_dailyDecay);
+        startRate = _startRate; // i.e., 15 = 15%
+        dailyDecay = _dailyDecay; // i.e., 1 = 1%
         uint allocPoint = _stakingAlloc;
 
         soul  = SoulPower(soulAddress);
@@ -1992,16 +2040,46 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
-    // acquires decay rate at a given moment (unix)
-    function getFee(uint timeDelta) public view returns (uint) {
-        uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
-        uint decreaseAmount = daysSince * dailyDecay;
+    // returns the current fee for `pid` and the discount applied
+    function getFeePercent(uint pid) public view returns (uint fee, uint discount) {
+        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
+        
+        uint daysPassed;
+        if (secondsPassed > 1 days) {
+            // if max days (15) is passed, bypass fee
+            if (secondsPassed > 15 days) return (0, 15); 
+            // otherwise calculate how many days passed
+            else daysPassed = secondsPassed / 86400;
+        } 
 
-        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+        uint percentDiscount = daysPassed * dailyDecay;
+        uint percentFee = startRate - percentDiscount;
+
+        return (percentFee, percentDiscount);
+    }
+
+    // returns the seconds remaining until the next withdrawal decrease
+    function timeUntilNextDecrease(uint pid) public view returns (uint) {
+        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
+        if (secondsPassed == 0) return 0;
+        uint daysPassed = secondsPassed / 86400;
+        uint untilNextDecay = secondsPassed - (86400 * daysPassed);
+
+        return untilNextDecay;
+    }
+
+    // returns the actual amount taxed and withdrawed
+    function getWithdrawable(uint pid, uint amount) public view returns (uint _feeAmount, uint _withdrawable) {
+        (uint feePercent, ) = getFeePercent(pid);
+
+        uint feeAmount = (amount * feePercent) / 100;
+        uint withdrawable = amount - feeAmount ;
+
+        return (feeAmount, withdrawable);
     }
 
     // view: pending soul rewards (external)
-    function pendingSoul(uint pid, address _user) external view returns (uint) {
+    function pendingSoul(uint pid, address _user) external view returns (uint pendingAmount) {
         Pools storage pool = poolInfo[pid];
         Users storage user = userInfo[pid][_user];
 
@@ -2089,22 +2167,25 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         if(pending > 0) { safeSoulTransfer(msg.sender, pending); }
 
+        uint feeAmount;
+        uint receiving;
+
         if(amount > 0) {
             if(user.lastDepositTime > 0){
 				user.timeDelta = block.timestamp - user.lastDepositTime; }
 			else { user.timeDelta = block.timestamp - user.firstDepositTime; }
             
             user.amount = user.amount - amount;
-            uint fee = getFee(user.timeDelta); // acquires fee for user at timestamp
-            uint withdrawable = amount - fee;
+            
+            (feeAmount, receiving) = getWithdrawable(pid, amount);
 
-            pool.lpToken.transfer(address(msg.sender), withdrawable);
+            pool.lpToken.transfer(address(msg.sender), receiving);
         }
       
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
         user.lastWithdrawTime = block.timestamp;
 
-        emit Withdraw(msg.sender, pid, amount, block.timestamp);
+        emit Withdraw(msg.sender, pid, receiving, feeAmount, block.timestamp);
     }
 
     // stake: soul into summoner (external)
@@ -2153,7 +2234,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
         seance.burn(msg.sender, amount);
-        emit Withdraw(msg.sender, 0, amount, block.timestamp);
+        emit Withdraw(msg.sender, 0, amount, 0, block.timestamp);
     }
     
     // transfer: seance (internal)

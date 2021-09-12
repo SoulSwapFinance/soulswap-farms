@@ -105,7 +105,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     event Deposit(address indexed user, uint indexed pid, uint amount);
-    event Withdraw(address indexed user, uint indexed pid, uint amount, uint timeStamp);
+    event Withdraw(address indexed user, uint indexed pid, uint received, uint feeAmount, uint timeStamp);
 
     event Initialized(address team, address dao, address soul, address seance, uint totalAllocPoint, uint weight);
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
@@ -175,8 +175,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         totalWeight = _totalWeight + _weight;
         weight = _weight;
-        startRate = enWei(_startRate);
-        dailyDecay = oneHundreth(_dailyDecay);
+        startRate = _startRate; // i.e., 15 = 15%
+        dailyDecay = _dailyDecay; // i.e., 1 = 1%
         uint allocPoint = _stakingAlloc;
 
         soul  = SoulPower(soulAddress);
@@ -331,13 +331,22 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
-    // acquires decay rate at a given moment (unix)
-    function getFee(uint pid) public view returns (uint) {
+    // returns the current fee for `pid` and the discount applied
+    function getFeePercent(uint pid) public view returns (uint fee, uint discount) {
         uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
-        uint daysPassed = secondsPassed < 1 days ? 0 : secondsPassed / 86400;
-        uint decreaseAmount = daysPassed * dailyDecay;
+        
+        uint daysPassed;
+        if (secondsPassed > 1 days) {
+            // if max days (15) is passed, bypass fee
+            if (secondsPassed > 15 days) return (0, 15); 
+            // otherwise calculate how many days passed
+            else daysPassed = secondsPassed / 86400;
+        } 
 
-        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+        uint percentDiscount = daysPassed * dailyDecay;
+        uint percentFee = startRate - percentDiscount;
+
+        return (percentFee, percentDiscount);
     }
 
     // returns the seconds remaining until the next withdrawal decrease
@@ -351,11 +360,13 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     // returns the actual amount taxed and withdrawed
-    function getWithdrawable(uint pid, uint amount) public view returns (uint fee, uint withdrawable) {
-        uint _fee = getFee(pid); // acquires fee for user at timestamp
-        uint _withdrawable = amount - fee;
+    function getWithdrawable(uint pid, uint amount) public view returns (uint _feeAmount, uint _withdrawable) {
+        (uint feePercent, ) = getFeePercent(pid);
 
-        return (_fee, _withdrawable);
+        uint feeAmount = (amount * feePercent) / 100;
+        uint withdrawable = amount - feeAmount ;
+
+        return (feeAmount, withdrawable);
     }
 
     // view: pending soul rewards (external)
@@ -447,6 +458,9 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         if(pending > 0) { safeSoulTransfer(msg.sender, pending); }
 
+        uint feeAmount;
+        uint receiving;
+
         if(amount > 0) {
             if(user.lastDepositTime > 0){
 				user.timeDelta = block.timestamp - user.lastDepositTime; }
@@ -454,15 +468,15 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             
             user.amount = user.amount - amount;
             
-            (, uint withdrawable) = getWithdrawable(pid, amount);
+            (feeAmount, receiving) = getWithdrawable(pid, amount);
 
-            pool.lpToken.transfer(address(msg.sender), withdrawable);
+            pool.lpToken.transfer(address(msg.sender), receiving);
         }
       
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
         user.lastWithdrawTime = block.timestamp;
 
-        emit Withdraw(msg.sender, pid, amount, block.timestamp);
+        emit Withdraw(msg.sender, pid, receiving, feeAmount, block.timestamp);
     }
 
     // stake: soul into summoner (external)
@@ -511,7 +525,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
         seance.burn(msg.sender, amount);
-        emit Withdraw(msg.sender, 0, amount, block.timestamp);
+        emit Withdraw(msg.sender, 0, amount, 0, block.timestamp);
     }
     
     // transfer: seance (internal)
