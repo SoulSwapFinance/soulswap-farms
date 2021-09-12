@@ -1,28 +1,28 @@
 const { expect } = require('chai');
 const { increaseTime, toWei, fromWei, deployContract } = require('./utils/testHelper.js');
 
-describe('SoulSummoner', (alice, bob, team, treasury, minter) => {
+describe('SoulSummoner', (alice, bob, team, dao, minter) => {
   const ethers = hre.ethers;
+  const THOTH = '0xdffb0b033b8033405f5fb07b08f48c89fa1b4a3d5d5a475c3e2b8df5fbd4da0d';
 
   beforeEach(async () => {
     const SoulPower = await ethers.getContractFactory("MockSoulPower");
+    const SeanceCircle = await ethers.getContractFactory("MockSeanceCircle");
+    const SoulSummoner = await ethers.getContractFactory("MockSoulSummoner");
+    const LPToken = await ethers.getContractFactory("MockERC20");
+
     const soul = await SoulPower.deploy();
     await soul.deployed();
     
-    const SeanceCircle = await ethers.getContractFactory("MockSeanceCircle");
     const seance = await SeanceCircle.deploy();
     await seance.deployed();
-    const initSeanceTx = await seance.initialize(soul.address);
-    await initSeanceTx;
 
+    const summoner = await SoulSummoner.deploy();
+    await summoner.deployed();
+    
+    await seance.initialize(soul.address);    
+    await soul.grantRole(THOTH, summoner.address);
     ///
-
-    this.lp1 = await MockERC20.deploy('LPToken', 'LP1', '1000000')
-    this.lp2 = await MockERC20.deploy('LPToken', 'LP2', '1000000')
-    this.lp3 = await MockERC20.deploy('LPToken', 'LP3', '1000000')
-    this.summoner = await SoulSummoner.new(this.soul.address, this.seance.address, team, treasury, await time.latest())
-    await this.soul.transferOwnership(this.summoner.address)
-    await this.seance.transferOwnership(this.summoner.address)
 
     await this.lp1.transfer(bob, '2000')
     await this.lp2.transfer(bob, '2000')
