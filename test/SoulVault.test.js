@@ -1,75 +1,113 @@
-const { time } = require('@openzeppelin/test-helpers');
-const { BigNumber } = require('ethers');
+const { expect } = require('chai');
+const { increaseTime, toWei, fromWei, deployContract } = require('./utils/testHelper.js');
 
-// const SoulPower = artifacts.require('SoulPower');
-// const SeanceCircle = artifacts.require('SeanceCircle');
-// const SoulSummoner = artifacts.require('SoulSummoner');
-// const SoulVault = artifacts.require('SoulVault');
-// const MockERC20 = artifacts.require('libs/MockERC20');
+describe('SoulVault', () => {    
+    const ethers = hre.ethers;
 
-// const SoulPower = require('./SoulPower.test');
-// const SeanceCircle = require('./SeanceCircle.test');
-
-describe("SoulPower", function() {
-    it("should return the address of SoulPower", async function() {
-      const SoulPower = await ethers.getContractFactory("SoulPower");
-      const soulPower = await SoulPower.deploy();
-      await soulPower.deployed();
-  
-      expect(await soulPower.address()).to.equal(address(soulPower));
-  
-    });
-  });
-
-describe("SeanceCircle", function() {
-  it("should return the address of SoulPower", async function() {
-    const SeanceCircle = await ethers.getContractFactory("SeanceCircle");
-    const seanceCircle = await SeanceCircle.deploy();
-    await seanceCircle.deployed();
-
-    expect(await seanceCircle.address()).to.equal(address(seanceCircle));
-
-  });
-});
-
-describe('SoulVault', function(alice, bob, team, treasury, minter) {
     beforeEach(async () => {
+        // accounts = await ethers.getSigners('SoulVault');
+        SoulVault = await hre.ethers.getContractFactory('SoulVault');
+        const MockToken = await hre.ethers.getContractFactory('MockToken');
 
-        this.soul; // = await soul.new({ from: minter });
-        this.seance; // = await seance.new(this.soul.address, { from: minter });
-        this.lp1 = await MockERC20.new('LPToken', 'LP1', '1000000', { from: minter });
-        this.lp2 = await MockERC20.new('LPToken', 'LP2', '1000000', { from: minter });
-        this.lp3 = await MockERC20.new('LPToken', 'LP3', '1000000', { from: minter });
-        this.summoner = await SoulSummoner.new(this.soul.address, this.seance.address, team, treasury, await time.latest(), { from: minter });
-
-        await this.soul.mint(alice, '2000', { from: minter });
-        await this.soul.mint(bob, '2000', { from: minter });
-
-        await this.soul.transferOwnership(this.summoner.address, { from: minter });
-        await this.seance.transferOwnership(this.summoner.address, { from: minter });
+        // const SoulPower = await hre.ethers.getContractFactory('MockToken');
+        const soul = await MockToken.deploy('MockToken', "SoulPower", "SOUL");
+        console.log('Soul Address: `%s`', soul.address);
         
-        this.vault = await SoulVault.new(this.soul.address, this.seance.address, this.summoner.address, team, treasury, { from: minter });
+        const SeanceCircle = await hre.ethers.getContractFactory('MockToken');
+        const seance = await SeanceCircle.deploy('MockToken', "SeanceCircle", "SEANCE");
+        console.log('Soul Address: `%s`', seance.address);
+        
+        const Summoner = await hre.ethers.getContractFactory('MockSummoner');
+        summoner = await deploy('MockSummoner');
+        console.log('Summoner Address: `%s`', summoner.address);
+
+        await summoner.initialize(soul.address, seance.address, 0, 100, 50);
+
+        vault = await SoulVault.deploy('MockVault', soul.address, seance.address, summoner.address);
     });
 
-    it('staking deposit & withdraw', async () => {
-        await this.soul.approve(this.vault.address, '1000', { from: alice });
-        expect((await this.vault.balanceOf()).toString()).to.equal('0');
-        expect((await this.soul.balanceOf(alice)).toString()).to.equal('2000');
-        await this.vault.deposit('1000', { from: alice });
-        expect((await this.vault.balanceOf()).toString()).to.equal('1000');
-        expect((await this.soul.balanceOf(alice)).toString()).to.equal('1000');
+    describe('deposit', function() {
+        it('transfers soul correctly', async function() {
+            soul.approve(vault.address, toWei(100));
+            soul.mint(toWei(100));
 
-        expect((await this.summoner.pendingSoul(0, this.vault.address)).toString()).to.equal('0');
+            vault.deposit(toWei(100));
+            const vBal = await soul.balanceOf(vault.address);
+            console.log('vault soul bal', fromWei(vBal));
 
-        console.log(BigNumber.from((await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp).toNumber())
-        await ethers.provider.send("evm_increaseTime", [60])  // fast forward 
-        await ethers.provider.send("evm_mine", [])  // mine the block to set the block.timestamp
-        console.log(BigNumber.from((await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp).toNumber())
+            expect(await soul.balanceOf(accounts[0].address)).to.equal(toWei(100));
+            
+            // increaseTime(86400)
+            // vault.connect(accounts[0]).withdrawAll()
+            // expect(await soul.balanceOf(accounts[0].address)).to.equal(toWei(100))
 
-        expect((await this.summoner.pendingSoul(0, this.vault.address)).toString()).to.equal('173611111111111111080');
-        console.log('SoulVault`s new SOUL balance: '+await this.summoner.pendingSoul(0, this.vault.address) / (10 ** 18))
+            // const tx = await vault.userInfo(accounts[0].address)
+            // expect(tx[0]).to.equal(0)
+        });
 
+        // it('receives the right amount of shares for deposit', async () => {
 
+        // });
 
-    })
+        // it('receives correct soul amount when multiple people in pool', async () => {
+
+        // });
+
+        // it('receives the correct pending soul rewards', async () => {
+
+        // });
+    });
+
+    // describe('withdraw', async () => {
+    //     // it('charges fee when withdraw before end period', async () => {
+
+    //     // })
+
+    //     // it('doesnt charge fee when withdraw after end period', async () => {
+
+    //     // })
+
+    //     it('reverts when trying to withdraw funds when has no share balance', async () => {
+    //         // expect(await vault.connect(accounts[0]).withdraw(100)).to.be.revertedWith('Nothing to withdraw')
+    //     })
+    // });
+
+    // describe('compound', async () => {
+    //     // it('reinvests available shares when someone uses harvest', async () => {
+
+    //     // })
+    // });
+
+    // // describe('check days passed', function() {
+    // //     it('should return 1 days passed', async function() {
+    // //         increaseTime(86499);
+    // //         expect(await sandbox.daysPassed()).to.equal(1);
+    // //     });
+    // // });
+
+    // // describe('check days passed', function() {
+    // //     it('should return 12 days passed', async function() {
+    // //         increaseTime(12 * 86400);
+    // //         expect(await sandbox.daysPassed()).to.equal(12);
+    // //     });
+    // // });
+    
+    // // describe('getSoulPerFantom', function() {
+    // //     it('should return soul rate after 2 days passed', async function() {
+    // //         increaseTime(2 * 86400);
+    // //         expect(await sandbox.getSoulForFtm(1)).to.equal(5);
+    // //     });
+    // // });
+
+    // // describe('summon souls', function() {
+    // //     it('should summon soul to user wallet', async = () => {
+    // //         // expect(await sandbox.soulSupply()).to.equal(toWei(34644186));
+    // //         // summon 50 souls
+    // //         // const summonSoulsTx = await sandbox.summonSouls(toWei(50), { value: toWei(50)});
+    // //         const summonSoulsTx = await sandbox.summonSouls( toWei(50), { value: toWei(10) });
+    // //         await summonSoulsTx.wait();
+    // //         expect(await sandbox.soulSupply()).to.equal(toWei(10000 - 50));
+    // //     });
+    // // });
+
 });
