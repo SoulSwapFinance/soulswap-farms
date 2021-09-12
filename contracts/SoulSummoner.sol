@@ -357,14 +357,6 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return untilNextDecay;
     }
 
-    // returns the actual amount taxed and withdrawed
-    function getWithdrawable(uint pid, uint amount) public view returns (uint fee, uint withdrawable) {
-        uint _fee = getFee(pid); // acquires fee for user at timestamp
-        uint _withdrawable = amount - fee;
-
-        return (_fee, _withdrawable);
-    }
-
     // view: pending soul rewards (external)
     function pendingSoul(uint pid, address _user) external view returns (uint pendingAmount) {
         Pools storage pool = poolInfo[pid];
@@ -461,8 +453,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             
             user.amount = user.amount - amount;
             
-            (, uint withdrawable) = getWithdrawable(pid, amount);
-
+            uint fee = getFee(pid); // acquires fee for user at timestamp
+            uint withdrawable = amount - fee;
             pool.lpToken.transfer(address(msg.sender), withdrawable);
         }
       
