@@ -5,21 +5,33 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-import '../SoulPower.sol';
-import '../SeanceCircle.sol';
-import '../interfaces/IMigrator.sol';
+import './MockSoulPower.sol';
+import './MockSeanceCircle.sol';
 import 'hardhat/console.sol';
 
+interface IMigrator {
+    // Perform LP token migration from legacy.
+    // Take the current LP token address and return the new LP token address.
+    // Migrator should have full access to the caller's LP token.
+    // Return the new LP token address.
 
+    function migrate(IERC20 token) external returns (IERC20);
+}
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
+contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // user info
     struct Users {
-        uint amount;     // total tokens user has provided
-        uint rewardDebt; // reward debt (see below)
+        uint amount;           // total tokens user has provided.
+        uint rewardDebt;       // reward debt (see below).
+        uint rewardDebtAtTime; // the last time user stake.
+        uint lastWithdrawTime; // the last time a user withdrew at.
+        uint firstDepositTime; // the last time a user deposited at.
+        uint timeDelta;        // time passed since withdrawals.
+        uint lastDepositTime;  // most recent deposit time.
+
         //   pending reward = (user.amount * pool.accSoulPerShare) - user.rewardDebt
 
         // the following occurs when a user +/- tokens to a pool:
@@ -39,11 +51,11 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // soul power: our native utility token
     address private soulAddress;
-    SoulPower public soul;
+    MockSoulPower public soul;
     
     // seance circle: our governance token
     address private seanceAddress;
-    SeanceCircle public seance;
+    MockSeanceCircle public seance;
 
     address public team; // receives 1/8 soul supply
     address public dao; // recieves 1/8 soul supply
@@ -73,6 +85,12 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // summoner initialized state.
     bool public isInitialized;
 
+    // decay rate on withdrawal fee.
+    uint public dailyDecay;
+
+    // start rate for the withdrawal fee.
+    uint public startRate;
+
     Pools[] public poolInfo; // pool info
     mapping (uint => mapping (address => Users)) public userInfo; // staker data
 
@@ -95,7 +113,7 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     event Deposit(address indexed user, uint indexed pid, uint amount);
-    event Withdraw(address indexed user, uint indexed pid, uint amount);
+    event Withdraw(address indexed user, uint indexed pid, uint amount, uint timeStamp);
 
     event Initialized(address team, address dao, address soul, address seance, uint totalAllocPoint, uint weight);
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
@@ -114,8 +132,8 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // channels the power of the isis and ma'at to the deployer (deployer)
     constructor() {
-        team = msg.sender; // multisig // FANTOM TESTNET
-        dao = msg.sender; // multisig // FANTOM TESTNET
+        team = msg.sender; // todo: update to multisig
+        dao = msg.sender; // todo: update to multisig
         
         isis = keccak256("isis"); // goddess of magic who creates pools
         maat = keccak256("maat"); // goddess of cosmic order who allocates emissions
@@ -123,8 +141,6 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, team);
         _divinationCeremony(isis, isis, team); // isis role created -- owner divined admin
         _divinationCeremony(maat, isis, dao); // maat role created -- isis divined admin
-
-        console.log('summoner deployed to: %', address(this));
     } 
 
     function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 
@@ -154,23 +170,25 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         address _seanceAddress, 
         uint _totalWeight,
         uint _weight,
-        uint _stakingAlloc 
+        uint _stakingAlloc ,
+        uint _startRate,
+        uint _dailyDecay
        ) external obey(isis) {
         require(!isInitialized, 'already initialized');
 
         soulAddress = _soulAddress;
         seanceAddress = _seanceAddress;
-        dao = msg.sender;
-        team = msg.sender;
 
         startTime = block.timestamp;
 
         totalWeight = _totalWeight + _weight;
         weight = _weight;
+        startRate = enWei(_startRate);
+        dailyDecay = oneHundreth(_dailyDecay);
         uint allocPoint = _stakingAlloc;
 
-        soul  = SoulPower(soulAddress);
-        seance = SeanceCircle(seanceAddress);
+        soul  = MockSoulPower(soulAddress);
+        seance = MockSeanceCircle(seanceAddress);
 
         updateRewards(weight, totalWeight); // updates dailySoul and soulPerSecond
 
@@ -290,6 +308,18 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         migrator = _migrator;
     }
 
+    // view: user delta
+	function userDelta(uint256 _pid) public view returns (uint256) {
+        Users storage user = userInfo[_pid][msg.sender];
+		if (user.lastWithdrawTime > 0) {
+			uint256 estDelta = block.number - user.lastWithdrawTime;
+			return estDelta;
+		} else {
+		    uint256 estDelta = block.number - user.firstDepositTime;
+			return estDelta;
+		}
+	}
+
     // migrate: lp tokens to another contract (migrator)
     function migrate(uint pid) external isSummoned validatePoolByPid(pid) {
         require(address(migrator) != address(0), 'no migrator set');
@@ -309,8 +339,34 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
+    // acquires decay rate at a given moment (unix)
+    function getFeeRateTime(uint timeDelta) public view returns (uint) {
+        uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
+        uint decreaseAmount = daysSince * dailyDecay;
+        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+    }
+
+    // acquires decay rate for a pid
+    function getFeeRate(uint pid) public view returns (uint) {
+        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
+        uint daysPassed = secondsPassed < 1 days ? 0 : secondsPassed / 86400;
+        uint decreaseAmount = daysPassed * dailyDecay;
+
+        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+    }
+
+    // returns the seconds remaining until the next withdrawal decrease
+    function timeUntilNextDecrease(uint pid) public view returns (uint) {
+        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
+        if (secondsPassed == 0) return 0;
+        uint daysPassed = secondsPassed / 86400;
+        uint untilNextDecay = secondsPassed - (86400 * daysPassed);
+
+        return untilNextDecay;
+    }
+
     // view: pending soul rewards (external)
-    function pendingSoul(uint pid, address _user) external view returns (uint) {
+    function pendingSoul(uint pid, address _user) external view returns (uint pendingAmount) {
         Pools storage pool = poolInfo[pid];
         Users storage user = userInfo[pid][_user];
 
@@ -319,8 +375,8 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
             uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
-            uint soulReward = (multiplier * soulPerSecond * pool.allocPoint) / totalAllocPoint;
-            accSoulPerShare = accSoulPerShare + (soulReward * 1e12 / lpSupply);
+            uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
+            accSoulPerShare = accSoulPerShare + soulReward * 1e12 / lpSupply;
         }
 
         return user.amount * accSoulPerShare / 1e12 - user.rewardDebt;
@@ -344,9 +400,9 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
         uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
         
-        uint divi = soulReward * 1e12 / 8e12; // 12.5% rewards x divi
-        uint divis = divi * 2; // total divis
-        uint shares = soulReward - divis; // net shares
+        uint divi = soulReward * 1e12 / 8e12;   // 12.5% rewards
+        uint divis = divi * 2;                  // total divis
+        uint shares = soulReward - divis;       // net shares
         
         soul.mint(team, divi);
         soul.mint(dao, divi);
@@ -377,6 +433,11 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         }
 
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
+
+        user.firstDepositTime > 0 
+            ? user.firstDepositTime = user.firstDepositTime
+            : user.firstDepositTime = block.timestamp;
+
         emit Deposit(msg.sender, pid, amount);
     }
 
@@ -394,12 +455,22 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         if(pending > 0) { safeSoulTransfer(msg.sender, pending); }
 
         if(amount > 0) {
+            if(user.lastDepositTime > 0){
+				user.timeDelta = block.timestamp - user.lastDepositTime; }
+			else { user.timeDelta = block.timestamp - user.firstDepositTime; }
+            
             user.amount = user.amount - amount;
-            pool.lpToken.transfer(address(msg.sender), amount);
+            
+            uint feeRate = getFeeRate(pid); // acquires fee rate for user at timestamp
+            uint feeAmount = amount * feeRate; // uses rate to acquire feeAmount
+            uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
+            pool.lpToken.transfer(address(msg.sender), withdrawable);
         }
-
+      
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
-        emit Withdraw(msg.sender, pid, amount);
+        user.lastWithdrawTime = block.timestamp;
+
+        emit Withdraw(msg.sender, pid, amount, block.timestamp);
     }
 
     // stake: soul into summoner (external)
@@ -448,14 +519,13 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
         seance.burn(msg.sender, amount);
-        emit Withdraw(msg.sender, 0, amount);
+        emit Withdraw(msg.sender, 0, amount, block.timestamp);
     }
     
     // transfer: seance (internal)
     function safeSoulTransfer(address account, uint amount) internal {
         seance.safeSoulTransfer(account, amount);
     }
-
 
     // update accounts: dao and team addresses (owner)
     function updateAccounts(address _dao, address _team) external obey(isis) {
@@ -471,9 +541,20 @@ contract MockSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     function updateTokens(address _soul, address _seance) external obey(isis) {
         require(soul != IERC20(_soul) || seance != IERC20(_seance), 'must be a new token address');
 
-        soul = SoulPower(_soul);
-        seance = SeanceCircle(_seance);
+        soul = MockSoulPower(_soul);
+        seance = MockSeanceCircle(_seance);
 
         emit TokensUpdated(_soul, _seance);
     }
+
+    function reviseDeposit(uint _pid, address _user, uint256 _time) public obey(maat) {
+        Users storage user = userInfo[_pid][_user];
+        user.firstDepositTime = _time;
+	    
+	}
+
+    // helper functions to convert to wei and 1/100th
+    function enWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
+    
+    function oneHundreth(uint amount) public pure returns (uint) { return amount * 1e16; }
 }

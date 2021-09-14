@@ -7,8 +7,16 @@ import '@openzeppelin/contracts/security/Pausable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './MockSoulPower.sol';
 import './MockSeanceCircle.sol';
-import '../interfaces/IMigrator.sol';
+import 'hardhat/console.sol';
 
+interface IMigrator {
+    // Perform LP token migration from legacy.
+    // Take the current LP token address and return the new LP token address.
+    // Migrator should have full access to the caller's LP token.
+    // Return the new LP token address.
+
+    function migrate(IERC20 token) external returns (IERC20);
+}
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
@@ -332,7 +340,14 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     // acquires decay rate at a given moment (unix)
-    function getFee(uint pid) public view returns (uint) {
+    function getFeeRateTime(uint timeDelta) public view returns (uint) {
+        uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
+        uint decreaseAmount = daysSince * dailyDecay;
+        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+    }
+
+    // acquires decay rate for a pid
+    function getFeeRate(uint pid) public view returns (uint) {
         uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
         uint daysPassed = secondsPassed < 1 days ? 0 : secondsPassed / 86400;
         uint decreaseAmount = daysPassed * dailyDecay;
@@ -348,14 +363,6 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         uint untilNextDecay = secondsPassed - (86400 * daysPassed);
 
         return untilNextDecay;
-    }
-
-    // returns the actual amount taxed and withdrawed
-    function getWithdrawable(uint pid, uint amount) public view returns (uint fee, uint withdrawable) {
-        uint _fee = getFee(pid); // acquires fee for user at timestamp
-        uint _withdrawable = amount - fee;
-
-        return (_fee, _withdrawable);
     }
 
     // view: pending soul rewards (external)
@@ -430,7 +437,8 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         user.firstDepositTime > 0 
             ? user.firstDepositTime = user.firstDepositTime
             : user.firstDepositTime = block.timestamp;
-
+        
+        console.log('deposited %s into pid %s', amount/1e18, pid);
         emit Deposit(msg.sender, pid, amount);
     }
 
@@ -454,8 +462,9 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             
             user.amount = user.amount - amount;
             
-            (, uint withdrawable) = getWithdrawable(pid, amount);
-
+            uint feeRate = getFeeRate(pid); // acquires fee rate for user at timestamp
+            uint feeAmount = amount * feeRate; // uses rate to acquire feeAmount
+            uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
             pool.lpToken.transfer(address(msg.sender), withdrawable);
         }
       
@@ -486,6 +495,8 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
         seance.mint(msg.sender, amount);
+
+        console.log('deposited %s into pid %s', amount/1e18, 0);
         emit Deposit(msg.sender, 0, amount);
     }
 
