@@ -190,6 +190,42 @@ describe('SoulSummoner', () => {
         expect(await daoShare).to.equal(125)
         expect(await teamShare).to.equal(125)
     })
+    
+    it('adds SOUL-FTM pair @ 10x', async function() {
+      // todo: add
+      
+    })
+    
+    it('stakes LP for 24H', async function() {
+    
+    })
+    
+    it('reads pending rewards for SAS and LP pools (0,1)', async function() {
+    
+    // todo: add
+    
+    })
+    
+    it('should return identical pending rewards', async function() {
+    // todo: add
+    
+    })
+      it('returns: the seconds remaining until the next fee decrease', async function() {
+      
+      // soul (= 0)
+      soulDecreaseTime = await timeUntilNextDecrease(0)
+      
+      // lp (= daysEnd - now)
+      lpDecreaseTime = await timeUntilNextDecrease(1) 
+      
+      // todo: add expects
+      
+      
+      console.log('time left (0): ~%s mins', soulDecreaseTime)
+      
+      console.log('time left (1): ~%s mins', lpDecreaseTime)
+      
+    })
   })
 })
 
