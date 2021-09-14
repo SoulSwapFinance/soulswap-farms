@@ -115,6 +115,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
     event AccountsUpdated(address dao, address team);
     event TokensUpdated(address soul, address seance);
+    event DepositRevised(uint _pid, address _user, uint _time);
 
     // validates: pool exists
     modifier validatePoolByPid(uint pid) {
@@ -181,7 +182,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         soul  = SoulPower(soulAddress);
         seance = SeanceCircle(seanceAddress);
 
-        updateRewards(weight, totalWeight); // updates dailySoul and soulPerSecond
+        // updates dailySoul and soulPerSecond
+        updateRewards(weight, totalWeight); 
 
         // staking pool
         poolInfo.push(Pools({
@@ -209,6 +211,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit RewardsUpdated(dailySoul, soulPerSecond);
     }
 
+    // 
     function poolLength() external view returns (uint) {
         return poolInfo.length;
     }
@@ -330,23 +333,36 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
-    // acquires decay rate at a given moment (unix)
-    function getFeeRateTime(uint timeDelta) public view returns (uint) {
+    // returns: decay rate at a given moment (unix)
+    function getFeeRateTime(uint timeDelta) public view returns (uint feeRateTime) {
         uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
         uint decreaseAmount = daysSince * dailyDecay;
-        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+        return decreaseAmount >= startRate 
+            ? 0 
+            : startRate - decreaseAmount;
     }
 
-    // acquires decay rate for a pid
-    function getFeeRate(uint pid) public view returns (uint) {
+    // returns: decay rate for a pid
+    function getFeeRate(uint pid) public view returns (uint feeRate) {
         uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
         uint daysPassed = secondsPassed < 1 days ? 0 : secondsPassed / 86400;
         uint decreaseAmount = daysPassed * dailyDecay;
 
-        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+        return decreaseAmount >= startRate 
+            ? 0 
+            : startRate - decreaseAmount;
     }
 
-    // returns the seconds remaining until the next withdrawal decrease
+    // returns: feeAmount and with withdrawableAmount for a given pid and amount
+    function getWithdrawable(uint pid, uint amount) public view returns (uint _feeAmount, uint _withdrawable) {
+        (uint feeRate) = getFeeRate(pid);
+        uint feeAmount = (amount * feeRate) / 100;
+        uint withdrawable = amount - feeAmount;
+
+        return (feeAmount, withdrawable);
+    }
+
+    // returns: the seconds remaining until the next withdrawal decrease
     function timeUntilNextDecrease(uint pid) public view returns (uint) {
         uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
         if (secondsPassed == 0) return 0;
@@ -455,6 +471,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             uint feeRate = getFeeRate(pid); // acquires fee rate for user at timestamp
             uint feeAmount = amount * feeRate; // uses rate to acquire feeAmount
             uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
+
+            pool.lpToken.transfer(address(dao), feeAmount);
             pool.lpToken.transfer(address(msg.sender), withdrawable);
         }
       
@@ -528,7 +546,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit AccountsUpdated(dao, team);
     }
 
-    // update token addresses: soul and seance addresses (owner)
+    // update tokens: soul and seance addresses (owner)
     function updateTokens(address _soul, address _seance) external obey(isis) {
         require(soul != IERC20(_soul) || seance != IERC20(_seance), 'must be a new token address');
 
@@ -538,14 +556,15 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit TokensUpdated(_soul, _seance);
     }
 
+    // manual override to reassign the first deposit time for a given (pid, account)
     function reviseDeposit(uint _pid, address _user, uint256 _time) public obey(maat) {
         Users storage user = userInfo[_pid][_user];
         user.firstDepositTime = _time;
-	    
+
+        emit DepositRevised(_pid, _user, _time);
 	}
 
     // helper functions to convert to wei and 1/100th
     function enWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
-    
     function oneHundreth(uint amount) public pure returns (uint) { return amount * 1e16; }
 }
