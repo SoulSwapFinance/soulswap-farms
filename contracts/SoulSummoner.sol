@@ -124,9 +124,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // channels the power of the isis and ma'at to the deployer (deployer)
     constructor() {
-        team = msg.sender; // todo: update to multisig
-        dao = msg.sender; // todo: update to multisig
-        
+        team = 0x81Dd37687c74Df8F957a370A9A4435D873F5e5A9;
+        dao = 0x1C63C726926197BD3CB75d86bCFB1DaeBcD87250;        
         isis = keccak256("isis"); // goddess of magic who creates pools
         maat = keccak256("maat"); // goddess of cosmic order who allocates emissions
 
