@@ -333,14 +333,14 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
-    // returns: decay rate at a given moment (unix)
-    function getFeeRateTime(uint timeDelta) public view returns (uint feeRateTime) {
-        uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
-        uint decreaseAmount = daysSince * dailyDecay;
-        return decreaseAmount >= startRate 
-            ? 0 
-            : startRate - decreaseAmount;
-    }
+    // // returns: decay rate at a given moment (unix)
+    // function getFeeRateTime(uint timeDelta) public view returns (uint feeRateTime) {
+    //     uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
+    //     uint decreaseAmount = daysSince * dailyDecay;
+    //     return decreaseAmount >= startRate 
+    //         ? 0 
+    //         : startRate - decreaseAmount;
+    // }
 
     // returns: decay rate for a pid
     function getFeeRate(uint pid, uint timeDelta) public view returns (uint feeRate) {
@@ -349,16 +349,31 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             ? 0 
             : timeDelta / 86400;
             
-        uint decreaseAmount = daysPassed * dailyDecay;
+        uint rateDecayed = daysPassed * dailyDecay;
 
-        uint _rate = decreaseAmount >= startRate 
+        uint _rate = rateDecayed >= startRate 
             ? 0 
-            : startRate - decreaseAmount;
+            : startRate - rateDecayed;
         
         // returns 0 for SAS
         return pid == 0
             ? 0
             : _rate;
+    }
+
+    // returns: `fee` for a given pid, user
+    function getFee(uint pid, uint amount) public view returns (uint fee) {
+        uint timeDelta = userInfo[pid][msg.sender].timeDelta;
+        
+        uint rateDecayed = (timeDelta / 86400) * dailyDecay;
+
+        uint _rate = (startRate - rateDecayed) / 100;
+
+        uint _fee = fromWei(amount) * _rate;
+
+        return pid == 0
+            ? 0
+            : _fee;
     }
 
     // returns: feeAmount and with withdrawableAmount for a given pid and amount
@@ -369,7 +384,6 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         return (feeAmount, withdrawable);
     }
-
     // returns: the seconds remaining until the next withdrawal decrease
     function timeUntilNextDecrease(uint pid) public view returns (uint untilNextDecay) {
         Users storage user = userInfo[0][msg.sender];
@@ -481,14 +495,14 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             
             user.amount = user.amount - amount;
             
-            uint feeRate = getFeeRate(pid, user.timeDelta); // acquires fee rate for user at timestamp
-            uint feeAmount = amount * feeRate; // uses rate to acquire feeAmount
-            uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
-
-            pool.lpToken.transfer(address(dao), feeAmount);
-            pool.lpToken.transfer(address(msg.sender), withdrawable);
         }
-      
+        
+        uint feeAmount =  getFee(pid, amount); // uses rate to acquire feeAmount
+        uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
+
+        pool.lpToken.transfer(address(dao), feeAmount);
+        pool.lpToken.transfer(address(msg.sender), withdrawable);
+
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
         user.lastWithdrawTime = block.timestamp;
 
@@ -579,5 +593,6 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // helper functions to convert to wei and 1/100th
     function enWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
+    function fromWei(uint amount) public pure returns (uint) { return amount / 1e18; }
     function oneHundreth(uint amount) public pure returns (uint) { return amount * 1e16; }
 }
