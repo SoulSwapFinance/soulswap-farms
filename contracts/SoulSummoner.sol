@@ -211,7 +211,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit RewardsUpdated(dailySoul, soulPerSecond);
     }
 
-    // 
+    // returns: amount of pools
     function poolLength() external view returns (uint) {
         return poolInfo.length;
     }

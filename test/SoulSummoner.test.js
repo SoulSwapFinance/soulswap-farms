@@ -3,10 +3,11 @@ const { expect } = require('chai')
 const { accounts, increaseTime, toWei, fromWei, unlockAccount } = require('./utils/testHelper.js')
 
 describe('SoulSummoner', () => {
-  var utils = require('ethers').utils;
-  const ethers = hre.ethers;
-  const THOTH = '0xdffb0b033b8033405f5fb07b08f48c89fa1b4a3d5d5a475c3e2b8df5fbd4da0d';
+  // var utils = require('ethers').utils
+  const ethers = hre.ethers
+  const THOTH = '0xdffb0b033b8033405f5fb07b08f48c89fa1b4a3d5d5a475c3e2b8df5fbd4da0d'
   const ZERO = 0
+  const ONE_DAY = 86_400
 
   beforeEach(async () => {
     
@@ -94,7 +95,7 @@ describe('SoulSummoner', () => {
         })
 
         it('should return [D1] rewards balances of ~250K', async function() {
-        increaseTime(86_400) // ff 1 day
+        increaseTime(ONE_DAY) // ff 1 day
         dayOneRewards = await summoner.pendingSoul(0, buns)
         // console.log('D1 Rewards %s: ', fromWei(dayOneRewards))
         expect(await summoner.pendingSoul(0, buns)).to.equal(dayOneRewards)
@@ -111,7 +112,7 @@ describe('SoulSummoner', () => {
     // withdraw and allocate
     describe('review: withdrawing staked soul', function() {
       it('should return pending rewards of ~250K', async function() {
-        increaseTime(86_400) // 1 day
+        increaseTime(ONE_DAY) // 1 day
         pendingRewards = await summoner.pendingSoul(0, buns)
         // console.log('pending soul %s: ', fromWei(pendingRewards))
         expect(await summoner.pendingSoul(0, buns)).to.equal(pendingRewards)
@@ -124,7 +125,7 @@ describe('SoulSummoner', () => {
       })
         
       it('should return total payout of ~250K SOUL', async function() {
-        increaseTime(86_400) // 1 day
+        increaseTime(ONE_DAY) // 1 day
         preUserSoul = await soul.balanceOf(buns)
         preDaoSoul = await soul.balanceOf(dao)
         preTeamSoul = await soul.balanceOf(team)
@@ -148,9 +149,11 @@ describe('SoulSummoner', () => {
         // [user] payout
         soulUserPayout = newUserSoul.sub(preUserSoul)
         // console.log('[user] rewarded: %s SOUL', fromWei(soulUserPayout))
+        
         // [dao] payout
         soulDaoPayout = await newDaoSoul.sub(preDaoSoul)
         // console.log('[dao] sent: %s SOUL', fromWei(soulDaoPayout))
+
         // [team] payout
         soulTeamPayout = await newTeamSoul.sub(preTeamSoul)
         // console.log('[team] sent: %s SOUL', fromWei(soulTeamPayout))
@@ -207,7 +210,7 @@ describe('SoulSummoner', () => {
         // console.log('deposited: %s FUSD-PAIR', 100_000)
         // console.log('deposited: %s ETH-PAIR', 100_000)
 
-        await increaseTime(86_400) // 1 day
+        await increaseTime(ONE_DAY) // 1 day
 
         pendingSoulRewards = await summoner.pendingSoul(0, buns)
         // console.log('PID(0) Rewards: %s SOUL', fromWei(pendingSoulRewards))
@@ -242,15 +245,15 @@ describe('SoulSummoner', () => {
 
     describe('review: fees', function() {
       it('should show 0 fee for SAS pool', async function() {
-        feeRate = await summoner.getFeeRate(0, 86_400)
+        feeRate = await summoner.getFeeRate(0, ONE_DAY)
         console.log('fee rate: %s', feeRate)
         await expect(feeRate).to.equal(0)
       })
 
       it('should show 14% fee for non-SAS pools', async function() {
-        await increaseTime(86_400) // ff 1 days
-        feeRate1 = await summoner.getFeeRate(1, 86_400)
-        feeRate2 = await summoner.getFeeRate(2, 86_400)
+        await increaseTime(ONE_DAY) // ff 1 days
+        feeRate1 = await summoner.getFeeRate(1, ONE_DAY)
+        feeRate2 = await summoner.getFeeRate(2, ONE_DAY)
         EXPECTATION = toWei(14)
         // ensures fee rates are identical
         RAW_RATE = feeRate1 == feeRate2
@@ -274,13 +277,13 @@ describe('SoulSummoner', () => {
     
     describe('review: withdrawals', function() {
       it('should withdraw 100% staked', async function() {
-        await increaseTime(86_400) // ff 1 days
+        await increaseTime(ONE_DAY) // ff 1 days
         preWithdrawalBalance = await soul.balanceOf(buns)
         console.log('soul bal: %s', fromWei(preWithdrawalBalance))
 
         SOUL_TO_UNSTAKE = toWei(100_000)
         rawPendingRewards = await summoner.pendingSoul(0, buns)
-        PENDING_REWARDS = rawPendingRewards.mul(3e12).div(4e12)// 75% of share to miners
+        PENDING_REWARDS = rawPendingRewards.mul(3e12).div(4e12) // 75% of share to miners
         console.log('user pending rewards: %s', fromWei(PENDING_REWARDS))
   
         await summoner.leaveStaking(SOUL_TO_UNSTAKE)
@@ -320,7 +323,7 @@ describe('SoulSummoner', () => {
         console.log('deposited: %s FUSD-PAIR', 100_000)
         console.log('deposited: %s ETH-PAIR', 100_000)
         
-        await increaseTime(86_400) // ff 1 days
+        await increaseTime(ONE_DAY) // ff 1 days
         await coreLP1.burn(toWei(100_000)) // clears out LP balance from buns
         preWithdrawalBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
         console.log('CoreLP1 pre-bal: %s', fromWei(preWithdrawalBalance))
@@ -336,10 +339,9 @@ describe('SoulSummoner', () => {
         console.log('DAO new bal: %s', fromWei(daoNewBalance))
         expect(await userNewBalance).to.equal(toWei(86_010))
         expect(await daoNewBalance).to.equal(toWei(13_990))
-
-
       })
     })
+
     // function getFee(uint timeDelta) public view returns (uint) {
 
     //   it('returns: the seconds remaining until the next fee decrease', async function() {
