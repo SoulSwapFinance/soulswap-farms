@@ -1,39 +1,57 @@
 const SoulPower = artifacts.require('SoulPower.sol');
 const SeanceCircle = artifacts.require('SeanceCircle.sol');
-const SpellBound = artifacts.require('SpellBound.sol');
 const SoulSummoner = artifacts.require('SoulSummoner.sol');
-const SoulVault = artifacts.require('SoulVault.sol');
+const THOTH = '0xdffb0b033b8033405f5fb07b08f48c89fa1b4a3d5d5a475c3e2b8df5fbd4da0d'
+const FTM_SOUL_LP = '0x10c0AFd7C58916C4025d466E11850c7D79219277' // testnet
+
+const team = '0x81Dd37687c74Df8F957a370A9A4435D873F5e5A9' // mainnet
+const dao = '0x1C63C726926197BD3CB75d86bCFB1DaeBcD87250' // mainnet
 
 module.exports = async function(deployer) {
 
   // deploy soul
   await deployer.deploy(SoulPower)
-  const soulPower = await SoulPower.deployed()
-  await soulPower.mint(process.env.ADMIN_ADDRESS, web3.utils.toWei('50000000000000000', 'gwei'))
+  // const soul = '0xCF174A6793FA36A73e8fF18A71bd81C985ef5aB5' // testnet
+  // const soul = '0xe2fb177009FF39F52C0134E8007FA0e4BaAcBd07' // mainnet
+  const soul = await SoulPower.deployed()
 
-  // deploy seance
-  await deployer.deploy(SeanceCircle, soulPower.address)
-  const seanceCircle = await SeanceCircle.deployed()
+  // [seance]: deploy and initialize
+  await deployer.deploy(SeanceCircle, soul.address)
+  const seance = await SeanceCircle.deployed()
+  await seance.initialize(soul.address)    
+  console.log('initialized: seance')
 
-  // deploy spell
-  await deployer.deploy(SpellBound)
-  const spellBound = await SpellBound.deployed()
-  console.log('spellBound: ', spellBound.address)
+// // deploy spell
+// await deployer.deploy(SpellBound)
+// const spellBound = await SpellBound.deployed()
+// console.log('spellBound: ', spellBound.address)
 
-// deploy summoner
+// [summoner]: deploy and initialize
   await deployer.deploy(SoulSummoner)
-  const soulSummoner = await SoulSummoner.deployed()
+  const summoner = await SoulSummoner.deployed()
 
-// deploy vault
-await deployer.deploy(
-  SoulVault,
-  soulPower.address, // soul
-  seanceCircle.address, // seance
-  soulSummoner.address // summoner
-)
+  await summoner.initialize(
+    soul.address,     // soul
+    seance.address,  // seance
+    0, 1000,        // total weight, weight
+    1000,          // staking allocation
+    14, 1)        // startRate, dailyDecay
 
-  // make SoulSummoner contract an operator for soulPower and seanceCircle
-  await soulPower.addOperator(soulSummoner.address)
-  await seanceCircle.addOperator(soulSummoner.address)
+  // // deploy vault
+  // await deployer.deploy(
+  //   SoulVault,
+  //   soul.address, // soul
+  //   seance.address, // seance
+  //   summoner.address // summoner
+  // )
 
+  // make SoulSummoner contract an operator for soul and seance
+  await soul.grantRole(THOTH, summoner.address)
+  await seance.addOperator(summoner.address)
+
+  // add new pool [ftm-soul]
+  await summoner.addPool(800, FTM_SOUL_LP, true)
+
+  // update accounts to dao and team (multi-sigs) [mainnet-only]
+  await summoner.updateAccounts(dao, team) 
 }

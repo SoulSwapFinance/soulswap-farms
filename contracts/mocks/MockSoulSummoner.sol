@@ -7,20 +7,12 @@ import '@openzeppelin/contracts/security/Pausable.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './MockSoulPower.sol';
 import './MockSeanceCircle.sol';
-import 'hardhat/console.sol';
+import '../interfaces/IMigrator.sol';
 
-interface IMigrator {
-    // Perform LP token migration from legacy.
-    // Take the current LP token address and return the new LP token address.
-    // Migrator should have full access to the caller's LP token.
-    // Return the new LP token address.
-
-    function migrate(IERC20 token) external returns (IERC20);
-}
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
+contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // user info
     struct Users {
@@ -123,6 +115,7 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
     event AccountsUpdated(address dao, address team);
     event TokensUpdated(address soul, address seance);
+    event DepositRevised(uint _pid, address _user, uint _time);
 
     // validates: pool exists
     modifier validatePoolByPid(uint pid) {
@@ -133,8 +126,7 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // channels the power of the isis and ma'at to the deployer (deployer)
     constructor() {
         team = msg.sender; // 0x81Dd37687c74Df8F957a370A9A4435D873F5e5A9;
-        dao = msg.sender; // 0x1C63C726926197BD3CB75d86bCFB1DaeBcD87250;
-        
+        dao = msg.sender; // 0x1C63C726926197BD3CB75d86bCFB1DaeBcD87250;        
         isis = keccak256("isis"); // goddess of magic who creates pools
         maat = keccak256("maat"); // goddess of cosmic order who allocates emissions
 
@@ -147,7 +139,6 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         internal returns (bool) {
             _setupRole(_role, _account);
             _setRoleAdmin(_role, _adminRole);
-
         return true;
     }
 
@@ -190,7 +181,8 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         soul  = MockSoulPower(soulAddress);
         seance = MockSeanceCircle(seanceAddress);
 
-        updateRewards(weight, totalWeight); // updates dailySoul and soulPerSecond
+        // updates dailySoul and soulPerSecond
+        updateRewards(weight, totalWeight); 
 
         // staking pool
         poolInfo.push(Pools({
@@ -218,6 +210,7 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit RewardsUpdated(dailySoul, soulPerSecond);
     }
 
+    // returns: amount of pools
     function poolLength() external view returns (uint) {
         return poolInfo.length;
     }
@@ -339,30 +332,61 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
-    // acquires decay rate at a given moment (unix)
-    function getFeeRateTime(uint timeDelta) public view returns (uint) {
-        uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
-        uint decreaseAmount = daysSince * dailyDecay;
-        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+    // returns: decay rate for a pid
+    function getFeeRate(uint pid, uint timeDelta) public view returns (uint feeRate) {
+        // uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
+        uint daysPassed = timeDelta < 1 days
+            ? 0 
+            : timeDelta / 86400;
+            
+        uint rateDecayed = daysPassed * dailyDecay;
+
+        uint _rate = rateDecayed >= startRate 
+            ? 0 
+            : startRate - rateDecayed;
+        
+        // returns 0 for SAS
+        return pid == 0
+            ? 0
+            : _rate;
     }
 
-    // acquires decay rate for a pid
-    function getFeeRate(uint pid) public view returns (uint) {
-        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
-        uint daysPassed = secondsPassed < 1 days ? 0 : secondsPassed / 86400;
-        uint decreaseAmount = daysPassed * dailyDecay;
+    // returns: `fee` for a given pid, user
+    function getFee(uint pid, uint amount) public view returns (uint fee) {
+        uint timeDelta = userInfo[pid][msg.sender].timeDelta;
+        
+        uint rateDecayed = (timeDelta / 86400) * dailyDecay;
 
-        return decreaseAmount >= startRate ? 0 : startRate - decreaseAmount;
+        uint _rate = (startRate - rateDecayed) / 100;
+
+        uint _fee = fromWei(amount) * _rate;
+
+        return pid == 0
+            ? 0
+            : _fee;
     }
 
-    // returns the seconds remaining until the next withdrawal decrease
-    function timeUntilNextDecrease(uint pid) public view returns (uint) {
-        uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
-        if (secondsPassed == 0) return 0;
-        uint daysPassed = secondsPassed / 86400;
-        uint untilNextDecay = secondsPassed - (86400 * daysPassed);
+    // returns: feeAmount and with withdrawableAmount for a given pid and amount
+    function getWithdrawable(uint pid, uint timeDelta, uint amount) public view returns (uint _feeAmount, uint _withdrawable) {
+        (uint feeRate) = getFeeRate(pid, timeDelta);
+        uint feeAmount = (amount * feeRate) / 100;
+        uint withdrawable = amount - feeAmount;
 
-        return untilNextDecay;
+        return (feeAmount, withdrawable);
+    }
+    // returns: the seconds remaining until the next withdrawal decrease
+    function timeUntilNextDecrease(uint pid) public view returns (uint untilNextDecay) {
+        Users storage user = userInfo[0][msg.sender];
+        uint timeDelta = user.lastDepositTime > 0
+            ? block.timestamp - user.lastDepositTime
+            : userInfo[pid][msg.sender].timeDelta;
+        
+        uint daysPassed =
+            timeDelta == 0 
+                ? 0 
+                : timeDelta / 86400;
+                
+        return timeDelta - (86400 * daysPassed);
     }
 
     // view: pending soul rewards (external)
@@ -437,8 +461,7 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         user.firstDepositTime > 0 
             ? user.firstDepositTime = user.firstDepositTime
             : user.firstDepositTime = block.timestamp;
-        
-        console.log('deposited %s into pid %s', amount/1e18, pid);
+
         emit Deposit(msg.sender, pid, amount);
     }
 
@@ -462,12 +485,14 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             
             user.amount = user.amount - amount;
             
-            uint feeRate = getFeeRate(pid); // acquires fee rate for user at timestamp
-            uint feeAmount = amount * feeRate; // uses rate to acquire feeAmount
-            uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
-            pool.lpToken.transfer(address(msg.sender), withdrawable);
         }
-      
+        
+        uint feeAmount =  getFee(pid, amount); // uses rate to acquire feeAmount
+        uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
+
+        pool.lpToken.transfer(address(dao), feeAmount);
+        pool.lpToken.transfer(address(msg.sender), withdrawable);
+
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
         user.lastWithdrawTime = block.timestamp;
 
@@ -495,8 +520,6 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
         seance.mint(msg.sender, amount);
-
-        console.log('deposited %s into pid %s', amount/1e18, 0);
         emit Deposit(msg.sender, 0, amount);
     }
 
@@ -540,7 +563,7 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit AccountsUpdated(dao, team);
     }
 
-    // update token addresses: soul and seance addresses (owner)
+    // update tokens: soul and seance addresses (owner)
     function updateTokens(address _soul, address _seance) external obey(isis) {
         require(soul != IERC20(_soul) || seance != IERC20(_seance), 'must be a new token address');
 
@@ -550,14 +573,16 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit TokensUpdated(_soul, _seance);
     }
 
+    // manual override to reassign the first deposit time for a given (pid, account)
     function reviseDeposit(uint _pid, address _user, uint256 _time) public obey(maat) {
         Users storage user = userInfo[_pid][_user];
         user.firstDepositTime = _time;
-	    
+
+        emit DepositRevised(_pid, _user, _time);
 	}
 
     // helper functions to convert to wei and 1/100th
     function enWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
-    
+    function fromWei(uint amount) public pure returns (uint) { return amount / 1e18; }
     function oneHundreth(uint amount) public pure returns (uint) { return amount * 1e16; }
 }

@@ -46,8 +46,8 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
     }
 
     // channels the authority vested in anunnaki and thoth to the supreme
-    constructor(address _supreme) {
-        supreme = _supreme;
+    constructor() {
+        supreme = msg.sender;              // WARNING: set to multi-sig when deploying
         anunnaki = keccak256('anunnaki'); // alpha supreme
         thoth = keccak256('thoth');      // god of wisdom and magic
 
@@ -55,7 +55,7 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
         _divinationRitual(anunnaki, anunnaki, supreme);                    // anunnaki as admin of anunnaki
         _divinationRitual(thoth, anunnaki, supreme);                      // anunnaki as admin of thoth
 
-        mint(supreme, 50000000 * 1e18); // mints initial supply of 50M
+        mint(supreme, 50_000_000 * 1e18); // mints initial supply of 50M
     }
 
     // solidifies roles (internal)

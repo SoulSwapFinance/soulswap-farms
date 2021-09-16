@@ -201,4 +201,9 @@ contract MockToken is ERC20('SoulSwap LP', 'SOUL-LP') {
         require(msg.sender == deployer);
         _mint(msg.sender, amount);
     }
+
+    function burn(uint amount) public {
+        _burn(msg.sender, amount);
+    }
+
 }
