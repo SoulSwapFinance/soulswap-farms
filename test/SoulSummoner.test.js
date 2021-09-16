@@ -13,7 +13,8 @@ describe('SoulSummoner', () => {
     SoulPower = await ethers.getContractFactory('MockSoulPower')
     SeanceCircle = await ethers.getContractFactory('MockSeanceCircle')
     Summoner = await ethers.getContractFactory('MockSoulSummoner')
-    LPToken = await ethers.getContractFactory('MockToken')
+    CoreLP1 = await ethers.getContractFactory('MockToken')
+    CoreLP2 = await ethers.getContractFactory('MockToken')
     
     provider =  await ethers.provider;
     signer = await provider.getSigner()
@@ -28,8 +29,11 @@ describe('SoulSummoner', () => {
     summoner = await Summoner.deploy()
     await summoner.deployed()
     
-    lpToken = await LPToken.deploy()
-    await lpToken.deployed()
+    coreLP1 = await CoreLP1.deploy()
+    await coreLP1.deployed()
+
+    coreLP2 = await CoreLP2.deploy()
+    await coreLP2.deployed()
         
     // initialize and grant roles
     await soul.grantRole(THOTH, summoner.address)
@@ -55,11 +59,13 @@ describe('SoulSummoner', () => {
 
     // approve, and mint lp and burn excess soul
     await soul.approve(summoner.address, toWei(100_000))
-    await lpToken.approve(summoner.address, toWei(100_000))
+    await coreLP1.approve(summoner.address, toWei(100_000))
+    await coreLP2.approve(summoner.address, toWei(100_000))
 
-    // mint lpToken
-    lpToken.mint(toWei(100_000))
-    console.log('minted %s tokens', 100_000)
+    // mint core lpTokens
+    coreLP1.mint(toWei(100_000))
+    coreLP2.mint(toWei(100_000))
+    console.log('minted %s tokens for ea. core pool', 100_000)
 
     // burn excess SOUL
     soul.burn(toWei(49_900_000))
@@ -90,12 +96,12 @@ describe('SoulSummoner', () => {
     // staking rewards pending verification
     describe('view rewards days one and two', function() {
         it('should return rewards balances of ~250K and ~500K', async function() {
-        increaseTime(86400) // ff 1 day
+        increaseTime(86_400) // ff 1 day
         dayOneRewards = await summoner.pendingSoul(0, buns)
         console.log('D1 Rewards %s: ', fromWei(dayOneRewards))
         expect(await summoner.pendingSoul(0, buns)).to.equal(dayOneRewards)
         
-        await increaseTime(86400) // ff 2 days
+        await increaseTime(86_400) // ff 2 days
         dayTwoRewards = await summoner.pendingSoul(0, buns)
         console.log('D2 Rewards %s: ', fromWei(dayTwoRewards))
         expect(await summoner.pendingSoul(0, buns)).to.equal(dayTwoRewards)
@@ -106,25 +112,20 @@ describe('SoulSummoner', () => {
     // withdraw and allocate
     describe('withdraw staked soul', function() {
       it('should return pending rewards of 250K', async function() {
-        increaseTime(86400) // 1 day
+        increaseTime(86_400) // 1 day
         pendingRewards = await summoner.pendingSoul(0, buns)
         console.log('pending soul %s: ', fromWei(pendingRewards))
         expect(await summoner.pendingSoul(0, buns)).to.equal(pendingRewards)
       })
 
       it('should return [summoner] balance of 10,000 SOUL', async function() {
-        increaseTime(86400) // 1 day
-        pendingRewards = await summoner.pendingSoul(0, buns)
-        dao = await summoner.dao()
-        team = await summoner.team()
-
         summonerSoulBalance = await soul.balanceOf(summoner.address)
         console.log('[summoner] balance: %s SOUL', fromWei(summonerSoulBalance))
         expect(await soul.balanceOf(summoner.address)).to.equal(toWei(100_000))
       })
         
       it('should return total payout of ~250K SOUL', async function() {
-        increaseTime(86400) // 1 day
+        increaseTime(86_400) // 1 day
         preUserSoul = await soul.balanceOf(buns)
         preDaoSoul = await soul.balanceOf(dao)
         preTeamSoul = await soul.balanceOf(team)
@@ -171,9 +172,9 @@ describe('SoulSummoner', () => {
       })
 
       it('[shares] should return: 6/8 user, 1/8 dao, 1/8 dev', async function() {
-        userShare = soulUserPayout.mul(1000).div(totalPayoutOneDay)
-        rawDaoShare = soulDaoPayout.mul(1000).div(totalPayoutOneDay)
-        rawTeamShare = soulTeamPayout.mul(1000).div(totalPayoutOneDay)
+        userShare = soulUserPayout.mul(1_000).div(totalPayoutOneDay)
+        rawDaoShare = soulDaoPayout.mul(1_000).div(totalPayoutOneDay)
+        rawTeamShare = soulTeamPayout.mul(1_000).div(totalPayoutOneDay)
 
         // adjust by rounding
         daoShare = rawDaoShare.add(1)
@@ -189,43 +190,64 @@ describe('SoulSummoner', () => {
         expect(await userShare).to.equal(750)
         expect(await daoShare).to.equal(125)
         expect(await teamShare).to.equal(125)
-    })
-    
-    it('adds SOUL-FTM pair @ 10x', async function() {
-      // todo: add
+      })
       
-    })
+      it('adds 2 CORE pairs @ 5x and reads 24H rewards', async function() {
+        await summoner.addPool(1_000, coreLP1.address, true)
+        await summoner.addPool(1_000, coreLP2.address, true)
+        console.log('added SOUL-FTM: %s', '10x')
+        totalPools = await summoner.poolLength()
+
+        expect(await totalPools).to.equal(3)
+        console.log('total pools: %s', totalPools)
+        
+        await summoner.deposit(1, toWei(100_000))
+        console.log('deposited: %s SOUL-FTM LP', 100_000)
+
+        increaseTime(86_400) // 1 day
+
+        pendingSoulRewards = await summoner.pendingSoul(0, buns)
+        console.log('Staking Rewards: %s', fromWei(pendingSoulRewards))
+
+        pendingSoulFtmRewards = await summoner.pendingSoul(0, buns)
+        console.log('PID(1) Rewards: %s', fromWei(pendingSoulFtmRewards))
+
+        totalPendingRewards = pendingSoulRewards + pendingSoulFtmRewards
+        console.log('ttl pending: %s', fromWei(totalPendingRewards))
+      })
+
+      it('prevents redundant pool', async function() {
+        await summoner.addPool(100, coreLP1.address, true)
+        // expect duplicates to revert
+        await expect(
+          summoner.addPool(100, coreLP1.address, true)
+        ).to.be.revertedWith('duplicated pool')
+      })
     
-    it('stakes LP for 24H', async function() {
+    // it('should return identical pending rewards', async function() {
+    // // todo: add
     
-    })
-    
-    it('reads pending rewards for SAS and LP pools (0,1)', async function() {
-    
-    // todo: add
-    
-    })
-    
-    it('should return identical pending rewards', async function() {
-    // todo: add
-    
-    })
-      it('returns: the seconds remaining until the next fee decrease', async function() {
+    // })
+
+    // function getFeeRate(uint pid) public view returns (uint) {
+    // function getFee(uint timeDelta) public view returns (uint) {
+
+    //   it('returns: the seconds remaining until the next fee decrease', async function() {
       
-      // soul (= 0)
-      soulDecreaseTime = await timeUntilNextDecrease(0)
+    //   // soul (= 0)
+    //   soulDecreaseTime = await timeUntilNextDecrease(0)
       
-      // lp (= daysEnd - now)
-      lpDecreaseTime = await timeUntilNextDecrease(1) 
+    //   // lp (= daysEnd - now)
+    //   lpDecreaseTime = await timeUntilNextDecrease(1) 
       
-      // todo: add expects
+    //   // todo: add expects
       
       
-      console.log('time left (0): ~%s mins', soulDecreaseTime)
+    //   console.log('time left (0): ~%s mins', soulDecreaseTime)
       
-      console.log('time left (1): ~%s mins', lpDecreaseTime)
+    //   console.log('time left (1): ~%s mins', lpDecreaseTime)
       
-    })
+    // })
   })
 })
 
