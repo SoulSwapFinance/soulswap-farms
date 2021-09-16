@@ -364,16 +364,13 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // returns: `fee` for a given pid, user
     function getFee(uint pid, uint amount) public view returns (uint fee) {
         uint timeDelta = userInfo[pid][msg.sender].timeDelta;
-        console.log('time delta: %s secs', timeDelta);
+        // console.log('time delta: %s secs', timeDelta);
         
         uint rateDecayed = (timeDelta / 86400) * dailyDecay;
-        console.log('rate decayed: %s', fromWei(rateDecayed));
+        // console.log('rate decayed: %s', fromWei(rateDecayed));
 
         uint _rate = (startRate - rateDecayed) / 100;
-        console.log('rate: %s', _rate);
-
-        // uint amountStaked = userInfo[pid][msg.sender].amount;
-        // console.log('amount stakes: %s SOUL', amountStaked);
+        // console.log('rate: %s', _rate);
 
         uint _fee = fromWei(amount) * _rate;
         console.log('fee: %s SOUL', _fee);
@@ -504,13 +501,8 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             
         }
 
-        // uint timeDelta = 
-        console.log('user time delta: %s', user.timeDelta);
-
-        // uint feeRate = getFeeRate(pid, user.timeDelta); // acquires fee rate for user at timestamp
-        // uint feeAmount = amount * feeRate; // uses rate to acquire feeAmount
         uint feeAmount =  getFee(pid, amount); // uses rate to acquire feeAmount
-        console.log('fee amount: %s SOUL', feeAmount);
+        // console.log('fee amount: %s SOUL', feeAmount);
         uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
 
         pool.lpToken.transfer(address(dao), feeAmount);

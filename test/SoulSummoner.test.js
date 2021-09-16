@@ -334,6 +334,9 @@ describe('SoulSummoner', () => {
         
         daoNewBalance = await coreLP1.balanceOf(dao) // ensures balance is cleared
         console.log('DAO new bal: %s', fromWei(daoNewBalance))
+        expect(await userNewBalance).to.equal(toWei(86_010))
+        expect(await daoNewBalance).to.equal(toWei(13_990))
+
 
       })
     })
