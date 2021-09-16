@@ -58,7 +58,7 @@ contract MockSoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
         mint(supreme, 50000000 * 1e18); // mints initial supply of 50M
 
-        console.log('soul deployed to: %s', address(this));
+        // console.log('soul deployed to: %s', address(this));
     }
 
     // solidifies roles (internal)
