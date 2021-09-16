@@ -12,7 +12,7 @@ import '../interfaces/IMigrator.sol';
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
+contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // user info
     struct Users {
@@ -139,7 +139,6 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         internal returns (bool) {
             _setupRole(_role, _account);
             _setRoleAdmin(_role, _adminRole);
-
         return true;
     }
 
@@ -211,7 +210,7 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit RewardsUpdated(dailySoul, soulPerSecond);
     }
 
-    // 
+    // returns: amount of pools
     function poolLength() external view returns (uint) {
         return poolInfo.length;
     }
@@ -333,15 +332,6 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return (to - from) * bonusMultiplier; // todo: minus parens
     }
 
-    // // returns: decay rate at a given moment (unix)
-    // function getFeeRateTime(uint timeDelta) public view returns (uint feeRateTime) {
-    //     uint daysSince = timeDelta < 1 days ? 0 : timeDelta / 86400;
-    //     uint decreaseAmount = daysSince * dailyDecay;
-    //     return decreaseAmount >= startRate 
-    //         ? 0 
-    //         : startRate - decreaseAmount;
-    // }
-
     // returns: decay rate for a pid
     function getFeeRate(uint pid, uint timeDelta) public view returns (uint feeRate) {
         // uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
@@ -364,16 +354,12 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // returns: `fee` for a given pid, user
     function getFee(uint pid, uint amount) public view returns (uint fee) {
         uint timeDelta = userInfo[pid][msg.sender].timeDelta;
-        // console.log('time delta: %s secs', timeDelta);
         
         uint rateDecayed = (timeDelta / 86400) * dailyDecay;
-        // console.log('rate decayed: %s', fromWei(rateDecayed));
 
         uint _rate = (startRate - rateDecayed) / 100;
-        // console.log('rate: %s', _rate);
 
         uint _fee = fromWei(amount) * _rate;
-        console.log('fee: %s SOUL', _fee);
 
         return pid == 0
             ? 0
@@ -500,9 +486,8 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             user.amount = user.amount - amount;
             
         }
-
+        
         uint feeAmount =  getFee(pid, amount); // uses rate to acquire feeAmount
-        // console.log('fee amount: %s SOUL', feeAmount);
         uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
 
         pool.lpToken.transfer(address(dao), feeAmount);

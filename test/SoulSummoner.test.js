@@ -52,7 +52,7 @@ describe('SoulSummoner', () => {
       seance.address, // seance
       0, 1000,       // total weight, weight
       1000,         // staking allocation
-      14, 1).unlockAccount       // startRate, dailyDecay
+      14, 1)       // startRate, dailyDecay
     
     // console.log('initialized: summoner')
     
@@ -149,7 +149,7 @@ describe('SoulSummoner', () => {
         // [user] payout
         soulUserPayout = newUserSoul.sub(preUserSoul)
         // console.log('[user] rewarded: %s SOUL', fromWei(soulUserPayout))
-        
+
         // [dao] payout
         soulDaoPayout = await newDaoSoul.sub(preDaoSoul)
         // console.log('[dao] sent: %s SOUL', fromWei(soulDaoPayout))
