@@ -12,7 +12,7 @@ import '../interfaces/IMigrator.sol';
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
+contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // user info
     struct Users {
