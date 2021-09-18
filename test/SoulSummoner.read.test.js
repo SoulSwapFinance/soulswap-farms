@@ -9,7 +9,8 @@ describe('SoulSummoner', () => {
   const ZERO = 0
   const ONE_DAY = 86_400
   const ONE_WEEK = 604_800
-  const TWO_WEEKS = 1_209_600 
+  const TWO_WEEKS = 1_209_600
+  const HUNDRED_THOUSAND = 100_000
 
   beforeEach(async () => {
     
@@ -62,13 +63,13 @@ describe('SoulSummoner', () => {
     // console.log('my address: %s', buns)
 
     // approve, and mint lp and burn excess soul
-    await soul.approve(summoner.address, toWei(100_000))
-    await coreLP1.approve(summoner.address, toWei(100_000))
-    await coreLP2.approve(summoner.address, toWei(100_000))
+    await soul.approve(summoner.address, toWei(HUNDRED_THOUSAND))
+    await coreLP1.approve(summoner.address, toWei(HUNDRED_THOUSAND))
+    await coreLP2.approve(summoner.address, toWei(HUNDRED_THOUSAND))
 
     // mint core lpTokens
-    coreLP1.mint(toWei(100_000))
-    coreLP2.mint(toWei(100_000))
+    coreLP1.mint(toWei(HUNDRED_THOUSAND))
+    coreLP2.mint(toWei(HUNDRED_THOUSAND))
     // console.log('minted %s tokens for ea. core pool', 100_000)
 
     // burn excess SOUL
@@ -125,59 +126,57 @@ describe('SoulSummoner', () => {
         // console.log('[summoner] balance: %s SOUL', fromWei(summonerSoulBalance))
         expect(await soul.balanceOf(summoner.address)).to.equal(toWei(100_000))
       })
-        
-      it('should return total payout of ~250K SOUL', async function() {
-        increaseTime(ONE_DAY) // 1 day
-        preUserSoul = await soul.balanceOf(buns)
-        preDaoSoul = await soul.balanceOf(dao)
-        preTeamSoul = await soul.balanceOf(team)
-
-        // console.log('[user] pre-withdrawal balance: %s SOUL', fromWei(preUserSoul))
-        // console.log('[dao] pre-withdrawal balance: %s SOUL', fromWei(preDaoSoul))
-        // console.log('[team] pre-withdrawal balance: %s SOUL', fromWei(preTeamSoul))
     })
 
-    describe('review: fees', function() {
-      it('should show 0 fee for SAS pool', async function() {
-        feeRate = await summoner.getFeeRate(0, ONE_DAY)
-        console.log('fee rate: %s', feeRate)
-        await expect(feeRate).to.equal(0)
+    describe('review: fee rates', function() {
+
+      it('[D1] expects LP: 13%', async function() {
+        let SAS_EXPECTATION = 0
+        let LP_EXPECTATION = toWei(13)
+        
+        let SAS_RATE = await summoner.getFeeRate(0, ONE_DAY)
+        let LP_RATE = await summoner.getFeeRate(1, ONE_DAY)
+
+        console.log('[D1 | SAS] fee: %s%', fromWei(SAS_RATE))
+        console.log('[D1 | LP] fee: %s%', fromWei(LP_RATE))
+
+        await expect(SAS_RATE).to.equal(SAS_EXPECTATION)
+        await expect(LP_RATE).to.equal(LP_EXPECTATION)
       })
 
-      it('[D1] should show 14% fee for non-SAS pools', async function() {
-        await increaseTime(ONE_DAY) // ff 1 days
-        feeRate1 = await summoner.getFeeRate(1, ONE_DAY)
-        feeRate2 = await summoner.getFeeRate(2, ONE_DAY)
-        EXPECTATION = toWei(14)
-        // ensures fee rates are identical
-        RAW_RATE = feeRate1 == feeRate2 ? 0 : feeRate1
+      it('[D7] expects LP: 7%', async function() {
+        let SAS_EXPECTATION = 0
+        let LP_EXPECTATION = toWei(7)
         
-        // avoids negatives
-        diffRates = RAW_RATE > EXPECTATION ? RAW_RATE.sub(EXPECTATION) : EXPECTATION.sub(RAW_RATE)
-        console.log('diff rates: %s', fromWei(diffRates))
-        
-        FEE_RATE = fromWei(diffRates) > 1 ? ZERO : EXPECTATION
-        console.log('raw fee rate: %s', fromWei(RAW_RATE)) // show for human verification
-        console.log('fee rate: %s', fromWei(FEE_RATE))
+        let SAS_RATE = await summoner.getFeeRate(0, ONE_WEEK)
+        let LP_RATE = await summoner.getFeeRate(1, ONE_WEEK)
 
-        await expect(FEE_RATE).to.equal(EXPECTATION)
+        console.log('[D7 | SAS] fee: %s%', fromWei(SAS_RATE))
+        console.log('[D7 | LP] fee: %s%', fromWei(LP_RATE))
+
+        await expect(SAS_RATE).to.equal(SAS_EXPECTATION)
+        await expect(LP_RATE).to.equal(LP_EXPECTATION)
       })
-        it('[D7] should show 13% fee for non-SAS pools', async function() {
-        increaseTime(ONE_WEEK)
-        feeRate1 = await summoner.getFeeRate(1, ONE_WEEK)
-        feeRate2 = await summoner.getFeeRate(2, ONE_WEEK)
-        console.log('fee rate one: %s', fromWei(feeRate1))
-        // EXPECTATION = toWei(14)
-        })
 
-    //   describe('review: fees', function() {
+      it('[D14] expects SAS & LP: 0% fee', async function() {
+        let SAS_EXPECTATION = 0
+        let LP_EXPECTATION = 0
+        
+        let SAS_RATE = await summoner.getFeeRate(0, TWO_WEEKS)
+        let LP_RATE = await summoner.getFeeRate(1, TWO_WEEKS)
+
+        console.log('[D14 | SAS] fee: %s%', fromWei(SAS_RATE))
+        console.log('[D14 | LP] fee: %s%', fromWei(LP_RATE))
+
+        await expect(SAS_RATE).to.equal(SAS_EXPECTATION)
+        await expect(LP_RATE).to.equal(LP_EXPECTATION)
+      })
+    })
+
+})
 
     //     // SANITY CHECKS //
-    //     soulRate = await summoner.soulRate()
-    //     console.log('soul rate: %s', soulRate)
 
-    //     getFeeRate = await summoner.getFee(1, 100_000)
-    //     getFee = await summoner.getFeeRate(1, ONE_DAY)
     //     userDelta = await summoner.userDelta(1)
     //     dailySoul = await summoner.dailySoul()
     //     userInfo = await summoner.userInfo(1, buns)
@@ -186,11 +185,9 @@ describe('SoulSummoner', () => {
     //     decayRate = await summoner.decayRate
     //     soulPerSecond = await summoner.soulPerSecond
     //     pendingSoul = await summoner.pendingSoul(1, buns)
-    //     getWithdrawable = await summoner.getWithdrawable(1, ONE_DAY, 100_000)
+    //     getWithdrawable = await summoner.getWithdrawable(1, ONE_DAY, HUNDRED_THOUSAND)
 
-
-
-        // LP_TO_UNSTAKE = toWei(100_000)
+        // LP_TO_UNSTAKE = toWei(HUNDRED_THOUSAND)
         // await summoner.withdraw(1, LP_TO_UNSTAKE)
         // console.log('unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
 
@@ -199,29 +196,10 @@ describe('SoulSummoner', () => {
         
         // // daoNewBalance = await coreLP1.balanceOf(dao) // ensures balance is cleared
         // console.log('DAO new bal: %s', fromWei(daoNewBalance))
-        // expect(await userNewBalance).to.equal(toWei(100_000))
+        // expect(await userNewBalance).to.equal(toWei(HUNDRED_THOUSAND))
         // expect(await daoNewBalance).to.equal(toWei(0))
-      })
-    })
 
     // function getFee(uint timeDelta) public view returns (uint) {
 
     //   it('returns: the seconds remaining until the next fee decrease', async function() {
-      
-    //   // soul (= 0)
-    //   soulDecreaseTime = await timeUntilNextDecrease(0)
-      
-    //   // lp (= daysEnd - now)
-    //   lpDecreaseTime = await timeUntilNextDecrease(1) 
-      
-    //   // todo: add expects
-      
-      
-    //   console.log('time left (0): ~%s mins', soulDecreaseTime)
-      
-    //   console.log('time left (1): ~%s mins', lpDecreaseTime)
-      
-    // })
-//   })
-})
-
+    
