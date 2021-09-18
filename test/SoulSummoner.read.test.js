@@ -172,7 +172,6 @@ describe('SoulSummoner', () => {
         await expect(LP_RATE).to.equal(LP_EXPECTATION)
       })
     })
-
 })
 
     //     // SANITY CHECKS //
