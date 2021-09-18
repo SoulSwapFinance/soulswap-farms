@@ -139,7 +139,6 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         internal returns (bool) {
             _setupRole(_role, _account);
             _setRoleAdmin(_role, _adminRole);
-
         return true;
     }
 
@@ -352,24 +351,9 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             : _rate;
     }
 
-    // returns: `fee` for a given pid, user
-    function getFee(uint pid, uint amount) public view returns (uint fee) {
-        uint timeDelta = userInfo[pid][msg.sender].timeDelta;
-        
-        uint rateDecayed = (timeDelta / 86400) * dailyDecay;
-
-        uint _rate = (startRate - rateDecayed) / 100;
-
-        uint _fee = fromWei(amount) * _rate;
-
-        return pid == 0
-            ? 0
-            : _fee;
-    }
-
     // returns: feeAmount and with withdrawableAmount for a given pid and amount
     function getWithdrawable(uint pid, uint timeDelta, uint amount) public view returns (uint _feeAmount, uint _withdrawable) {
-        (uint feeRate) = getFeeRate(pid, timeDelta);
+        uint feeRate = fromWei(getFeeRate(pid, timeDelta));
         uint feeAmount = (amount * feeRate) / 100;
         uint withdrawable = amount - feeAmount;
 
@@ -488,8 +472,9 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             
         }
         
-        uint feeAmount =  getFee(pid, amount); // uses rate to acquire feeAmount
-        uint withdrawable = amount - feeAmount; // removes feeAmount from feeRate
+        uint timeDelta = userInfo[pid][msg.sender].timeDelta;
+        (, uint withdrawable) = getWithdrawable(pid, timeDelta, amount); // removes feeAmount from amount
+        uint feeAmount = amount - withdrawable;
 
         pool.lpToken.transfer(address(dao), feeAmount);
         pool.lpToken.transfer(address(msg.sender), withdrawable);
