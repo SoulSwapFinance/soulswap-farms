@@ -77,8 +77,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // summoner initialized state.
     bool public isInitialized;
 
-    // decay rate on withdrawal fee.
-    uint public dailyDecay;
+    // decay rate on withdrawal fee of 1%.
+    uint public immutable dailyDecay = enWei(1);
 
     // start rate for the withdrawal fee.
     uint public startRate;
@@ -113,6 +113,8 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     event WeightUpdated(uint weight, uint totalWeight);
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
+    event StartRateUpdated(uint startRate);
+
     event AccountsUpdated(address dao, address team);
     event TokensUpdated(address soul, address seance);
     event DepositRevised(uint _pid, address _user, uint _time);
@@ -142,10 +144,6 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         return true;
     }
 
-    function hasDivineRole(bytes32 role) public view returns (bool) {
-        return hasRole(role, msg.sender);
-    }
-
     // validate: pool uniqueness to eliminate duplication risk (internal view)
     function checkPoolDuplicate(IERC20 _token) internal view {
         uint length = poolInfo.length;
@@ -162,8 +160,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         uint _totalWeight,
         uint _weight,
         uint _stakingAlloc ,
-        uint _startRate,
-        uint _dailyDecay
+        uint _startRate
        ) external obey(isis) {
         require(!isInitialized, 'already initialized');
 
@@ -175,7 +172,6 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         totalWeight = _totalWeight + _weight;
         weight = _weight;
         startRate = enWei(_startRate);
-        dailyDecay = enWei(_dailyDecay);
         uint allocPoint = _stakingAlloc;
 
         soul  = SoulPower(soulAddress);
@@ -198,10 +194,12 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         emit Initialized(team, dao, soulAddress, seanceAddress, totalAllocPoint, weight);
     }
 
+    // update: multiplier (maat)
     function updateMultiplier(uint _bonusMultiplier) external obey(maat) {
         bonusMultiplier = _bonusMultiplier;
     }
 
+    // update: rewards (internal)
     function updateRewards(uint _weight, uint _totalWeight) internal {
         uint share = enWei(_weight) / _totalWeight; // share of ttl emissions for chain (chain % ttl emissions)
         
@@ -209,6 +207,14 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         soulPerSecond = dailySoul / 1 days; // updates: daily rewards expressed in seconds (1 days = 86,400 secs)
 
         emit RewardsUpdated(dailySoul, soulPerSecond);
+    }
+
+    // update: startRate (maat)
+    function updateStartRate(uint _startRate) public obey(maat) {
+        require(startRate != enWei(_startRate));
+        startRate = enWei(_startRate);
+        
+        emit StartRateUpdated(startRate);
     }
 
     // returns: amount of pools
@@ -325,7 +331,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // returns: decay rate for a pid
     function getFeeRate(uint pid, uint timeDelta) public view returns (uint feeRate) {
         uint daysPassed = timeDelta < 1 days ? 0 : timeDelta / 1 days;
-        uint rateDecayed = daysPassed * dailyDecay;
+        uint rateDecayed = enWei(daysPassed);
         uint _rate = rateDecayed >= startRate ? 0 : startRate - rateDecayed;
         
         // returns 0 for SAS

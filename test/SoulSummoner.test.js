@@ -363,6 +363,20 @@ describe('SoulSummoner', () => {
         
       })
     })
+
+    describe('review: startRate', function() {
+      it('should should startRate of 14%, then 7%', async function() {
+        START_RATE = await summoner.startRate()
+        console.log('startRate: %s%', await summoner.startRate())
+        await expect(START_RATE).to.equal(toWei(14))
+
+        NEW_START_RATE = await summoner.updateStartRate(7)
+        console.log('newStartRate: %s%', await summoner.startRate())
+        await expect(NEW_START_RATE).to.equal(toWei(7))
+
+
+      })
+    })
   })
 })
 
