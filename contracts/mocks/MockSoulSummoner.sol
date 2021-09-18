@@ -356,7 +356,7 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         uint feeRate = fromWei(getFeeRate(pid, timeDelta));
         uint feeAmount = (amount * feeRate) / 100;
         console.log('feeRate: %s', feeRate);
-        console.log('feeAmount: %s', feeAmount);
+        console.log('feeAmount: %s', fromWei(feeAmount));
         uint withdrawable = amount - feeAmount;
 
         return (feeAmount, withdrawable);

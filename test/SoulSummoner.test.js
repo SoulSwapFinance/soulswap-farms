@@ -8,6 +8,7 @@ describe('SoulSummoner', () => {
   const THOTH = '0xdffb0b033b8033405f5fb07b08f48c89fa1b4a3d5d5a475c3e2b8df5fbd4da0d'
   const ZERO = 0
   const ONE_DAY = 86_400
+  const ONE_WEEK = 604_800
   const TWO_WEEKS = 1_209_600 
 
   beforeEach(async () => {
@@ -245,11 +246,13 @@ describe('SoulSummoner', () => {
       })
 
     describe('review: fees', function() {
+      
       it('should show 0 fee for SAS pool', async function() {
         feeRate = await summoner.getFeeRate(0, ONE_DAY)
-        console.log('fee rate: %s', feeRate)
+        console.log('[SAS] fee rate: %s', fromWei(feeRate))
         await expect(feeRate).to.equal(0)
       })
+
       it('[D1] should show 13% fee for non-SAS pools', async function() {
         await increaseTime(ONE_DAY) // ff 1 days
         feeRate1 = await summoner.getFeeRate(1, ONE_DAY)
@@ -258,6 +261,7 @@ describe('SoulSummoner', () => {
         EXPECTATION = toWei(13)
         await expect(FEE_RATE).to.equal(EXPECTATION)
       })
+    })
     
     describe('review: withdrawals', function() {
       it('should withdraw 100% staked', async function() {
@@ -294,105 +298,84 @@ describe('SoulSummoner', () => {
 
       it('should withdraw 87% LP staked on D1', async function() {
         await summoner.addPool(500, coreLP1.address, true)
-        await summoner.addPool(500, coreLP2.address, true)
-        // console.log('added FUSD-PAIR: %s', '5x')
-        // console.log('added ETH-PAIR: %s', '5x')
+        // console.log('added FTM-PAIR: %s', '5x')
         totalPools = await summoner.poolLength()
 
-        expect(await totalPools).to.equal(3)
+        expect(await totalPools).to.equal(2)
         // console.log('total pools: %s', totalPools)
         
         await summoner.deposit(1, toWei(100_000))
-        await summoner.deposit(2, toWei(100_000))
-        console.log('deposited: %s FUSD-PAIR', 100_000)
-        console.log('deposited: %s ETH-PAIR', 100_000)
+        console.log('deposited: %s FTM-PAIR', 100_000)
         
         await increaseTime(ONE_DAY) // ff 1 days
         await coreLP1.burn(toWei(100_000)) // clears out LP balance from buns
         preWithdrawalBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
-        console.log('CoreLP1 pre-bal: %s', fromWei(preWithdrawalBalance))
+        console.log('[buns] pre-bal: %s', fromWei(preWithdrawalBalance))
 
         LP_TO_UNSTAKE = toWei(100_000)
         await summoner.withdraw(1, LP_TO_UNSTAKE)
-        console.log('unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
+        console.log('[buns] unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
 
         userNewBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
-        console.log('CoreLP1 new bal: %s', fromWei(userNewBalance))
+        console.log('[buns] LP new bal: %s', fromWei(userNewBalance))
         
         daoNewBalance = await coreLP1.balanceOf(dao) // ensures balance is cleared
-        console.log('DAO new bal: %s', fromWei(daoNewBalance))
+        console.log('[dao] LP new bal: %s', fromWei(daoNewBalance))
         expect(await userNewBalance).to.equal(toWei(87_000))
         expect(await daoNewBalance).to.equal(toWei(13_000))
       })
-      it('should withdraw 100% LP staked after 2W', async function() {
+
+      it('[1W] should withdraw 93K LP', async function() {
+
         await summoner.addPool(500, coreLP1.address, true)
-        await summoner.addPool(500, coreLP2.address, true)
-        // console.log('added FUSD-PAIR: %s', '5x')
-        // console.log('added ETH-PAIR: %s', '5x')
+        // console.log('added FTM-PAIR: %s', '5x')
         totalPools = await summoner.poolLength()
 
-        expect(await totalPools).to.equal(3)
+        expect(await totalPools).to.equal(2)
         // console.log('total pools: %s', totalPools)
         
         await summoner.deposit(1, toWei(100_000))
-        await summoner.deposit(2, toWei(100_000))
-        console.log('deposited: %s FUSD-PAIR', 100_000)
-        console.log('deposited: %s ETH-PAIR', 100_000)
+        console.log('[buns] deposited: %s FTM-PAIR', 100_000)
+
+        await increaseTime(ONE_WEEK) // ff 7 days
+        await coreLP1.burn(toWei(100_000)) // clears out LP balance from buns
         
+        PRE_BALANCE = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        console.log('[buns] LP pre-bal: %s', fromWei(PRE_BALANCE))
+        
+        await summoner.withdraw(1, toWei(100_000))
+        POST_BALANCE = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        console.log('[buns] LP post-bal: %s', fromWei(POST_BALANCE))
+
+        await expect(POST_BALANCE).to.equal(toWei(93_000))
+        
+      })
+
+      it('[2W] should withdraw 100% LP', async function() {
+        
+        await summoner.addPool(500, coreLP1.address, true)
+        // console.log('added FTM-PAIR: %s', '5x')
+        totalPools = await summoner.poolLength()
+
+        expect(await totalPools).to.equal(2)
+        // console.log('total pools: %s', totalPools)
+        
+        await summoner.deposit(1, toWei(100_000))
+        console.log('[buns] deposited: %s FTM-PAIR', 100_000)
+
         await increaseTime(TWO_WEEKS) // ff 14 days
         await coreLP1.burn(toWei(100_000)) // clears out LP balance from buns
-        preWithdrawalBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
-        console.log('CoreLP1 pre-bal: %s', fromWei(preWithdrawalBalance))
-
-        // // SANITY CHECKS //
-        // soulRate = await summoner.soulRate()
-        // console.log('soul rate: %s', soulRate)
-
-        // getFeeRate = await summoner.getFee(1, 100_000)
-        // getFee = await summoner.getFeeRate(1, ONE_DAY)
-        // userDelta = await summoner.userDelta(1)
-        // dailySoul = await summoner.dailySoul()
-        // userInfo = await summoner.userInfo(1, buns)
-        // timeTillNextDecrease = await summoner.timeTillNextDecrease(1)
-        // startRate = await summoner.startRate
-        // decayRate = await summoner.decayRate
-        // soulPerSecond = await summoner.soulPerSecond
-        // pendingSoul = await summoner.pendingSoul(1, buns)
-        // getWithdrawable = await summoner.getWithdrawable(1, ONE_DAY, 100_000)
-
-
-
-        // LP_TO_UNSTAKE = toWei(100_000)
-        // await summoner.withdraw(1, LP_TO_UNSTAKE)
-        // console.log('unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
-
-        // userNewBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
-        // console.log('CoreLP1 new bal: %s', fromWei(userNewBalance))
         
-        // // daoNewBalance = await coreLP1.balanceOf(dao) // ensures balance is cleared
-        // console.log('DAO new bal: %s', fromWei(daoNewBalance))
-        // expect(await userNewBalance).to.equal(toWei(100_000))
-        // expect(await daoNewBalance).to.equal(toWei(0))
+        PRE_BALANCE = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        console.log('[buns] LP pre-bal: %s', fromWei(PRE_BALANCE))
+        
+        await summoner.withdraw(1, toWei(100_000))
+        POST_BALANCE = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        console.log('[buns] LP post-bal: %s', fromWei(POST_BALANCE))
+
+        await expect(POST_BALANCE).to.equal(toWei(100_000))
+        
       })
-    })
-
-    // function getFee(uint timeDelta) public view returns (uint) {
-
-    //   it('returns: the seconds remaining until the next fee decrease', async function() {
-      
-    //   // soul (= 0)
-    //   soulDecreaseTime = await timeUntilNextDecrease(0)
-      
-    //   // lp (= daysEnd - now)
-    //   lpDecreaseTime = await timeUntilNextDecrease(1) 
-      
-    //   // todo: add expects
-      
-      
-    //   console.log('time left (0): ~%s mins', soulDecreaseTime)
-      
-    //   console.log('time left (1): ~%s mins', lpDecreaseTime)
-      
     })
   })
 })
