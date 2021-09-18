@@ -111,9 +111,9 @@ describe('SoulSummoner', () => {
     describe('review: withdrawing staked soul', function() {
 
       it('should return pending rewards of ~250K', async function() {
-        increaseTime(ONE_DAY) // 1 day
+        await increaseTime(ONE_DAY) // 1 day
         pendingRewards = await summoner.pendingSoul(0, buns)
-        // console.log('pending soul %s: ', fromWei(pendingRewards))
+        console.log('pending soul %s: ', fromWei(pendingRewards))
         expect(await summoner.pendingSoul(0, buns)).to.equal(pendingRewards)
       })
 
@@ -203,29 +203,42 @@ describe('SoulSummoner', () => {
       await expect(SOUL_PER_SEC).to.equal(EXPECTATION)
     })
   })
+
+  describe('review: rewards', function() {
+    it('expects pendingSoul: ~250K', async function() {
+      let DAILY_SOUL = await summoner.dailySoul()
+      console.log('daily SOUL: %s SOUL', fromWei(DAILY_SOUL))
+
+      await increaseTime(ONE_DAY)
+      let PENDING_SOUL = await summoner.pendingSoul(0, buns)
+      console.log('pending SOUL: %s', fromWei(PENDING_SOUL))
+    })
+  })
+
+  describe('review: user delta', function() {
+    it('expects userDelta[1]: ~250K', async function() {
+      await soul.approve(summoner.address, HUNDRED_THOUSAND)
+      await soul.mint(buns, HUNDRED_THOUSAND)
+      await summoner.enterStaking(HUNDRED_THOUSAND)
+      soulUserStaked = await soul.balanceOf(summoner.address)
+      console.log('staked')
+
+      await summoner.leaveStaking(100_000)
+      let USER_DELTA = await summoner.userDelta(0, buns)
+      console.log('user delta: %s', USER_DELTA)
+
+      await increaseTime(ONE_DAY)
+      let USER_DELTA_ONE_DAY = await summoner.userDelta(0, buns)
+      console.log('day one delta: %s', USER_DELTA_ONE_DAY)
+      console.log('diff: %s', USER_DELTA_ONE_DAY.sub(USER_DELTA))
+      
+      await increaseTime(ONE_DAY)
+      let USER_DELTA_TWO_DAY = await summoner.userDelta(0, buns)
+      console.log('day 2 delta: %s', USER_DELTA_TWO_DAY)
+      console.log('diff: %s', USER_DELTA_TWO_DAY.sub(USER_DELTA_ONE_DAY))
+
+      // let PENDING_SOUL = await summoner.pendingSoul(0, buns)
+      // console.log('pending SOUL: %s', fromWei(PENDING_SOUL))
+    })
+  })
 })
-
-    //     // SANITY CHECKS //
-
-    //     userDelta = await summoner.userDelta(1)
-    //     userInfo = await summoner.userInfo(1, buns)
-    //     soulPerSecond = await summoner.soulPerSecond
-    //     pendingSoul = await summoner.pendingSoul(1, buns)
-    //     getWithdrawable = await summoner.getWithdrawable(1, ONE_DAY, HUNDRED_THOUSAND)
-
-        // LP_TO_UNSTAKE = toWei(HUNDRED_THOUSAND)
-        // await summoner.withdraw(1, LP_TO_UNSTAKE)
-        // console.log('unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
-
-        // userNewBalance = await lpToken.balanceOf(buns) // ensures balance is cleared
-        // console.log('LPTokenOne new bal: %s', fromWei(userNewBalance))
-        
-        // // daoNewBalance = await lpToken.balanceOf(dao) // ensures balance is cleared
-        // console.log('DAO new bal: %s', fromWei(daoNewBalance))
-        // expect(await userNewBalance).to.equal(toWei(HUNDRED_THOUSAND))
-        // expect(await daoNewBalance).to.equal(toWei(0))
-
-    // function getFee(uint timeDelta) public view returns (uint) {
-
-    //   it('returns: the seconds remaining until the next fee decrease', async function() {
-    

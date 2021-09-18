@@ -297,15 +297,19 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     // view: user delta
-	function userDelta(uint256 _pid) public view returns (uint256) {
-        Users storage user = userInfo[_pid][msg.sender];
-		if (user.lastWithdrawTime > 0) {
-			uint256 estDelta = block.number - user.lastWithdrawTime;
-			return estDelta;
-		} else {
-		    uint256 estDelta = block.number - user.firstDepositTime;
-			return estDelta;
-		}
+	function userDelta(uint256 _pid, address _user) public view returns (uint256 delta) {
+        Users memory user = userInfo[_pid][_user];
+        console.log(
+            'first deposit and last withdrawal: %s and %s', 
+            user.firstDepositTime,
+            user.lastWithdrawTime
+            );
+        
+        console.log('timestamp: %s', block.timestamp);
+
+        return user.lastWithdrawTime > 0
+            ? block.timestamp - user.lastWithdrawTime
+            : block.timestamp - user.firstDepositTime;
 	}
 
     // migrate: lp tokens to another contract (migrator)
@@ -329,7 +333,6 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
     // returns: decay rate for a pid
     function getFeeRate(uint pid, uint timeDelta) public view returns (uint feeRate) {
-        // uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
         uint daysPassed = timeDelta < 1 days ? 0 : timeDelta / 1 days;
         uint rateDecayed = daysPassed * dailyDecay;
         uint _rate = rateDecayed >= startRate ? 0 : startRate - rateDecayed;
@@ -413,15 +416,18 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
 
         if (amount > 0) { // if adding more
             pool.lpToken.transferFrom(address(msg.sender), address(this), amount);
-            user.amount = user.amount + amount;
+            user.amount += amount;
         }
 
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
-        user.firstDepositTime > 0 
-            ? user.firstDepositTime = user.firstDepositTime
-            : user.firstDepositTime = block.timestamp;
+        // marks timestamp for first deposit
+        user.firstDepositTime = 
+            user.firstDepositTime > 0 
+                ? user.firstDepositTime
+                : block.timestamp;
 
+        console.log('first deposit made at: %s', user.firstDepositTime);
         emit Deposit(msg.sender, pid, amount);
     }
 
@@ -478,6 +484,14 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
             user.amount = user.amount + amount;
         }
 
+        // marks timestamp for first deposit
+        user.firstDepositTime = 
+            user.firstDepositTime > 0 
+                ? user.firstDepositTime
+                : block.timestamp;
+
+        console.log('first deposit made at: %s', user.firstDepositTime);
+
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
 
         seance.mint(msg.sender, amount);
@@ -504,7 +518,9 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         }
 
         user.rewardDebt = user.amount * pool.accSoulPerShare / 1e12;
-
+        user.lastWithdrawTime = block.timestamp;
+        
+        console.log('last withdrawal time: %s', user.lastWithdrawTime);
         seance.burn(msg.sender, amount);
         emit Withdraw(msg.sender, 0, amount, block.timestamp);
     }

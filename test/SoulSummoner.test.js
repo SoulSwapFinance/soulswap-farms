@@ -207,10 +207,10 @@ describe('SoulSummoner', () => {
         await increaseTime(ONE_DAY) // 1 day
 
         pendingSoulRewards = await summoner.pendingSoul(0, buns)
-        // console.log('PID(0) Rewards: %s SOUL', fromWei(pendingSoulRewards))
+        console.log('PID(0) Rewards: %s SOUL', fromWei(pendingSoulRewards))
 
         pendingSoulLP = await summoner.pendingSoul(1, buns)
-        // console.log('LP Rewards: %s SOUL', fromWei(pendingSoulLP))
+        console.log('LP Rewards: %s SOUL', fromWei(pendingSoulLP))
         
         totalPendingRewards = pendingSoulRewards.add(pendingSoulLP)
         // console.log('ttl pending rewards: %s SOUL', fromWei(totalPendingRewards))
