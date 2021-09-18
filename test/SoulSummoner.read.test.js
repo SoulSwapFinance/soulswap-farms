@@ -178,7 +178,7 @@ describe('SoulSummoner', () => {
       await expect(DAILY_SOUL).to.equal(EXPECTATION)
     })
 
-    it('[(500,1000) expects dailySoul: 125K', async function() {
+    it('[expects (halved) dailySoul: 125K', async function() {
       await summoner.updateWeights(500, 1000)
 
       let EXPECTATION = await toWei(125_000)
@@ -187,17 +187,28 @@ describe('SoulSummoner', () => {
       console.log('daily soul: %s', fromWei(DAILY_SOUL))
       await expect(DAILY_SOUL).to.equal(EXPECTATION)
     })
+
+    it('expects (halved) soulPerSecond: soulPerSecond / 2', async function() {
+      let PRE_RATE = await summoner.soulPerSecond()
+      console.log('soul per second: %s', fromWei(PRE_RATE))
+
+      await summoner.updateWeights(500, 1000)
+
+      let EXPECTATION = await PRE_RATE.div(2)
+      let DAILY_SOUL = await summoner.dailySoul()
+      let SOUL_PER_SEC = await summoner.soulPerSecond()
+      console.log('daily soul: %s', fromWei(DAILY_SOUL))
+      console.log('soul per second: %s', fromWei(SOUL_PER_SEC))
+      
+      await expect(SOUL_PER_SEC).to.equal(EXPECTATION)
+    })
   })
 })
 
     //     // SANITY CHECKS //
 
     //     userDelta = await summoner.userDelta(1)
-    //     dailySoul = await summoner.dailySoul()
     //     userInfo = await summoner.userInfo(1, buns)
-    //     timeTillNextDecrease = await summoner.timeTillNextDecrease(1)
-    //     startRate = await summoner.startRate
-    //     decayRate = await summoner.decayRate
     //     soulPerSecond = await summoner.soulPerSecond
     //     pendingSoul = await summoner.pendingSoul(1, buns)
     //     getWithdrawable = await summoner.getWithdrawable(1, ONE_DAY, HUNDRED_THOUSAND)
