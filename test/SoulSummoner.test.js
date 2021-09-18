@@ -17,8 +17,7 @@ describe('SoulSummoner', () => {
     SoulPower = await ethers.getContractFactory('MockSoulPower')
     SeanceCircle = await ethers.getContractFactory('MockSeanceCircle')
     Summoner = await ethers.getContractFactory('MockSoulSummoner')
-    CoreLP1 = await ethers.getContractFactory('MockToken')
-    CoreLP2 = await ethers.getContractFactory('MockToken')
+    LPToken = await ethers.getContractFactory('MockToken')
     
     provider =  await ethers.provider;
     signer = await provider.getSigner()
@@ -33,11 +32,8 @@ describe('SoulSummoner', () => {
     summoner = await Summoner.deploy()
     await summoner.deployed()
     
-    coreLP1 = await CoreLP1.deploy()
-    await coreLP1.deployed()
-
-    coreLP2 = await CoreLP2.deploy()
-    await coreLP2.deployed()
+    lpToken = await LPToken.deploy()
+    await lpToken.deployed()
         
     // initialize and grant roles
     await soul.grantRole(THOTH, summoner.address)
@@ -63,11 +59,11 @@ describe('SoulSummoner', () => {
 
     // approve, and mint lp and burn excess soul
     await soul.approve(summoner.address, toWei(100_000))
-    await coreLP1.approve(summoner.address, toWei(100_000))
+    await lpToken.approve(summoner.address, toWei(100_000))
     await coreLP2.approve(summoner.address, toWei(100_000))
 
     // mint core lpTokens
-    coreLP1.mint(toWei(100_000))
+    lpToken.mint(toWei(100_000))
     coreLP2.mint(toWei(100_000))
     // console.log('minted %s tokens for ea. core pool', 100_000)
 
@@ -198,7 +194,7 @@ describe('SoulSummoner', () => {
 
     describe('review: adding pairs', function() {
       it('should [still] have 250K rewards total', async function() {
-        await summoner.addPool(500, coreLP1.address, true)
+        await summoner.addPool(500, lpToken.address, true)
         await summoner.addPool(500, coreLP2.address, true)
         // console.log('added FUSD-PAIR: %s', '5x')
         // console.log('added ETH-PAIR: %s', '5x')
@@ -239,14 +235,14 @@ describe('SoulSummoner', () => {
       })
 
       it('prevents redundant pool', async function() {
-        await summoner.addPool(1_000, coreLP1.address, true)
+        await summoner.addPool(1_000, lpToken.address, true)
         // expect duplicates to revert
-        await expect(summoner.addPool(1_000, coreLP1.address, true)
+        await expect(summoner.addPool(1_000, lpToken.address, true)
         ).to.be.revertedWith('duplicated pool')
       })
 
     describe('review: fees', function() {
-      
+
       it('should show 0 fee for SAS pool', async function() {
         feeRate = await summoner.getFeeRate(0, ONE_DAY)
         console.log('[SAS] fee rate: %s', fromWei(feeRate))
@@ -297,7 +293,7 @@ describe('SoulSummoner', () => {
       })
 
       it('should withdraw 87% LP staked on D1', async function() {
-        await summoner.addPool(500, coreLP1.address, true)
+        await summoner.addPool(500, lpToken.address, true)
         // console.log('added FTM-PAIR: %s', '5x')
         totalPools = await summoner.poolLength()
 
@@ -308,18 +304,18 @@ describe('SoulSummoner', () => {
         console.log('deposited: %s FTM-PAIR', 100_000)
         
         await increaseTime(ONE_DAY) // ff 1 days
-        await coreLP1.burn(toWei(100_000)) // clears out LP balance from buns
-        preWithdrawalBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        await lpToken.burn(toWei(100_000)) // clears out LP balance from buns
+        preWithdrawalBalance = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] pre-bal: %s', fromWei(preWithdrawalBalance))
 
         LP_TO_UNSTAKE = toWei(100_000)
         await summoner.withdraw(1, LP_TO_UNSTAKE)
         console.log('[buns] unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
 
-        userNewBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        userNewBalance = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP new bal: %s', fromWei(userNewBalance))
         
-        daoNewBalance = await coreLP1.balanceOf(dao) // ensures balance is cleared
+        daoNewBalance = await lpToken.balanceOf(dao) // ensures balance is cleared
         console.log('[dao] LP new bal: %s', fromWei(daoNewBalance))
         expect(await userNewBalance).to.equal(toWei(87_000))
         expect(await daoNewBalance).to.equal(toWei(13_000))
@@ -327,7 +323,7 @@ describe('SoulSummoner', () => {
 
       it('[1W] should withdraw 93K LP', async function() {
 
-        await summoner.addPool(500, coreLP1.address, true)
+        await summoner.addPool(500, lpToken.address, true)
         // console.log('added FTM-PAIR: %s', '5x')
         totalPools = await summoner.poolLength()
 
@@ -338,13 +334,13 @@ describe('SoulSummoner', () => {
         console.log('[buns] deposited: %s FTM-PAIR', 100_000)
 
         await increaseTime(ONE_WEEK) // ff 7 days
-        await coreLP1.burn(toWei(100_000)) // clears out LP balance from buns
+        await lpToken.burn(toWei(100_000)) // clears out LP balance from buns
         
-        PRE_BALANCE = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        PRE_BALANCE = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP pre-bal: %s', fromWei(PRE_BALANCE))
         
         await summoner.withdraw(1, toWei(100_000))
-        POST_BALANCE = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        POST_BALANCE = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP post-bal: %s', fromWei(POST_BALANCE))
 
         await expect(POST_BALANCE).to.equal(toWei(93_000))
@@ -353,7 +349,7 @@ describe('SoulSummoner', () => {
 
       it('[2W] should withdraw 100% LP', async function() {
         
-        await summoner.addPool(500, coreLP1.address, true)
+        await summoner.addPool(500, lpToken.address, true)
         // console.log('added FTM-PAIR: %s', '5x')
         totalPools = await summoner.poolLength()
 
@@ -364,13 +360,13 @@ describe('SoulSummoner', () => {
         console.log('[buns] deposited: %s FTM-PAIR', 100_000)
 
         await increaseTime(TWO_WEEKS) // ff 14 days
-        await coreLP1.burn(toWei(100_000)) // clears out LP balance from buns
+        await lpToken.burn(toWei(100_000)) // clears out LP balance from buns
         
-        PRE_BALANCE = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        PRE_BALANCE = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP pre-bal: %s', fromWei(PRE_BALANCE))
         
         await summoner.withdraw(1, toWei(100_000))
-        POST_BALANCE = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        POST_BALANCE = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP post-bal: %s', fromWei(POST_BALANCE))
 
         await expect(POST_BALANCE).to.equal(toWei(100_000))
