@@ -203,8 +203,10 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     function updateRewards(uint _weight, uint _totalWeight) internal {
-        uint share = _weight / _totalWeight; // share of ttl emissions for chain (chain % ttl emissions)
-        dailySoul = share * (250000 * 1e18); // dailySoul (for this.chain) = share (%) x 250K (soul emissions constant)
+        uint share = enWei(_weight) / _totalWeight; // share of ttl emissions for chain (chain % ttl emissions)
+        console.log('share: %s', fromWei(share));
+        
+        dailySoul = share * (250_000); // dailySoul (for this.chain) = share (%) x 250K (soul emissions constant)
         soulPerSecond = dailySoul / 1 days; // updates: daily rewards expressed in seconds (1 days = 86,400 secs)
 
         emit RewardsUpdated(dailySoul, soulPerSecond);
@@ -260,21 +262,14 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     }
 
     // update: weight (maat)
-    function updateWeight(uint _weight) external isSummoned obey(maat) {
-        require(weight != _weight, 'must be new weight value');
+    function updateWeights(uint _weight, uint _totalWeight) external obey(maat) {
+        require(weight != _weight || totalWeight != _totalWeight, 'must be at least one new value');
+        require(_totalWeight >= _weight, 'weight cannot exceed totalWeight');
 
-        if (weight < _weight) {             // if weight is gained
-            uint gain = _weight - weight;   // calculates weight gained
-            totalWeight += gain;            // increases totalWeight
-        }
-        
-        if (weight > _weight)  {            // if weight is lost
-            uint loss = weight - _weight;   // calculates weight gained
-            totalWeight -= loss;            // decreases totalWeight
-        }
+        weight = _weight;     
+        totalWeight = _totalWeight;
+        console.log('new weights: %s out of %s', weight, totalWeight);
 
-        weight = _weight; // updates weight variable      
-        
         updateRewards(weight, totalWeight);
 
         emit WeightUpdated(weight, totalWeight);
@@ -335,20 +330,12 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // returns: decay rate for a pid
     function getFeeRate(uint pid, uint timeDelta) public view returns (uint feeRate) {
         // uint secondsPassed = userInfo[pid][msg.sender].timeDelta;
-        uint daysPassed = timeDelta < 1 days
-            ? 0 
-            : timeDelta / 86400;
-            
+        uint daysPassed = timeDelta < 1 days ? 0 : timeDelta / 1 days;
         uint rateDecayed = daysPassed * dailyDecay;
-
-        uint _rate = rateDecayed >= startRate 
-            ? 0 
-            : startRate - rateDecayed;
+        uint _rate = rateDecayed >= startRate ? 0 : startRate - rateDecayed;
         
         // returns 0 for SAS
-        return pid == 0
-            ? 0
-            : _rate;
+        return pid == 0 ? 0 : _rate;
     }
 
     // returns: feeAmount and with withdrawableAmount for a given pid and amount

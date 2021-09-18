@@ -18,8 +18,7 @@ describe('SoulSummoner', () => {
     SoulPower = await ethers.getContractFactory('MockSoulPower')
     SeanceCircle = await ethers.getContractFactory('MockSeanceCircle')
     Summoner = await ethers.getContractFactory('MockSoulSummoner')
-    CoreLP1 = await ethers.getContractFactory('MockToken')
-    CoreLP2 = await ethers.getContractFactory('MockToken')
+    LPToken = await ethers.getContractFactory('MockToken')
     
     provider =  await ethers.provider;
     signer = await provider.getSigner()
@@ -34,12 +33,9 @@ describe('SoulSummoner', () => {
     summoner = await Summoner.deploy()
     await summoner.deployed()
     
-    coreLP1 = await CoreLP1.deploy()
-    await coreLP1.deployed()
+    lpToken = await LPToken.deploy()
+    await lpToken.deployed()
 
-    coreLP2 = await CoreLP2.deploy()
-    await coreLP2.deployed()
-        
     // initialize and grant roles
     await soul.grantRole(THOTH, summoner.address)
     // console.log('%s role granted', "THOTH")
@@ -64,12 +60,10 @@ describe('SoulSummoner', () => {
 
     // approve, and mint lp and burn excess soul
     await soul.approve(summoner.address, toWei(HUNDRED_THOUSAND))
-    await coreLP1.approve(summoner.address, toWei(HUNDRED_THOUSAND))
-    await coreLP2.approve(summoner.address, toWei(HUNDRED_THOUSAND))
+    await lpToken.approve(summoner.address, toWei(HUNDRED_THOUSAND))
 
     // mint core lpTokens
-    coreLP1.mint(toWei(HUNDRED_THOUSAND))
-    coreLP2.mint(toWei(HUNDRED_THOUSAND))
+    lpToken.mint(toWei(HUNDRED_THOUSAND))
     // console.log('minted %s tokens for ea. core pool', 100_000)
 
     // burn excess SOUL
@@ -92,19 +86,20 @@ describe('SoulSummoner', () => {
 
     // deposit test
     describe('review: balances and rewards', function() {
-        it('should return 10,000 SOUL in the summoner', async function() {
+
+      it('should return 10,000 SOUL in the summoner', async function() {
           // console.log('summoner soul bal', fromWei(soulUserStaked))
           expect(await soul.balanceOf(summoner.address)).to.equal(toWei(100_000))
         })
 
-        it('should return [D1] rewards balances of ~250K', async function() {
+      it('should return [D1] rewards balances of ~250K', async function() {
         increaseTime(ONE_DAY) // ff 1 day
         dayOneRewards = await summoner.pendingSoul(0, buns)
         // console.log('D1 Rewards %s: ', fromWei(dayOneRewards))
         expect(await summoner.pendingSoul(0, buns)).to.equal(dayOneRewards)
         })
 
-        it('should return [D2] rewards balances of ~500K', async function() {
+      it('should return [D2] rewards balances of ~500K', async function() {
         await increaseTime(172_800) // ff 2 days
         dayTwoRewards = await summoner.pendingSoul(0, buns)
         // console.log('D2 Rewards %s: ', fromWei(dayTwoRewards))
@@ -114,6 +109,7 @@ describe('SoulSummoner', () => {
 
     // withdraw and allocate
     describe('review: withdrawing staked soul', function() {
+
       it('should return pending rewards of ~250K', async function() {
         increaseTime(ONE_DAY) // 1 day
         pendingRewards = await summoner.pendingSoul(0, buns)
@@ -172,6 +168,26 @@ describe('SoulSummoner', () => {
         await expect(LP_RATE).to.equal(LP_EXPECTATION)
       })
     })
+
+  describe('review: emissions', function() {
+    it('expects dailySoul: 250K', async function() {
+      let EXPECTATION = toWei(250_000)
+      let DAILY_SOUL = await summoner.dailySoul()
+      
+      console.log('daily soul: %s', fromWei(DAILY_SOUL))
+      await expect(DAILY_SOUL).to.equal(EXPECTATION)
+    })
+
+    it('[(500,1000) expects dailySoul: 125K', async function() {
+      await summoner.updateWeights(500, 1000)
+
+      let EXPECTATION = await toWei(125_000)
+      let DAILY_SOUL = await summoner.dailySoul()
+
+      console.log('daily soul: %s', fromWei(DAILY_SOUL))
+      await expect(DAILY_SOUL).to.equal(EXPECTATION)
+    })
+  })
 })
 
     //     // SANITY CHECKS //
@@ -190,10 +206,10 @@ describe('SoulSummoner', () => {
         // await summoner.withdraw(1, LP_TO_UNSTAKE)
         // console.log('unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
 
-        // userNewBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
-        // console.log('CoreLP1 new bal: %s', fromWei(userNewBalance))
+        // userNewBalance = await lpToken.balanceOf(buns) // ensures balance is cleared
+        // console.log('LPTokenOne new bal: %s', fromWei(userNewBalance))
         
-        // // daoNewBalance = await coreLP1.balanceOf(dao) // ensures balance is cleared
+        // // daoNewBalance = await lpToken.balanceOf(dao) // ensures balance is cleared
         // console.log('DAO new bal: %s', fromWei(daoNewBalance))
         // expect(await userNewBalance).to.equal(toWei(HUNDRED_THOUSAND))
         // expect(await daoNewBalance).to.equal(toWei(0))
