@@ -8,6 +8,7 @@ describe('SoulSummoner', () => {
   const THOTH = '0xdffb0b033b8033405f5fb07b08f48c89fa1b4a3d5d5a475c3e2b8df5fbd4da0d'
   const ZERO = 0
   const ONE_DAY = 86_400
+  const TWO_WEEKS = 1_209_600 
 
   beforeEach(async () => {
     
@@ -339,6 +340,56 @@ describe('SoulSummoner', () => {
         console.log('DAO new bal: %s', fromWei(daoNewBalance))
         expect(await userNewBalance).to.equal(toWei(86_010))
         expect(await daoNewBalance).to.equal(toWei(13_990))
+      })
+      it('should withdraw 100% LP staked after 2W', async function() {
+        await summoner.addPool(500, coreLP1.address, true)
+        await summoner.addPool(500, coreLP2.address, true)
+        // console.log('added FUSD-PAIR: %s', '5x')
+        // console.log('added ETH-PAIR: %s', '5x')
+        totalPools = await summoner.poolLength()
+
+        expect(await totalPools).to.equal(3)
+        // console.log('total pools: %s', totalPools)
+        
+        await summoner.deposit(1, toWei(100_000))
+        await summoner.deposit(2, toWei(100_000))
+        console.log('deposited: %s FUSD-PAIR', 100_000)
+        console.log('deposited: %s ETH-PAIR', 100_000)
+        
+        await increaseTime(TWO_WEEKS) // ff 14 days
+        await coreLP1.burn(toWei(100_000)) // clears out LP balance from buns
+        preWithdrawalBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        console.log('CoreLP1 pre-bal: %s', fromWei(preWithdrawalBalance))
+
+        // SANITY CHECKS //
+        soulRate = await summoner.soulRate()
+        console.log('soul rate: %s', soulRate)
+
+        getFeeRate = await summoner.getFee(1, 100_000)
+        getFee = await summoner.getFeeRate(1, ONE_DAY)
+        userDelta = await summoner.userDelta(1)
+        dailySoul = await summoner.dailySoul()
+        userInfo = await summoner.userInfo(1, buns)
+        timeTillNextDecrease = await summoner.timeTillNextDecrease(1)
+        startRate = await summoner.startRate
+        decayRate = await summoner.decayRate
+        soulPerSecond = await summoner.soulPerSecond
+        pendingSoul = await summoner.pendingSoul(1, buns)
+        getWithdrawable = await summoner.getWithdrawable(1, ONE_DAY, 100_000)
+
+
+
+        // LP_TO_UNSTAKE = toWei(100_000)
+        // await summoner.withdraw(1, LP_TO_UNSTAKE)
+        // console.log('unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
+
+        // userNewBalance = await coreLP1.balanceOf(buns) // ensures balance is cleared
+        // console.log('CoreLP1 new bal: %s', fromWei(userNewBalance))
+        
+        // // daoNewBalance = await coreLP1.balanceOf(dao) // ensures balance is cleared
+        // console.log('DAO new bal: %s', fromWei(daoNewBalance))
+        // expect(await userNewBalance).to.equal(toWei(100_000))
+        // expect(await daoNewBalance).to.equal(toWei(0))
       })
     })
 

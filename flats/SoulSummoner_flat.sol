@@ -1837,7 +1837,7 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
         totalWeight = _totalWeight + _weight;
         weight = _weight;
         startRate = enWei(_startRate);
-        dailyDecay = oneHundreth(_dailyDecay);
+        dailyDecay = enWei(_dailyDecay);
         uint allocPoint = _stakingAlloc;
 
         soul  = SoulPower(soulAddress);
@@ -2246,5 +2246,4 @@ contract SoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     // helper functions to convert to wei and 1/100th
     function enWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
     function fromWei(uint amount) public pure returns (uint) { return amount / 1e18; }
-    function oneHundreth(uint amount) public pure returns (uint) { return amount * 1e16; }
 }
