@@ -60,11 +60,9 @@ describe('SoulSummoner', () => {
     // approve, and mint lp and burn excess soul
     await soul.approve(summoner.address, toWei(100_000))
     await lpToken.approve(summoner.address, toWei(100_000))
-    await coreLP2.approve(summoner.address, toWei(100_000))
 
     // mint core lpTokens
     lpToken.mint(toWei(100_000))
-    coreLP2.mint(toWei(100_000))
     // console.log('minted %s tokens for ea. core pool', 100_000)
 
     // burn excess SOUL
@@ -195,16 +193,14 @@ describe('SoulSummoner', () => {
     describe('review: adding pairs', function() {
       it('should [still] have 250K rewards total', async function() {
         await summoner.addPool(500, lpToken.address, true)
-        await summoner.addPool(500, coreLP2.address, true)
         // console.log('added FUSD-PAIR: %s', '5x')
         // console.log('added ETH-PAIR: %s', '5x')
         totalPools = await summoner.poolLength()
 
-        expect(await totalPools).to.equal(3)
+        expect(await totalPools).to.equal(2)
         // console.log('total pools: %s', totalPools)
         
         await summoner.deposit(1, toWei(100_000))
-        await summoner.deposit(2, toWei(100_000))
         // console.log('deposited: %s FUSD-PAIR', 100_000)
         // console.log('deposited: %s ETH-PAIR', 100_000)
 
@@ -213,16 +209,10 @@ describe('SoulSummoner', () => {
         pendingSoulRewards = await summoner.pendingSoul(0, buns)
         // console.log('PID(0) Rewards: %s SOUL', fromWei(pendingSoulRewards))
 
-        pendingSoulLP1 = await summoner.pendingSoul(1, buns)
-        // console.log('PID(1) Rewards: %s SOUL', fromWei(pendingSoulLP1))
-
-        pendingSoulLP2 = await summoner.pendingSoul(2, buns)
-        // console.log('PID(2) Rewards: %s SOUL', fromWei(pendingSoulLP2))
-
-        totalLpPendingRewards = pendingSoulLP1.add(pendingSoulLP2)
-        // console.log('ttl LP pending rewards: %s SOUL', fromWei(totalLpPendingRewards))
+        pendingSoulLP = await summoner.pendingSoul(1, buns)
+        // console.log('LP Rewards: %s SOUL', fromWei(pendingSoulLP))
         
-        totalPendingRewards = pendingSoulRewards.add(pendingSoulLP1).add(pendingSoulLP2)
+        totalPendingRewards = pendingSoulRewards.add(pendingSoulLP)
         // console.log('ttl pending rewards: %s SOUL', fromWei(totalPendingRewards))
 
         // adjustment for even expectations, throws when off by more than 0.2%
