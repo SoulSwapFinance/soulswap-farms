@@ -51,7 +51,7 @@ describe('SoulSummoner', () => {
       seance.address, // seance
       0, 1000,       // total weight, weight
       1000,         // staking allocation
-      14, 1)       // startRate, dailyDecay
+      14)          // startRate
     
     // console.log('initialized: summoner')
     
