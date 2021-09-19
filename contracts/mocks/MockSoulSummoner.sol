@@ -210,7 +210,7 @@ contract MockSoulSummoner is AccessControl, Ownable, Pausable, ReentrancyGuard {
     function updateStartRate(uint _startRate) public obey(maat) {
         require(startRate != enWei(_startRate));
         startRate = enWei(_startRate);
-        console.log('new start rate is: %s', startRate);
+        console.log('new start rate is: %s', fromWei(startRate));
         
         emit StartRateUpdated(startRate);
 

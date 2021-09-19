@@ -6,10 +6,13 @@ describe('SoulSummoner', () => {
   // var utils = require('ethers').utils
   const ethers = hre.ethers
   const THOTH = '0xdffb0b033b8033405f5fb07b08f48c89fa1b4a3d5d5a475c3e2b8df5fbd4da0d'
+
   const ZERO = 0
   const ONE_DAY = 86_400
   const ONE_WEEK = 604_800
   const TWO_WEEKS = 1_209_600 
+
+  const HUNDRED_THOUSAND = 100_000
 
   beforeEach(async () => {
     
@@ -50,7 +53,7 @@ describe('SoulSummoner', () => {
       seance.address, // seance
       0, 1000,       // total weight, weight
       1000,         // staking allocation
-      14, 1)       // startRate, dailyDecay
+      14)       // startRate
     
     // console.log('initialized: summoner')
     
@@ -58,12 +61,12 @@ describe('SoulSummoner', () => {
     // console.log('my address: %s', buns)
 
     // approve, and mint lp and burn excess soul
-    await soul.approve(summoner.address, toWei(100_000))
-    await lpToken.approve(summoner.address, toWei(100_000))
+    await soul.approve(summoner.address, toWei(HUNDRED_THOUSAND))
+    await lpToken.approve(summoner.address, toWei(HUNDRED_THOUSAND))
 
     // mint core lpTokens
-    lpToken.mint(toWei(100_000))
-    // console.log('minted %s tokens for ea. core pool', 100_000)
+    lpToken.mint(toWei(HUNDRED_THOUSAND))
+    // console.log('minted %s tokens for ea. core pool', HUNDRED_THOUSAND)
 
     // burn excess SOUL
     soul.burn(toWei(49_900_000))
@@ -78,7 +81,7 @@ describe('SoulSummoner', () => {
     // console.log('team: %s', team)
     
     // [user] enter staking
-    await summoner.enterStaking(toWei(100_000))
+    await summoner.enterStaking(toWei(HUNDRED_THOUSAND))
     soulUserStaked = await soul.balanceOf(summoner.address)
     // console.log('[user] staked %s SOUL', fromWei(soulUserStaked))
   })
@@ -87,7 +90,7 @@ describe('SoulSummoner', () => {
     describe('review: balances and rewards', function() {
         it('should return 10,000 SOUL in the summoner', async function() {
           // console.log('summoner soul bal', fromWei(soulUserStaked))
-          expect(await soul.balanceOf(summoner.address)).to.equal(toWei(100_000))
+          expect(await soul.balanceOf(summoner.address)).to.equal(toWei(HUNDRED_THOUSAND))
         })
 
         it('should return [D1] rewards balances of ~250K', async function() {
@@ -117,7 +120,7 @@ describe('SoulSummoner', () => {
       it('should return [summoner] balance of 10K SOUL', async function() {
         summonerSoulBalance = await soul.balanceOf(summoner.address)
         // console.log('[summoner] balance: %s SOUL', fromWei(summonerSoulBalance))
-        expect(await soul.balanceOf(summoner.address)).to.equal(toWei(100_000))
+        expect(await soul.balanceOf(summoner.address)).to.equal(toWei(HUNDRED_THOUSAND))
       })
         
       it('should return total payout of ~250K SOUL', async function() {
@@ -131,10 +134,10 @@ describe('SoulSummoner', () => {
         // console.log('[team] pre-withdrawal balance: %s SOUL', fromWei(preTeamSoul))
         
         // leave staking
-        unstakedAmount = toWei(100_000)
+        unstakedAmount = toWei(HUNDRED_THOUSAND)
         await summoner.leaveStaking(unstakedAmount)
-        // console.log('[user] withdrew: %s SOUL', 100_000)
-        soul.burn(toWei(100_000)) // destroys for easy maths
+        // console.log('[user] withdrew: %s SOUL', HUNDRED_THOUSAND)
+        soul.burn(toWei(HUNDRED_THOUSAND)) // destroys for easy maths
 
         newUserSoul = await soul.balanceOf(buns)
         newDaoSoul = await soul.balanceOf(dao)
@@ -200,9 +203,9 @@ describe('SoulSummoner', () => {
         expect(await totalPools).to.equal(2)
         // console.log('total pools: %s', totalPools)
         
-        await summoner.deposit(1, toWei(100_000))
-        // console.log('deposited: %s FUSD-PAIR', 100_000)
-        // console.log('deposited: %s ETH-PAIR', 100_000)
+        await summoner.deposit(1, toWei(HUNDRED_THOUSAND))
+        // console.log('deposited: %s FUSD-PAIR', HUNDRED_THOUSAND)
+        // console.log('deposited: %s ETH-PAIR', HUNDRED_THOUSAND)
 
         await increaseTime(ONE_DAY) // 1 day
 
@@ -255,7 +258,7 @@ describe('SoulSummoner', () => {
         preWithdrawalBalance = await soul.balanceOf(buns)
         console.log('soul bal: %s', fromWei(preWithdrawalBalance))
 
-        SOUL_TO_UNSTAKE = toWei(100_000)
+        SOUL_TO_UNSTAKE = toWei(HUNDRED_THOUSAND)
         rawPendingRewards = await summoner.pendingSoul(0, buns)
         PENDING_REWARDS = rawPendingRewards.mul(3e12).div(4e12) // 75% of share to miners
         console.log('user pending rewards: %s', fromWei(PENDING_REWARDS))
@@ -269,7 +272,7 @@ describe('SoulSummoner', () => {
         RAW_SOUL_UNSTAKED = userBalance.sub(PENDING_REWARDS) // removes pending rewards from calc
         console.log('unstaked: %s SOUL', fromWei(RAW_SOUL_UNSTAKED))
         
-        EXPECTATION = toWei(100_000)
+        EXPECTATION = toWei(HUNDRED_THOUSAND)
         diffRates = RAW_SOUL_UNSTAKED > EXPECTATION // avoids negatives
         ? RAW_SOUL_UNSTAKED.sub(EXPECTATION)
         : EXPECTATION.sub(RAW_SOUL_UNSTAKED)
@@ -290,15 +293,15 @@ describe('SoulSummoner', () => {
         expect(await totalPools).to.equal(2)
         // console.log('total pools: %s', totalPools)
         
-        await summoner.deposit(1, toWei(100_000))
-        console.log('deposited: %s FTM-PAIR', 100_000)
+        await summoner.deposit(1, toWei(HUNDRED_THOUSAND))
+        console.log('deposited: %s FTM-PAIR', HUNDRED_THOUSAND)
         
         await increaseTime(ONE_DAY) // ff 1 days
-        await lpToken.burn(toWei(100_000)) // clears out LP balance from buns
+        await lpToken.burn(toWei(HUNDRED_THOUSAND)) // clears out LP balance from buns
         preWithdrawalBalance = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] pre-bal: %s', fromWei(preWithdrawalBalance))
 
-        LP_TO_UNSTAKE = toWei(100_000)
+        LP_TO_UNSTAKE = toWei(HUNDRED_THOUSAND)
         await summoner.withdraw(1, LP_TO_UNSTAKE)
         console.log('[buns] unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
 
@@ -320,16 +323,16 @@ describe('SoulSummoner', () => {
         expect(await totalPools).to.equal(2)
         // console.log('total pools: %s', totalPools)
         
-        await summoner.deposit(1, toWei(100_000))
-        console.log('[buns] deposited: %s FTM-PAIR', 100_000)
+        await summoner.deposit(1, toWei(HUNDRED_THOUSAND))
+        console.log('[buns] deposited: %s FTM-PAIR', HUNDRED_THOUSAND)
 
         await increaseTime(ONE_WEEK) // ff 7 days
-        await lpToken.burn(toWei(100_000)) // clears out LP balance from buns
+        await lpToken.burn(toWei(HUNDRED_THOUSAND)) // clears out LP balance from buns
         
         PRE_BALANCE = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP pre-bal: %s', fromWei(PRE_BALANCE))
         
-        await summoner.withdraw(1, toWei(100_000))
+        await summoner.withdraw(1, toWei(HUNDRED_THOUSAND))
         POST_BALANCE = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP post-bal: %s', fromWei(POST_BALANCE))
 
@@ -346,34 +349,71 @@ describe('SoulSummoner', () => {
         expect(await totalPools).to.equal(2)
         // console.log('total pools: %s', totalPools)
         
-        await summoner.deposit(1, toWei(100_000))
-        console.log('[buns] deposited: %s FTM-PAIR', 100_000)
+        await summoner.deposit(1, toWei(HUNDRED_THOUSAND))
+        console.log('[buns] deposited: %s FTM-PAIR', HUNDRED_THOUSAND)
 
         await increaseTime(TWO_WEEKS) // ff 14 days
-        await lpToken.burn(toWei(100_000)) // clears out LP balance from buns
+        await lpToken.burn(toWei(HUNDRED_THOUSAND)) // clears out LP balance from buns
         
         PRE_BALANCE = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP pre-bal: %s', fromWei(PRE_BALANCE))
         
-        await summoner.withdraw(1, toWei(100_000))
+        await summoner.withdraw(1, toWei(HUNDRED_THOUSAND))
         POST_BALANCE = await lpToken.balanceOf(buns) // ensures balance is cleared
         console.log('[buns] LP post-bal: %s', fromWei(POST_BALANCE))
 
-        await expect(POST_BALANCE).to.equal(toWei(100_000))
+        await expect(POST_BALANCE).to.equal(toWei(HUNDRED_THOUSAND))
         
       })
     })
 
     describe('review: startRate', function() {
-      it('should should startRate of 14%, then 7%', async function() {
+      it('should show startRate of 14%, then 7%', async function() {
         START_RATE = await summoner.startRate()
-        console.log('startRate: %s%', await summoner.startRate())
+        console.log('startRate: %s%', fromWei(START_RATE))
         await expect(START_RATE).to.equal(toWei(14))
 
-        NEW_START_RATE = await summoner.updateStartRate(7)
-        console.log('newStartRate: %s%', await summoner.startRate())
+        await summoner.updateStartRate(7)
+        
+        NEW_START_RATE = await summoner.startRate()
+        console.log('newStartRate: %s%', fromWei(NEW_START_RATE))
+        await expect(NEW_START_RATE).to.equal(toWei(7))
+      })
+
+      it('should show fee of 7% withdrawn after update', async function() {
+        await summoner.addPool(500, lpToken.address, true)
+        // console.log('added FTM-PAIR: %s', '5x')
+        totalPools = await summoner.poolLength()
+
+        expect(await totalPools).to.equal(2)
+        // console.log('total pools: %s', totalPools)
+        
+        await summoner.deposit(1, toWei(HUNDRED_THOUSAND))
+        console.log('[buns] deposited: %s FTM-PAIR', HUNDRED_THOUSAND)
+
+        await increaseTime(ONE_DAY) // ff 1 day
+        
+        START_RATE = await summoner.startRate()
+        console.log('startRate: %s%', fromWei(START_RATE))
+        await expect(START_RATE).to.equal(toWei(14))
+
+        await summoner.updateStartRate(7)
+        NEW_START_RATE = await summoner.startRate()
+
+        console.log('newStartRate: %s%', fromWei(NEW_START_RATE))
         await expect(NEW_START_RATE).to.equal(toWei(7))
 
+        PRE_BALANCE = await lpToken.balanceOf(buns)
+        console.log('[buns] pre-balance: %s SOUL', fromWei(PRE_BALANCE))
+
+        PENDING_REWARDS = await summoner.pendingSoul(1, buns)
+        console.log('[buns] pending rewards: %s SOUL', fromWei(PENDING_REWARDS))
+
+        await summoner.withdraw(1, toWei(HUNDRED_THOUSAND))
+        console.log('[buns] withdrew: %s SOUL', fromWei(HUNDRED_THOUSAND))
+
+        POST_BALANCE = await lpToken.balanceOf(buns)
+        console.log('[buns] post-balance: %s SOUL', fromWei(POST_BALANCE))
 
       })
     })
