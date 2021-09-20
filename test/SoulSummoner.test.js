@@ -46,20 +46,20 @@ describe('SoulSummoner', () => {
     // console.log('operator added')
 
     await seance.initialize(soul.address)    
-    // console.log('initialized: seance')
+    // console.log('initialized: seance') 
     
-    await summoner.initialize(
-      soul.address,    // soul
-      seance.address, // seance
-      0, 1000,       // total weight, weight
-      1000,         // staking allocation
-      14)       // startRate
-    
-    // console.log('initialized: summoner')
-    
-    buns = await signer.getAddress()
-    // console.log('my address: %s', buns)
-
+    // await summoner.initialize(
+    //   soul.address,    // soul
+    //   seance.address, // seance
+    //   0, 1000,       // total weight, weight
+    //   1000,         // staking allocation
+    //   14)       // startRate
+      
+      // console.log('initialized: summoner')
+      
+      buns = await signer.getAddress()
+      // console.log('my address: %s', buns)
+      
     // approve, and mint lp and burn excess soul
     await soul.approve(summoner.address, toWei(HUNDRED_THOUSAND))
     await lpToken.approve(summoner.address, toWei(HUNDRED_THOUSAND))

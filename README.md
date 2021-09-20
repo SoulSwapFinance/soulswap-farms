@@ -6,15 +6,16 @@
 ## Fantom Mainnet
 - [SoulPower.sol](https://ftmscan.com/address/0xe2fb177009FF39F52C0134E8007FA0e4BaAcBd07#code): 0xe2fb177009FF39F52C0134E8007FA0e4BaAcBd07
 - [SeanceCircle.sol](https://ftmscan.com/address/0x124B06C5ce47De7A6e9EFDA71a946717130079E6#code): 0x124B06C5ce47De7A6e9EFDA71a946717130079E6
+- [SoulSummoner.sol](https://ftmscan.com/address/0xce6ccbB1EdAD497B4d53d829DF491aF70065AB5B#code): 0xce6ccbB1EdAD497B4d53d829DF491aF70065AB5B
 
 - [Multicall.sol](https://ftmscan.com/address/0xEd2Fb478f7fCef33E1E1d980a0135789B295a7F5#code): 0xEd2Fb478f7fCef33E1E1d980a0135789B295a7F5
 
 ### Fantom Testnet [V3 SoulSummoner]
-- [SoulPower.sol](https://testnet.ftmscan.com/address/0x814974a103c9a72c15c52ce7d1be0f2c084576f3#code): 
-- [SeanceCircle.sol](https://testnet.ftmscan.com/address/#code): 
+- [SoulPower.sol](https://testnet.ftmscan.com/address/#code): 
+- [SeanceCircle.sol](https://testnet.ftmscan.com/address/0xD54Cf31D5653F4a062f5DA4C83170A5867d04442#code): 0xD54Cf31D5653F4a062f5DA4C83170A5867d04442
 - [SpellBound.sol](https://testnet.ftmscan.com/address/#code): 
 
-- [SoulSummoner.sol](https://testnet.ftmscan.com/address/#code): 
+- [SoulSummoner.sol](https://testnet.ftmscan.com/address/0x70C6A37244feD0Fa4e4148D5ffe38a209dCEd714#code): 0x70C6A37244feD0Fa4e4148D5ffe38a209dCEd714
 - [SoulVault.sol](https://testnet.ftmscan.com/address/#code):
 
 - [Multicall.sol](https://testnet.ftmscan.com/address/#code): 
