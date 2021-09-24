@@ -622,11 +622,11 @@ abstract contract Operable is Context, Ownable {
 
 pragma solidity ^0.8.0;
 
-// SoulMaker is SoulSummoner's most generous wizard. SoulMaker may cook up Soul from pretty much anything!
+// SoulReaper is SoulSummoner's most generous wizard. SoulReaper may reap up Soul from pretty much anything!
 // This contract handles 'serving up' rewards for SpellBound holders by trading tokens collected from fees for Soul.
 
 // T1 - T4: OK
-contract SoulMaker is Ownable, Operable {
+contract SoulReaper is Ownable, Operable {
     using SafeERC20 for IERC20;
 
     ISoulSwapFactory public immutable factory;
@@ -669,7 +669,7 @@ contract SoulMaker is Ownable, Operable {
         // Checks
         require(
             token != soul && token != weth && token != bridge,
-            'SoulMaker: Invalid bridge'
+            'SoulReaper: Invalid bridge'
         );
 
         // Effects
@@ -680,7 +680,7 @@ contract SoulMaker is Ownable, Operable {
     // not a fool proof, but prevents flash loans, so here it's ok to use tx.origin
     modifier onlyEOA() {
         // try to making flash-loan exploit harder to do by only allowing externally owned addresses.
-        require(msg.sender == tx.origin, 'SoulMaker: must use EOA');
+        require(msg.sender == tx.origin, 'SoulReaper: must use EOA');
         _;
     }
 
@@ -707,7 +707,7 @@ contract SoulMaker is Ownable, Operable {
     function _convert(address token0, address token1) internal {
         // Interactions
         ISoulSwapPair pair = ISoulSwapPair(factory.getPair(token0, token1));
-        require(address(pair) != address(0), 'SoulMaker: Invalid pair');
+        require(address(pair) != address(0), 'SoulReaper: Invalid pair');
         IERC20(address(pair)).safeTransfer(
             address(pair),
             pair.balanceOf(address(this))
@@ -805,7 +805,7 @@ contract SoulMaker is Ownable, Operable {
         // Checks
         ISoulSwapPair pair =
             ISoulSwapPair(factory.getPair(fromToken, toToken));
-        require(address(pair) != address(0), 'SoulMaker: Cannot convert');
+        require(address(pair) != address(0), 'SoulReaper: Cannot convert');
 
         // Interactions
         (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
