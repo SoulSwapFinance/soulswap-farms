@@ -48,12 +48,12 @@ describe('SoulSummoner', () => {
     await seance.initialize(soul.address)    
     // console.log('initialized: seance') 
     
-    // await summoner.initialize(
-    //   soul.address,    // soul
-    //   seance.address, // seance
-    //   0, 1000,       // total weight, weight
-    //   1000,         // staking allocation
-    //   14)       // startRate
+    await summoner.initialize(
+      soul.address,    // soul
+      seance.address, // seance
+      0, 1000,       // total weight, weight
+      1000,         // staking allocation
+      14)       // startRate
       
       // console.log('initialized: summoner')
       
