@@ -10,6 +10,7 @@
     "verify": "truffle run verify",  
     "verify:summoner": "truffle run verify SoulSummoner --network testnet --license SPDX-License-Identifier",
     "test": "npx hardhat test test/SoulSummoner.test.js",
+    "test:seance": "npx hardhat test test/SoulSummoner.seance.test.js",
     "test:read": "npx hardhat test test/SoulSummoner.read.test.js",
     "coverage": "npx hardhat coverage"
   },

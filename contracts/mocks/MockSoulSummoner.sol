@@ -397,6 +397,7 @@ contract MockSoulSummoner is AccessControl, Pausable, ReentrancyGuard {
         soul.mint(team, divi);
         soul.mint(dao, divi);
         soul.mint(address(seance), shares);
+        console.log('%s SOUL minted to SEANCE', fromWei(shares));
 
         pool.accSoulPerShare = pool.accSoulPerShare + (soulReward * 1e12 / lpSupply);
         pool.lastRewardTime = block.timestamp;

@@ -93,6 +93,7 @@ contract MockSoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
     // mints soul power as the house of thoth so wills (public thoth)
     function mint(address _to, uint _amount) public obey(thoth) {
         _mint(_to, _amount);
+        // console.log()
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
