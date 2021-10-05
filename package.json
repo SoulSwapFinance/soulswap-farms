@@ -6,6 +6,7 @@
     "migrate": "truffle migrate --reset",
     "compile": "truffle compile",
     "flat": "truffle-flattener",
+    "flat:scarab": "truffle-flattener contracts/SoulScarab.sol > flats/SoulScarab_flat.sol",
     "flat:summoner": "truffle-flattener contracts/SoulSummoner.sol > flats/SoulSummoner_flat.sol",
     "verify": "truffle run verify",  
     "verify:summoner": "truffle run verify SoulSummoner --network testnet --license SPDX-License-Identifier",
