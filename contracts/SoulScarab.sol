@@ -4,14 +4,15 @@ pragma solidity ^0.8.0;
 import './libraries/SafeERC20.sol';
 import './Outcaster.sol';
 
-contract SoulScarab is Ownable {
+contract SoulScarab {
     using SafeERC20 for IERC20;
 
     SeanceCircle public immutable seance = SeanceCircle(0x124B06C5ce47De7A6e9EFDA71a946717130079E6);
     SoulPower public immutable soul = SoulPower(0xe2fb177009FF39F52C0134E8007FA0e4BaAcBd07);
-    Outcaster private immutable outcaster = Outcaster(0xFd63Bf84471Bc55DD9A83fdFA293CCBD27e1F4C8);
-    
-    struct Scarabs {
+
+    Outcaster public immutable outcaster = Outcaster(0xce530f22d82A2437F2fb4b43Df0e1e4fD446f0ff);
+
+    struct Scarab {
         address recipient;
         uint amount;
         uint tribute;
@@ -20,24 +21,22 @@ contract SoulScarab is Ownable {
     }
     
     uint public depositsCount;
-    mapping (address => uint[]) public depositsByWithdrawer;
-    mapping (uint => Scarabs) public lockedToken;
+    mapping (address => uint[]) public depositsByRecipient;
+    mapping (uint => Scarab) public scarabs;
     mapping (address => uint) public walletBalance;
     
-    address public manifestor;
+    address public manifestor = msg.sender;
     uint public tributeRate = 10 * 1E18; // 10%
     
     event Withdraw(address recipient, uint amount);
-    event Lock(address token, uint amount, uint id);
-    event FeeRateUpdated(uint feeRate);
-    
-    constructor() { manifestor = msg.sender; }
-    
-    function lockTokens(address _recipient, uint _amount, uint _unlockTimestamp) external returns (uint id) {
-        require(_amount > 0, 'Insufficient Soul balance.');
-        require(_unlockTimestamp < 10000000000, 'Unlock is not in second.');
+    event ScarabSummoned(uint amount, uint id);
+    event ManifestorUpdated(address manifestor);
+        
+    function lockSouls(address _recipient, uint _amount, uint _unlockTimestamp) external returns (uint id) {
+        require(_amount > 0, 'Insufficient SOUL balance.');
+        require(_unlockTimestamp < 10 * 1E10, 'Unlock is not in seconds.');
         require(_unlockTimestamp > block.timestamp, 'Unlock is not in the future.');
-        require(soul.allowance(msg.sender, address(this)) >= _amount, 'Approve tokens first.');
+        require(soul.allowance(msg.sender, address(this)) >= _amount, 'Approve SOUL first.');
 
         // soul balance [before the deposit]
         uint beforeDeposit = soul.balanceOf(address(this));
@@ -56,54 +55,57 @@ contract SoulScarab is Ownable {
                 
         walletBalance[msg.sender] = walletBalance[msg.sender] + _amount;
         
+        // create a new id, based off deposit count
         id = ++depositsCount;
-        lockedToken[id].recipient = _recipient;
-        lockedToken[id].amount = _amount;
-        lockedToken[id].tribute = _tribute;
-        lockedToken[id].unlockTimestamp = _unlockTimestamp;
-        lockedToken[id].withdrawn = false;
+        scarabs[id].recipient = _recipient;
+        scarabs[id].amount = _amount;
+        scarabs[id].tribute = _tribute;
+        scarabs[id].unlockTimestamp = _unlockTimestamp;
+        scarabs[id].withdrawn = false;
         
-        depositsByWithdrawer[_recipient].push(id);
+        depositsByRecipient[_recipient].push(id);
 
-        emit Lock(address(soul), _amount, id);
+        emit ScarabSummoned(_amount, id);
         
         return id;
     }
         
     function withdrawTokens(uint id) external {
-        require(block.timestamp >= lockedToken[id].unlockTimestamp, 'Tokens are still locked.');
-        require(msg.sender == lockedToken[id].recipient, 'You are not the recipient.');
-        require(lockedToken[id].withdrawn, 'Tokens are already withdrawn.');
+        require(block.timestamp >= scarabs[id].unlockTimestamp, 'Tokens are still locked.');
+        require(msg.sender == scarabs[id].recipient, 'You are not the recipient.');
+        require(scarabs[id].withdrawn, 'Tokens are already withdrawn.');
         
-        lockedToken[id].withdrawn = true;
+        scarabs[id].withdrawn = true;
         
         walletBalance[msg.sender] 
-            = walletBalance[msg.sender] - lockedToken[id].amount;
-        
-        soul.transfer(msg.sender, lockedToken[id].amount);
+            = walletBalance[msg.sender] - scarabs[id].amount;
 
-        // acquires tribute amount
-        uint tribute = getTribute(lockedToken[id].amount);
+        // [1] acquires tribute amount
+        uint tribute = getTribute(scarabs[id].amount);
         
-        // burns tribute to claim
+        // [2] burns tribute to enable recipient to claim
         seance.transferFrom(msg.sender, address(outcaster), tribute);
 
-        emit Withdraw(msg.sender, lockedToken[id].amount);  
+        // [3] transfers soul to the sender
+        soul.transfer(msg.sender, scarabs[id].amount);
+
+        emit Withdraw(msg.sender, scarabs[id].amount);  
     }
     
-    // enables tranfer of manifestor status (useful for FE)
-    function setManifestor(address _manifestor) external onlyOwner {
+    function setManifestor(address _manifestor) external {
+        require(msg.sender == manifestor, 'You are not the current manifestor');
         manifestor = _manifestor;
+
+        emit ManifestorUpdated(manifestor);
     }
 
-    // calculates the tribute for a given amount
     function getTribute(uint amount) public view returns (uint fee) {
         require(amount > 0, 'cannot have zero fee');
         return amount * tributeRate / 100;
     }
     
-    function getDepositsByWithdrawer(address _recipient) external view returns (uint[] memory) {
-        return depositsByWithdrawer[_recipient];
+    function getDepositsByRecipient(address _recipient) view external returns (uint[] memory) {
+        return depositsByRecipient[_recipient];
     }
     
     function getTotalLockedBalance() view external returns (uint) {
