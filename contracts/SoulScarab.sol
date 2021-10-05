@@ -70,7 +70,7 @@ contract SoulScarab {
     function withdrawTokens(uint id) external {
         require(block.timestamp >= scarabs[id].unlockTimestamp, 'Tokens are still locked.');
         require(msg.sender == scarabs[id].recipient, 'You are not the recipient.');
-        require(!scarabs[id].withdrawn, 'Tokens are already withdrawn.');
+        require(scarabs[id].withdrawn, 'Tokens are already withdrawn.');
         
         scarabs[id].withdrawn = true;
         
