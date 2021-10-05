@@ -26,7 +26,7 @@ contract SoulScarab {
     mapping (address => uint) public walletBalance;
     
     address public manifestor = msg.sender;
-    uint public tributeRate = 10 * 1E18; // 10%
+    uint public tributeRate = 10; // 10%
     
     event Withdraw(address recipient, uint amount);
     event ScarabSummoned(uint amount, uint id);
@@ -34,7 +34,7 @@ contract SoulScarab {
         
     function lockSouls(address _recipient, uint _amount, uint _unlockTimestamp) external returns (uint id) {
         require(_amount > 0, 'Insufficient SOUL balance.');
-        require(_unlockTimestamp < 10 * 1E10, 'Unlock is not in seconds.');
+        require(_unlockTimestamp < block.timestamp + 365 days, 'Unlock must be within one year.');
         require(_unlockTimestamp > block.timestamp, 'Unlock is not in the future.');
         require(soul.allowance(msg.sender, address(this)) >= _amount, 'Approve SOUL first.');
 
@@ -47,13 +47,13 @@ contract SoulScarab {
         // soul balance [after the deposit]
         uint afterDeposit = soul.balanceOf(address(this));
         
-        // safety precaution
+        // safety precaution (requires contract recieves SOUL)
         _amount = afterDeposit - beforeDeposit; 
 
         // calulates tribute amount
         uint _tribute = getTribute(_amount);
                 
-        walletBalance[msg.sender] = walletBalance[msg.sender] + _amount;
+        walletBalance[msg.sender] += _amount;
         
         // create a new id, based off deposit count
         id = ++depositsCount;
@@ -77,8 +77,7 @@ contract SoulScarab {
         
         scarabs[id].withdrawn = true;
         
-        walletBalance[msg.sender] 
-            = walletBalance[msg.sender] - scarabs[id].amount;
+        walletBalance[msg.sender] -= scarabs[id].amount;
 
         // [1] acquires tribute amount
         uint tribute = getTribute(scarabs[id].amount);
