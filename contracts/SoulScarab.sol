@@ -26,34 +26,32 @@ contract SoulScarab {
     mapping (address => uint) public walletBalance;
     
     address public manifestor = msg.sender;
-    uint public tributeRate = 10 * 1E18; // 10%
+    uint public tributeRate = 10; // 10%
     
     event Withdraw(address recipient, uint amount);
     event ScarabSummoned(uint amount, uint id);
     event ManifestorUpdated(address manifestor);
         
     function lockSouls(address _recipient, uint _amount, uint _unlockTimestamp) external returns (uint id) {
-        require(_amount > 0, 'Insufficient SOUL balance.');
-        require(_unlockTimestamp < 10 * 1E10, 'Unlock is not in seconds.');
+        require(_amount > 0, 'Insufficient SOUL amount.');
         require(_unlockTimestamp > block.timestamp, 'Unlock is not in the future.');
-        require(soul.allowance(msg.sender, address(this)) >= _amount, 'Approve SOUL first.');
 
         // soul balance [before the deposit]
-        uint beforeDeposit = soul.balanceOf(address(this));
+        // uint beforeDeposit = soul.balanceOf(address(this));
 
         // transfers your soul into a Scarab
         soul.transferFrom(msg.sender, address(this), _amount);
 
         // soul balance [after the deposit]
-        uint afterDeposit = soul.balanceOf(address(this));
+        // uint afterDeposit = soul.balanceOf(address(this));
         
-        // safety precaution
-        _amount = afterDeposit - beforeDeposit; 
+        // safety precaution (would be a negative number -> i.e, 90 - 100)
+        // _amount = afterDeposit - beforeDeposit; 
 
         // calulates tribute amount
         uint _tribute = getTribute(_amount);
                 
-        walletBalance[msg.sender] = walletBalance[msg.sender] + _amount;
+        walletBalance[msg.sender] += _amount;
         
         // create a new id, based off deposit count
         id = ++depositsCount;
@@ -61,7 +59,6 @@ contract SoulScarab {
         scarabs[id].amount = _amount;
         scarabs[id].tribute = _tribute;
         scarabs[id].unlockTimestamp = _unlockTimestamp;
-        scarabs[id].withdrawn = false;
         
         depositsByRecipient[_recipient].push(id);
 
@@ -73,12 +70,11 @@ contract SoulScarab {
     function withdrawTokens(uint id) external {
         require(block.timestamp >= scarabs[id].unlockTimestamp, 'Tokens are still locked.');
         require(msg.sender == scarabs[id].recipient, 'You are not the recipient.');
-        require(scarabs[id].withdrawn, 'Tokens are already withdrawn.');
+        require(!scarabs[id].withdrawn, 'Tokens are already withdrawn.');
         
         scarabs[id].withdrawn = true;
         
-        walletBalance[msg.sender] 
-            = walletBalance[msg.sender] - scarabs[id].amount;
+        walletBalance[msg.sender] -= scarabs[id].amount;
 
         // [1] acquires tribute amount
         uint tribute = getTribute(scarabs[id].amount);
@@ -100,7 +96,8 @@ contract SoulScarab {
     }
 
     function getTribute(uint amount) public view returns (uint fee) {
-        require(amount > 0, 'cannot have zero fee');
+        require(amount > 0, 'Amount must not be 0');
+        // i.e., 200 * 10 / 100 = 20
         return amount * tributeRate / 100;
     }
     

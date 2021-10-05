@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: MIT
-
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
 
@@ -11,12 +11,12 @@ interface IERC20 {
     /**
      * @dev Returns the amount of tokens in existence.
      */
-    function totalSupply() external view returns (uint);
+    function totalSupply() external view returns (uint256);
 
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
-    function balanceOf(address account) external view returns (uint);
+    function balanceOf(address account) external view returns (uint256);
 
     /**
      * @dev Moves `amount` tokens from the caller's account to `recipient`.
@@ -25,7 +25,7 @@ interface IERC20 {
      *
      * Emits a {Transfer} event.
      */
-    function transfer(address recipient, uint amount) external returns (bool);
+    function transfer(address recipient, uint256 amount) external returns (bool);
 
     /**
      * @dev Returns the remaining number of tokens that `spender` will be
@@ -34,7 +34,7 @@ interface IERC20 {
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(address owner, address spender) external view returns (uint);
+    function allowance(address owner, address spender) external view returns (uint256);
 
     /**
      * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -50,7 +50,7 @@ interface IERC20 {
      *
      * Emits an {Approval} event.
      */
-    function approve(address spender, uint amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
 
     /**
      * @dev Moves `amount` tokens from `sender` to `recipient` using the
@@ -64,7 +64,7 @@ interface IERC20 {
     function transferFrom(
         address sender,
         address recipient,
-        uint amount
+        uint256 amount
     ) external returns (bool);
 
     /**
@@ -73,16 +73,20 @@ interface IERC20 {
      *
      * Note that `value` may be zero.
      */
-    event Transfer(address indexed from, address indexed to, uint value);
+    event Transfer(address indexed from, address indexed to, uint256 value);
 
     /**
      * @dev Emitted when the allowance of a `spender` for an `owner` is set by
      * a call to {approve}. `value` is the new allowance.
      */
-    event Approval(address indexed owner, address indexed spender, uint value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
 // File: @openzeppelin/contracts/utils/Address.sol
+
+
+
+pragma solidity ^0.8.0;
 
 /**
  * @dev Collection of functions related to the address type
@@ -110,7 +114,7 @@ library Address {
         // construction, since the code is only stored at the end of the
         // constructor execution.
 
-        uint size;
+        uint256 size;
         assembly {
             size := extcodesize(account)
         }
@@ -133,7 +137,7 @@ library Address {
      * {ReentrancyGuard} or the
      * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].
      */
-    function sendValue(address payable recipient, uint amount) internal {
+    function sendValue(address payable recipient, uint256 amount) internal {
         require(address(this).balance >= amount, "Address: insufficient balance");
 
         (bool success, ) = recipient.call{value: amount}("");
@@ -190,13 +194,13 @@ library Address {
     function functionCallWithValue(
         address target,
         bytes memory data,
-        uint value
+        uint256 value
     ) internal returns (bytes memory) {
         return functionCallWithValue(target, data, value, "Address: low-level call with value failed");
     }
 
     /**
-     * @dev Same as {xref-Address-functionCallWithValue-address-bytes-uint-}[`functionCallWithValue`], but
+     * @dev Same as {xref-Address-functionCallWithValue-address-bytes-uint256-}[`functionCallWithValue`], but
      * with `errorMessage` as a fallback revert reason when `target` reverts.
      *
      * _Available since v3.1._
@@ -204,7 +208,7 @@ library Address {
     function functionCallWithValue(
         address target,
         bytes memory data,
-        uint value,
+        uint256 value,
         string memory errorMessage
     ) internal returns (bytes memory) {
         require(address(this).balance >= value, "Address: insufficient balance for call");
@@ -299,6 +303,12 @@ library Address {
 
 // File: contracts/libraries/SafeERC20.sol
 
+
+
+pragma solidity ^0.8.0;
+
+
+
 /**
  * @title SafeERC20
  * @dev Wrappers around ERC20 operations that throw on failure (when the token
@@ -314,7 +324,7 @@ library SafeERC20 {
     function safeTransfer(
         IERC20 token,
         address to,
-        uint value
+        uint256 value
     ) internal {
         _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
     }
@@ -323,7 +333,7 @@ library SafeERC20 {
         IERC20 token,
         address from,
         address to,
-        uint value
+        uint256 value
     ) internal {
         _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
     }
@@ -338,7 +348,7 @@ library SafeERC20 {
     function safeApprove(
         IERC20 token,
         address spender,
-        uint value
+        uint256 value
     ) internal {
         // safeApprove should only be called when setting an initial allowance,
         // or when resetting it to zero. To increase and decrease it, use
@@ -353,20 +363,20 @@ library SafeERC20 {
     function safeIncreaseAllowance(
         IERC20 token,
         address spender,
-        uint value
+        uint256 value
     ) internal {
-        uint newAllowance = token.allowance(address(this), spender) + value;
+        uint256 newAllowance = token.allowance(address(this), spender) + value;
         _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
     }
 
     function safeDecreaseAllowance(
         IERC20 token,
         address spender,
-        uint value
+        uint256 value
     ) internal {
-            uint oldAllowance = token.allowance(address(this), spender);
+            uint256 oldAllowance = token.allowance(address(this), spender);
             require(oldAllowance >= value, "SafeERC20: decreased allowance below zero");
-            uint newAllowance = oldAllowance - value;
+            uint256 newAllowance = oldAllowance - value;
             _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
     }
 
@@ -390,6 +400,10 @@ library SafeERC20 {
 }
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
+
+
+
+pragma solidity ^0.8.0;
 
 
 /**
@@ -417,6 +431,9 @@ interface IERC20Metadata is IERC20 {
 // File: @openzeppelin/contracts/utils/Context.sol
 
 
+
+pragma solidity ^0.8.0;
+
 /**
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
@@ -438,6 +455,13 @@ abstract contract Context {
 }
 
 // File: contracts/libraries/ERC20.sol
+
+
+
+pragma solidity ^0.8.0;
+
+
+
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -464,11 +488,11 @@ abstract contract Context {
  * allowances. See {IERC20-approve}.
  */
 contract ERC20 is Context, IERC20, IERC20Metadata {
-    mapping(address => uint) private _balances;
+    mapping(address => uint256) private _balances;
 
-    mapping(address => mapping(address => uint)) private _allowances;
+    mapping(address => mapping(address => uint256)) private _allowances;
 
-    uint private _totalSupply;
+    uint256 private _totalSupply;
 
     string private _name;
     string private _symbol;
@@ -522,14 +546,14 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     /**
      * @dev See {IERC20-totalSupply}.
      */
-    function totalSupply() public view virtual override returns (uint) {
+    function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply;
     }
 
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account) public view virtual override returns (uint) {
+    function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
     }
 
@@ -541,7 +565,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint amount) public virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -549,7 +573,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender) public view virtual override returns (uint) {
+    function allowance(address owner, address spender) public view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -560,7 +584,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint amount) public virtual override returns (bool) {
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -581,11 +605,11 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function transferFrom(
         address sender,
         address recipient,
-        uint amount
+        uint256 amount
     ) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
 
-        uint currentAllowance = _allowances[sender][_msgSender()];
+        uint256 currentAllowance = _allowances[sender][_msgSender()];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
         _approve(sender, _msgSender(), currentAllowance - amount);
         
@@ -605,7 +629,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint addedValue) public virtual returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
         return true;
     }
@@ -624,8 +648,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint subtractedValue) public virtual returns (bool) {
-        uint currentAllowance = _allowances[_msgSender()][spender];
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+        uint256 currentAllowance = _allowances[_msgSender()][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
         _approve(_msgSender(), spender, currentAllowance - subtractedValue);
 
@@ -649,14 +673,14 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _transfer(
         address sender,
         address recipient,
-        uint amount
+        uint256 amount
     ) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        uint senderBalance = _balances[sender];
+        uint256 senderBalance = _balances[sender];
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
         _balances[sender] = senderBalance - amount;
         _balances[recipient] += amount;
@@ -675,7 +699,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      *
      * - `account` cannot be the zero address.
      */
-    function _mint(address account, uint amount) internal virtual {
+    function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
 
         _beforeTokenTransfer(address(0), account, amount);
@@ -698,12 +722,12 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function _burn(address account, uint amount) internal virtual {
+    function _burn(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
 
         _beforeTokenTransfer(account, address(0), amount);
 
-        uint accountBalance = _balances[account];
+        uint256 accountBalance = _balances[account];
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
         _balances[account] = accountBalance - amount;
         
@@ -730,7 +754,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _approve(
         address owner,
         address spender,
-        uint amount
+        uint256 amount
     ) internal virtual {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
@@ -756,7 +780,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _beforeTokenTransfer(
         address from,
         address to,
-        uint amount
+        uint256 amount
     ) internal virtual {}
 
     /**
@@ -776,11 +800,15 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _afterTokenTransfer(
         address from,
         address to,
-        uint amount
+        uint256 amount
     ) internal virtual {}
 }
 
 // File: @openzeppelin/contracts/access/IAccessControl.sol
+
+
+
+pragma solidity ^0.8.0;
 
 /**
  * @dev External interface of AccessControl declared to support ERC165 detection.
@@ -868,6 +896,10 @@ interface IAccessControl {
 
 // File: @openzeppelin/contracts/utils/Strings.sol
 
+
+
+pragma solidity ^0.8.0;
+
 /**
  * @dev String operations.
  */
@@ -875,17 +907,17 @@ library Strings {
     bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
 
     /**
-     * @dev Converts a `uint` to its ASCII `string` decimal representation.
+     * @dev Converts a `uint256` to its ASCII `string` decimal representation.
      */
-    function toString(uint value) internal pure returns (string memory) {
+    function toString(uint256 value) internal pure returns (string memory) {
         // Inspired by OraclizeAPI's implementation - MIT licence
         // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
 
         if (value == 0) {
             return "0";
         }
-        uint temp = value;
-        uint digits;
+        uint256 temp = value;
+        uint256 digits;
         while (temp != 0) {
             digits++;
             temp /= 10;
@@ -893,21 +925,21 @@ library Strings {
         bytes memory buffer = new bytes(digits);
         while (value != 0) {
             digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint(value % 10)));
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
             value /= 10;
         }
         return string(buffer);
     }
 
     /**
-     * @dev Converts a `uint` to its ASCII `string` hexadecimal representation.
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
      */
-    function toHexString(uint value) internal pure returns (string memory) {
+    function toHexString(uint256 value) internal pure returns (string memory) {
         if (value == 0) {
             return "0x00";
         }
-        uint temp = value;
-        uint length = 0;
+        uint256 temp = value;
+        uint256 length = 0;
         while (temp != 0) {
             length++;
             temp >>= 8;
@@ -916,13 +948,13 @@ library Strings {
     }
 
     /**
-     * @dev Converts a `uint` to its ASCII `string` hexadecimal representation with fixed length.
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
      */
-    function toHexString(uint value, uint length) internal pure returns (string memory) {
+    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
         bytes memory buffer = new bytes(2 * length + 2);
         buffer[0] = "0";
         buffer[1] = "x";
-        for (uint i = 2 * length + 1; i > 1; --i) {
+        for (uint256 i = 2 * length + 1; i > 1; --i) {
             buffer[i] = _HEX_SYMBOLS[value & 0xf];
             value >>= 4;
         }
@@ -932,6 +964,10 @@ library Strings {
 }
 
 // File: @openzeppelin/contracts/utils/introspection/IERC165.sol
+
+
+
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the
@@ -955,6 +991,11 @@ interface IERC165 {
 }
 
 // File: @openzeppelin/contracts/utils/introspection/ERC165.sol
+
+
+
+pragma solidity ^0.8.0;
+
 
 /**
  * @dev Implementation of the {IERC165} interface.
@@ -980,6 +1021,14 @@ abstract contract ERC165 is IERC165 {
 }
 
 // File: @openzeppelin/contracts/access/AccessControl.sol
+
+
+
+pragma solidity ^0.8.0;
+
+
+
+
 
 /**
  * @dev Contract module that allows children to implement role-based access
@@ -1073,7 +1122,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
                         "AccessControl: account ",
                         Strings.toHexString(uint160(account), 20),
                         " is missing role ",
-                        Strings.toHexString(uint(role), 32)
+                        Strings.toHexString(uint256(role), 32)
                     )
                 )
             );
@@ -1184,6 +1233,11 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 }
 
 // File: contracts/SoulPower.sol
+
+
+pragma solidity ^0.8.0;
+
+
 
 contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
@@ -1432,6 +1486,11 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
+
+
+pragma solidity ^0.8.0;
+
+
 /**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
@@ -1500,6 +1559,10 @@ abstract contract Ownable is Context {
 
 // File: contracts/libraries/Operable.sol
 
+
+pragma solidity ^0.8.0;
+
+
 // --------------------------------------------------------------------------------------
 //  Allows multiple contracts to act as `owner`, from `Ownable.sol`, with `onlyOperator`.
 // --------------------------------------------------------------------------------------
@@ -1558,19 +1621,25 @@ abstract contract Operable is Context, Ownable {
 
 // File: contracts/SeanceCircle.sol
 
+
+
+pragma solidity ^0.8.0;
+
+
+
 // SeanceCircle with Governance.
 contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
 
     SoulPower public soul;
     bool isInitialized;
 
-    function mint(address _to, uint _amount) public onlyOperator {
+    function mint(address _to, uint256 _amount) public onlyOperator {
         require(isInitialized, 'the circle has not yet begun');
         _mint(_to, _amount);
         _moveDelegates(address(0), _delegates[_to], _amount);
     }
 
-    function burn(address _from ,uint _amount) public onlyOperator {
+    function burn(address _from ,uint256 _amount) public onlyOperator {
         _burn(_from, _amount);
         _moveDelegates(_delegates[_from], address(0), _amount);
     }
@@ -1582,8 +1651,8 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
     }
 
     // safe soul transfer function, just in case if rounding error causes pool to not have enough SOUL.
-    function safeSoulTransfer(address _to, uint _amount) public onlyOperator {
-        uint soulBal = soul.balanceOf(address(this));
+    function safeSoulTransfer(address _to, uint256 _amount) public onlyOperator {
+        uint256 soulBal = soul.balanceOf(address(this));
         if (_amount > soulBal) {
             soul.transfer(_to, soulBal);
         } else {
@@ -1596,21 +1665,21 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
 
     // checkpoint for marking number of votes from a given block timestamp
     struct Checkpoint {
-        uint fromTime;
-        uint votes;
+        uint256 fromTime;
+        uint256 votes;
     }
 
     // record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint => Checkpoint)) public checkpoints;
+    mapping (address => mapping (uint256 => Checkpoint)) public checkpoints;
 
     // number of checkpoints for each account
-    mapping (address => uint) public numCheckpoints;
+    mapping (address => uint256) public numCheckpoints;
 
     // EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint chainId,address verifyingContract)");
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
 
     // EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint nonce,uint expiry)");
+    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
 
     // record of states for signing / validating signatures
     mapping (address => uint) public nonces;
@@ -1678,10 +1747,10 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
     }
 
     // returns an account's prior vote count as of a given timestamp (external view)
-    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint) {
+    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint256) {
         require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
 
-        uint nCheckpoints = numCheckpoints[account];
+        uint256 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
             return 0;
         }
@@ -1696,10 +1765,10 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
             return 0;
         }
 
-        uint lower = 0;
-        uint upper = nCheckpoints - 1;
+        uint256 lower = 0;
+        uint256 upper = nCheckpoints - 1;
         while (upper > lower) {
-            uint center = upper - (upper - lower) / 2; // ceil, avoiding overflow
+            uint256 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
             Checkpoint memory cp = checkpoints[account][center];
             if (cp.fromTime == blockTimestamp) {
                 return cp.votes;
@@ -1714,7 +1783,7 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
 
     function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = _delegates[delegator];
-        uint delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -1722,21 +1791,21 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
         _moveDelegates(currentDelegate, delegatee, delegatorBalance);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint amount) internal {
+    function _moveDelegates(address srcRep, address dstRep, uint256 amount) internal {
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 // decrease old representative
-                uint srcRepNum = numCheckpoints[srcRep];
-                uint srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint srcRepNew = srcRepOld - amount;
+                uint256 srcRepNum = numCheckpoints[srcRep];
+                uint256 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
+                uint256 srcRepNew = srcRepOld - amount;
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 // increase new representative
-                uint dstRepNum = numCheckpoints[dstRep];
-                uint dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint dstRepNew = dstRepOld + amount;
+                uint256 dstRepNum = numCheckpoints[dstRep];
+                uint256 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
+                uint256 dstRepNew = dstRepOld + amount;
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
         }
@@ -1744,13 +1813,13 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
 
     function _writeCheckpoint(
         address delegatee,
-        uint nCheckpoints,
-        uint oldVotes,
-        uint newVotes
+        uint256 nCheckpoints,
+        uint256 oldVotes,
+        uint256 newVotes
     )
         internal
     {
-        uint blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
+        uint256 blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromTime == blockTimestamp) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
@@ -1762,13 +1831,13 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
         emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
 
-    function safe256(uint n, string memory errorMessage) internal pure returns (uint) {
-        require(n < type(uint).max, errorMessage);
-        return uint(n);
+    function safe256(uint n, string memory errorMessage) internal pure returns (uint256) {
+        require(n < type(uint256).max, errorMessage);
+        return uint256(n);
     }
 
     function getChainId() internal view returns (uint) {
-        uint chainId;
+        uint256 chainId;
         assembly { chainId := chainid() }
         return chainId;
     }
@@ -1782,29 +1851,43 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
 
 // File: contracts/Outcaster.sol
 
+
+pragma solidity ^0.8.0;
+
 // import '@openzeppelin/contracts/access/Ownable.sol';
 
-contract Outcaster is Ownable {
+
+contract Outcaster {
 
     SeanceCircle public immutable seance = SeanceCircle(0x124B06C5ce47De7A6e9EFDA71a946717130079E6);
+    
+    uint public totalContributions;
+
     event SeanceOutCasted(uint amount);
 
     function outCast(uint amount) public {
         seance.burn(msg.sender, amount);
+        totalContributions += amount;
 
         emit SeanceOutCasted(amount);
     }
 
     function combust() public {
-        uint totalSeance = seance.balanceOf(address(this));
-        seance.burn(address(this), totalSeance);
-        
-        emit SeanceOutCasted(totalSeance);
+        uint amount = seance.balanceOf(address(this));
+        seance.burn(address(this), amount);
+        totalContributions += amount;
+
+        emit SeanceOutCasted(amount);
     }
 
 }
 
 // File: contracts/SoulScarab.sol
+
+
+pragma solidity ^0.8.0;
+
+
 
 contract SoulScarab {
     using SafeERC20 for IERC20;
@@ -1828,34 +1911,32 @@ contract SoulScarab {
     mapping (address => uint) public walletBalance;
     
     address public manifestor = msg.sender;
-    uint public tributeRate = 10 * 1E18; // 10%
+    uint public tributeRate = 10; // 10%
     
     event Withdraw(address recipient, uint amount);
     event ScarabSummoned(uint amount, uint id);
     event ManifestorUpdated(address manifestor);
         
     function lockSouls(address _recipient, uint _amount, uint _unlockTimestamp) external returns (uint id) {
-        require(_amount > 0, 'Insufficient SOUL balance.');
-        require(_unlockTimestamp < 10 * 1E10, 'Unlock is not in seconds.');
+        require(_amount > 0, 'Insufficient SOUL amount.');
         require(_unlockTimestamp > block.timestamp, 'Unlock is not in the future.');
-        require(soul.allowance(msg.sender, address(this)) >= _amount, 'Approve SOUL first.');
 
         // soul balance [before the deposit]
-        uint beforeDeposit = soul.balanceOf(address(this));
+        // uint beforeDeposit = soul.balanceOf(address(this));
 
         // transfers your soul into a Scarab
         soul.transferFrom(msg.sender, address(this), _amount);
 
         // soul balance [after the deposit]
-        uint afterDeposit = soul.balanceOf(address(this));
+        // uint afterDeposit = soul.balanceOf(address(this));
         
-        // safety precaution
-        _amount = afterDeposit - beforeDeposit; 
+        // safety precaution (would be a negative number -> i.e, 90 - 100)
+        // _amount = afterDeposit - beforeDeposit; 
 
         // calulates tribute amount
         uint _tribute = getTribute(_amount);
                 
-        walletBalance[msg.sender] = walletBalance[msg.sender] + _amount;
+        walletBalance[msg.sender] += _amount;
         
         // create a new id, based off deposit count
         id = ++depositsCount;
@@ -1863,7 +1944,6 @@ contract SoulScarab {
         scarabs[id].amount = _amount;
         scarabs[id].tribute = _tribute;
         scarabs[id].unlockTimestamp = _unlockTimestamp;
-        scarabs[id].withdrawn = false;
         
         depositsByRecipient[_recipient].push(id);
 
@@ -1879,8 +1959,7 @@ contract SoulScarab {
         
         scarabs[id].withdrawn = true;
         
-        walletBalance[msg.sender] 
-            = walletBalance[msg.sender] - scarabs[id].amount;
+        walletBalance[msg.sender] -= scarabs[id].amount;
 
         // [1] acquires tribute amount
         uint tribute = getTribute(scarabs[id].amount);
@@ -1902,7 +1981,8 @@ contract SoulScarab {
     }
 
     function getTribute(uint amount) public view returns (uint fee) {
-        require(amount > 0, 'cannot have zero fee');
+        require(amount > 0, 'Amount must not be 0');
+        // i.e., 200 * 10 / 100 = 20
         return amount * tributeRate / 100;
     }
     
