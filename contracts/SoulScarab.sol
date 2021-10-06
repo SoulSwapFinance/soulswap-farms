@@ -26,7 +26,7 @@ contract SoulScarab {
     mapping (address => uint) public walletBalance;
     
     address public manifestor = msg.sender;
-    uint public tributeRate = 10; // 10%
+    uint public tributeRate = enWei(10);        // 10%
     
     event Withdraw(address recipient, uint amount);
     event ScarabSummoned(uint amount, uint id);
@@ -34,7 +34,7 @@ contract SoulScarab {
         
     function lockSouls(address _recipient, uint _amount, uint _unlockTimestamp) external returns (uint id) {
         require(_amount > 0, 'Insufficient SOUL balance.');
-        require(_unlockTimestamp < block.timestamp + 365 days, 'Unlock must be within one year.');
+        require(_unlockTimestamp <= block.timestamp + 365 days, 'Unlock must be within one year.');
         require(_unlockTimestamp > block.timestamp, 'Unlock is not in the future.');
         require(soul.allowance(msg.sender, address(this)) >= _amount, 'Approve SOUL first.');
 
@@ -69,7 +69,8 @@ contract SoulScarab {
         
         return id;
     }
-        
+    
+    
     function withdrawTokens(uint id) external {
         require(block.timestamp >= scarabs[id].unlockTimestamp, 'Tokens are still locked.');
         require(msg.sender == scarabs[id].recipient, 'You are not the recipient.');
@@ -83,7 +84,8 @@ contract SoulScarab {
         uint tribute = getTribute(scarabs[id].amount);
         
         // [2] burns tribute to enable recipient to claim
-        seance.transferFrom(msg.sender, address(outcaster), tribute);
+        seance.transferFrom(msg.sender, address(this), tribute);
+        outcaster.outCast(tribute);
 
         // [3] transfers soul to the sender
         soul.transfer(msg.sender, scarabs[id].amount);
@@ -103,11 +105,9 @@ contract SoulScarab {
         return amount * tributeRate / 100;
     }
     
-    function getDepositsByRecipient(address _recipient) view external returns (uint[] memory) {
-        return depositsByRecipient[_recipient];
-    }
+    function getDepositsByRecipient(address _recipient) view external returns (uint[] memory) { return depositsByRecipient[_recipient]; }
+    function getTotalLockedBalance() view external returns (uint) { return soul.balanceOf(address(this)); }
     
-    function getTotalLockedBalance() view external returns (uint) {
-       return soul.balanceOf(address(this));
-    }
+    function enWei(uint amount) public pure returns (uint) { return amount * 1E18; }
+    function fromWei(uint amount) public pure returns (uint) { return amount / 1E18; }
 }
