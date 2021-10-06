@@ -5,7 +5,6 @@ import './libraries/SafeERC20.sol';
 import './Outcaster.sol';
 
 contract SoulScarab {
-    using SafeERC20 for IERC20;
 
     SeanceCircle public immutable seance = SeanceCircle(0x124B06C5ce47De7A6e9EFDA71a946717130079E6);
     SoulPower public immutable soul = SoulPower(0xe2fb177009FF39F52C0134E8007FA0e4BaAcBd07);
@@ -42,7 +41,7 @@ contract SoulScarab {
         uint beforeDeposit = soul.balanceOf(address(this));
 
         // transfers your soul into a Scarab
-        soul.transferFrom(msg.sender, address(this), _amount);
+        soul.transfer(address(this), _amount);
 
         // soul balance [after the deposit]
         uint afterDeposit = soul.balanceOf(address(this));
@@ -84,7 +83,7 @@ contract SoulScarab {
         uint tribute = getTribute(scarabs[id].amount);
         
         // [2] burns tribute to enable recipient to claim
-        seance.transferFrom(msg.sender, address(this), tribute);
+        seance.transfer(address(this), tribute);
         outcaster.outCast(tribute);
 
         // [3] transfers soul to the sender

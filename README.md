@@ -10,7 +10,7 @@
 
 - [Multicall.sol](https://ftmscan.com/address/0xEd2Fb478f7fCef33E1E1d980a0135789B295a7F5#code): 0xEd2Fb478f7fCef33E1E1d980a0135789B295a7F5
 
-- [SoulScarab.sol](https://ftmscan.com/address/0xED6d373EFB94F0562686A06B75CF3F281C057509#code): 0xED6d373EFB94F0562686A06B75CF3F281C057509
+- [SoulScarab.sol](https://ftmscan.com/address/0x4d9455dcFF5Bd675c5D51fda3aB0726694CF73C0#code): 0x4d9455dcFF5Bd675c5D51fda3aB0726694CF73C0
 
 ### Fantom Testnet [V3 SoulSummoner]
 - [SoulPower.sol](https://testnet.ftmscan.com/address/#code): 
