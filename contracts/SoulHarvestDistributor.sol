@@ -122,7 +122,7 @@ contract SoulHarvestDistributor {
     }
 
     function updateAccountant(address _accountant) public {
-        require(_accountant == accountant, 'only accountant may update');
+        require(msg.sender == accountant, 'only accountant may update');
         
         accountant = _accountant;
 
