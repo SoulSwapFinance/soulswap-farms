@@ -1827,7 +1827,7 @@ contract SoulScarab {
     mapping (address => uint) public walletBalance;
     
     address public manifestor = msg.sender;
-    uint public tributeRate = enWei(10);        // 10%
+    uint public tributeRate = 10;        // 10%
     
     event Withdraw(address recipient, uint amount);
     event ScarabSummoned(uint amount, uint id);
@@ -1843,7 +1843,7 @@ contract SoulScarab {
         uint beforeDeposit = soul.balanceOf(address(this));
 
         // transfers your soul into a Scarab
-        soul.transfer(address(this), _amount);
+        soul.transferFrom(msg.sender, address(this), _amount);
 
         // soul balance [after the deposit]
         uint afterDeposit = soul.balanceOf(address(this));
@@ -1875,7 +1875,7 @@ contract SoulScarab {
     function withdrawTokens(uint id) external {
         require(block.timestamp >= scarabs[id].unlockTimestamp, 'Tokens are still locked.');
         require(msg.sender == scarabs[id].recipient, 'You are not the recipient.');
-        require(scarabs[id].withdrawn, 'Tokens are already withdrawn.');
+        require(!scarabs[id].withdrawn, 'Tokens are already withdrawn.');
         
         scarabs[id].withdrawn = true;
         
@@ -1885,7 +1885,7 @@ contract SoulScarab {
         uint tribute = getTribute(scarabs[id].amount);
         
         // [2] burns tribute to enable recipient to claim
-        seance.transfer(address(this), tribute);
+        seance.transferFrom(msg.sender, address(this), tribute);
         outcaster.outCast(tribute);
 
         // [3] transfers soul to the sender
