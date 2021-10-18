@@ -1814,6 +1814,7 @@ contract SoulScarab {
     Outcaster public immutable outcaster = Outcaster(0xce530f22d82A2437F2fb4b43Df0e1e4fD446f0ff);
 
     struct Scarab {
+        IERC20 token;
         address recipient;
         uint amount;
         uint tribute;
@@ -1823,15 +1824,18 @@ contract SoulScarab {
     
     uint public depositsCount;
     mapping (address => uint[]) public depositsByRecipient;
+    mapping (address => uint[]) private depositsByTokenAddress;
+
     mapping (uint => Scarab) public scarabs;
     mapping (address => uint) public walletBalance;
+    mapping (address => mapping(address => uint)) public walletTokenBalance;
     
-    address public manifestor = msg.sender;
     uint public tributeRate = 10;        // 10%
     
     event Withdraw(address recipient, uint amount);
+    event Repossesed(address recipient, uint amount);
+    event Saved(address recipient, uint amount);
     event ScarabSummoned(uint amount, uint id);
-    event ManifestorUpdated(address manifestor);
         
     function lockSouls(address _recipient, uint _amount, uint _unlockTimestamp) external returns (uint id) {
         require(_amount > 0, 'Insufficient SOUL balance.');
@@ -1854,10 +1858,12 @@ contract SoulScarab {
         // calulates tribute amount
         uint _tribute = getTribute(_amount);
                 
-        walletBalance[msg.sender] += _amount;
+        walletBalance[_recipient] += _amount;
+        walletTokenBalance[address(soul)][_recipient] = walletTokenBalance[address(soul)][_recipient] + _amount;
         
         // create a new id, based off deposit count
         id = ++depositsCount;
+        scarabs[id].token = soul;
         scarabs[id].recipient = _recipient;
         scarabs[id].amount = _amount;
         scarabs[id].tribute = _tribute;
@@ -1865,21 +1871,23 @@ contract SoulScarab {
         scarabs[id].withdrawn = false;
         
         depositsByRecipient[_recipient].push(id);
+        depositsByTokenAddress[address(soul)].push(id);
 
         emit ScarabSummoned(_amount, id);
         
         return id;
     }
     
-    
-    function withdrawTokens(uint id) external {
+    function withdrawTokens(uint id) public {
         require(block.timestamp >= scarabs[id].unlockTimestamp, 'Tokens are still locked.');
         require(msg.sender == scarabs[id].recipient, 'You are not the recipient.');
         require(!scarabs[id].withdrawn, 'Tokens are already withdrawn.');
-        
+        seance.approve(address(this), scarabs[id].amount);
         scarabs[id].withdrawn = true;
         
         walletBalance[msg.sender] -= scarabs[id].amount;
+        walletTokenBalance[address(soul)][msg.sender] -= scarabs[id].amount;
+
 
         // [1] acquires tribute amount
         uint tribute = getTribute(scarabs[id].amount);
@@ -1894,11 +1902,72 @@ contract SoulScarab {
         emit Withdraw(msg.sender, scarabs[id].amount);  
     }
     
-    function setManifestor(address _manifestor) external {
-        require(msg.sender == manifestor, 'You are not the current manifestor');
-        manifestor = _manifestor;
+    function claimUnclaimed(uint id) public {
+        require(block.timestamp >= scarabs[id].unlockTimestamp + 60 days, 'Tokens are still within claims period.');
+        require(!scarabs[id].withdrawn, 'Tokens are already withdrawn.');
+        seance.approve(address(this), scarabs[id].amount);
 
-        emit ManifestorUpdated(manifestor);
+        address recipient = scarabs[id].recipient;
+        walletBalance[recipient] -= scarabs[id].amount;
+        walletTokenBalance[address(soul)][recipient] -= scarabs[id].amount;
+
+        // [1] acquires tribute amount
+        uint tribute = getTribute(scarabs[id].amount);
+        
+        // [2] burns tribute to enable you to claim.
+        seance.transferFrom(msg.sender, address(this), tribute);
+        outcaster.outCast(tribute);
+
+        // [3] transfers soul to the sender.
+        soul.transfer(msg.sender, scarabs[id].amount);
+
+        emit Repossesed(msg.sender, scarabs[id].amount);  
+
+    }
+    
+    function savingGrace(uint id) public {
+        require(block.timestamp >= scarabs[id].unlockTimestamp, 'Tokens are still locked.');
+        require(block.timestamp <= scarabs[id].unlockTimestamp + 90 days, 'Tokens are no longer within claims period.');
+        require(!scarabs[id].withdrawn, 'Tokens are already withdrawn.');
+        seance.approve(address(this), scarabs[id].amount);
+
+        address recipient = scarabs[id].recipient;
+        
+        walletBalance[recipient] -= scarabs[id].amount;
+        walletTokenBalance[address(soul)][recipient] -= scarabs[id].amount;
+
+        // [1] acquires tribute amount.
+        uint tribute = getTribute(scarabs[id].amount);
+        
+        // [2] burns tribute to claim for recipient.
+        seance.transferFrom(msg.sender, address(this), tribute);
+        outcaster.outCast(tribute);
+
+        // [3] transfers soul to the recipient
+        soul.transfer(recipient, scarabs[id].amount);
+
+        emit Saved(recipient, scarabs[id].amount);  
+
+    }
+
+    function claimScarabs(uint count) external {
+        uint[] memory myScarabs = getScarabs();
+        require(count <= 5, 'Cannot exceed 5 claims in one transaction.');
+
+        // for loop: withdraws up to 5.
+        for (uint i = 0; i < count; i++) {
+            if (i < count) {
+                withdrawTokens(myScarabs[i]);
+                i ++;
+                // skip to next iteration with continue
+                continue;
+            }
+
+            if (i > count) {
+                // exit loop with break: when amount limit reached
+                break;
+            }
+        }
     }
 
     function getTribute(uint amount) public view returns (uint fee) {
@@ -1906,7 +1975,9 @@ contract SoulScarab {
         return amount * tributeRate / 100;
     }
     
+    function getDepositsByTokenAddress(address _token) view external returns (uint[] memory) { return depositsByTokenAddress[_token]; }
     function getDepositsByRecipient(address _recipient) view external returns (uint[] memory) { return depositsByRecipient[_recipient]; }
+    function getScarabs() view public returns (uint[] memory) { return depositsByRecipient[msg.sender]; }
     function getTotalLockedBalance() view external returns (uint) { return soul.balanceOf(address(this)); }
     
     function enWei(uint amount) public pure returns (uint) { return amount * 1E18; }
