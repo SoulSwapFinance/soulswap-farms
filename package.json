@@ -6,6 +6,7 @@
     "migrate": "truffle migrate --reset",
     "compile": "truffle compile",
     "flat": "truffle-flattener",
+    "flat:timelock": "truffle-flattener contracts/TimelockController.sol > flats/TimelockController_flat.sol",
     "flat:scarab": "truffle-flattener contracts/SoulScarab.sol > flats/SoulScarab_flat.sol",
     "flat:summoner": "truffle-flattener contracts/SoulSummoner.sol > flats/SoulSummoner_flat.sol",
     "verify": "truffle run verify",  
