@@ -1,11 +1,74 @@
 {
-    "contractName": "Strings",
-    "abi": [],
-    "metadata": "{\"compiler\":{\"version\":\"0.8.0+commit.c7dfd78e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"details\":\"String operations.\",\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"/Users/buns/Documents/GitHub/SoulSwapFinance/soulswap-farms/flats/SoulPowerMulti_flat.sol\":\"Strings\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/buns/Documents/GitHub/SoulSwapFinance/soulswap-farms/flats/SoulPowerMulti_flat.sol\":{\"keccak256\":\"0x7c312582ab91daeaa1950b83da944b94ec5513ffe83a25be237d0451c94625fe\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ac82bc1033c94ff2c664f29a20a0d4857f474bd948326063d025473b6076c5f0\",\"dweb:/ipfs/QmZoBAg2SijbQ6mboGDcugN8ARZQ9AgYCB4ZLTAN8Cmgze\"]}},\"version\":1}",
-    "bytecode": "60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220cc9ba33fac9ba4356b4d58a24557ef1a63fdb8c4e7488232c7056e3e40f27e1164736f6c63430008000033",
-    "deployedBytecode": "73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220cc9ba33fac9ba4356b4d58a24557ef1a63fdb8c4e7488232c7056e3e40f27e1164736f6c63430008000033",
-    "sourceMap": "6777:1913:0:-:0;;;;;;;;;;;;;;;-1:-1:-1;;;6777:1913:0;;;;;;;;;;;;;;;;;",
-    "deployedSourceMap": "6777:1913:0:-:0;;;;;;;;",
+    "contractName": "IERC2612",
+    "abi": [
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "owner",
+                    "type": "address"
+                }
+            ],
+            "name": "nonces",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "owner",
+                    "type": "address"
+                },
+                {
+                    "internalType": "address",
+                    "name": "spender",
+                    "type": "address"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "deadline",
+                    "type": "uint256"
+                },
+                {
+                    "internalType": "uint8",
+                    "name": "v",
+                    "type": "uint8"
+                },
+                {
+                    "internalType": "bytes32",
+                    "name": "r",
+                    "type": "bytes32"
+                },
+                {
+                    "internalType": "bytes32",
+                    "name": "s",
+                    "type": "bytes32"
+                }
+            ],
+            "name": "permit",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+    ],
+    "metadata": "{\"compiler\":{\"version\":\"0.8.0+commit.c7dfd78e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"nonces\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"uint8\",\"name\":\"v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"s\",\"type\":\"bytes32\"}],\"name\":\"permit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Interface of the ERC2612 standard as defined in the EIP. Adds the {permit} method, which can be used to change one's {IERC20-allowance} without having to send a transaction, by signing a message. This allows users to spend tokens without having to hold Ether. See https://eips.ethereum.org/EIPS/eip-2612.\",\"kind\":\"dev\",\"methods\":{\"nonces(address)\":{\"details\":\"Returns the current ERC2612 nonce for `owner`. This value must be included whenever a signature is generated for {permit}. Every successful call to {permit} increases ``owner``'s nonce by one. This prevents a signature from being used multiple times.\"},\"permit(address,address,uint256,uint256,uint8,bytes32,bytes32)\":{\"details\":\"Sets `amount` as the allowance of `spender` over `owner`'s tokens, given `owner`'s signed approval. IMPORTANT: The same issues {IERC20-approve} has related to transaction ordering also apply here. Emits an {Approval} event. Requirements: - `owner` cannot be the zero address. - `spender` cannot be the zero address. - `deadline` must be a timestamp in the future. - `v`, `r` and `s` must be a valid `secp256k1` signature from `owner` over the EIP712-formatted function arguments. - the signature must use ``owner``'s current nonce (see {nonces}). For more information on the signature format, see the https://eips.ethereum.org/EIPS/eip-2612#specification[relevant EIP section].\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"/Users/buns/Documents/GitHub/SoulSwapFinance/soulswap-farms/flats/SoulPowerMulti_flat.sol\":\"IERC2612\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"/Users/buns/Documents/GitHub/SoulSwapFinance/soulswap-farms/flats/SoulPowerMulti_flat.sol\":{\"keccak256\":\"0x7c312582ab91daeaa1950b83da944b94ec5513ffe83a25be237d0451c94625fe\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ac82bc1033c94ff2c664f29a20a0d4857f474bd948326063d025473b6076c5f0\",\"dweb:/ipfs/QmZoBAg2SijbQ6mboGDcugN8ARZQ9AgYCB4ZLTAN8Cmgze\"]}},\"version\":1}",
+    "bytecode": "",
+    "deployedBytecode": "",
+    "sourceMap": "",
+    "deployedSourceMap": "",
     "sourcePath": "/Users/buns/Documents/GitHub/SoulSwapFinance/soulswap-farms/flats/SoulPowerMulti_flat.sol",
     "compiler": {
         "name": "solc",
@@ -27956,17 +28019,9 @@
         ],
         "src": "89:39987:0"
     },
-    "functionHashes": {},
-    "gasEstimates": {
-        "creation": {
-            "codeDepositCost": "17200",
-            "executionCost": "103",
-            "totalCost": "17303"
-        },
-        "internal": {
-            "toHexString(uint256)": "infinite",
-            "toHexString(uint256,uint256)": "infinite",
-            "toString(uint256)": "infinite"
-        }
-    }
+    "functionHashes": {
+        "nonces(address)": "7ecebe00",
+        "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)": "d505accf"
+    },
+    "gasEstimates": null
 }

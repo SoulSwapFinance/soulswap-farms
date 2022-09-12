@@ -20,7 +20,6 @@
 // //     await seance.deployed();
 
 // //     expect(await seance.address).to.equal(seance.address);
-
 // //   });
 // // });
 
