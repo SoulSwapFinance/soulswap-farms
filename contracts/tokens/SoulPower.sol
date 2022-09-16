@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import './libraries/ERC20.sol';
+import '../libraries/ERC20.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 
 contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {

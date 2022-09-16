@@ -10,10 +10,10 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
-import './libraries/ERC20.sol';
+import '../libraries/ERC20.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
-import './interfaces/ISummoner.sol';
+import '../interfaces/ISummoner.sol';
 
 contract SoulVault is Ownable, Pausable {
 
@@ -249,7 +249,7 @@ contract SoulVault is Ownable, Pausable {
 
     // returns: total underlying soul | vault + soul summoner (view)
     function balanceOf() public view returns (uint) {
-        (uint amount, ) = ISummoner(summoner).userInfo(0, address(this));
+        (uint amount, , , , , ,) = ISummoner(summoner).userInfo(0, address(this));
         return soul.balanceOf(address(this)) + amount;
     }
 

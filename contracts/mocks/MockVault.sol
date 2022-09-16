@@ -250,7 +250,7 @@ contract MockVault is Ownable, Pausable {
 
     // returns: total underlying soul | vault + soul summoner (view)
     function balanceOf() public view returns (uint) {
-        (uint amount, ) = ISummoner(summoner).userInfo(0, address(this));
+        (uint amount, , , , , ,) = ISummoner(summoner).userInfo(0, address(this));
         return soul.balanceOf(address(this)) + amount;
     }
 

@@ -3,10 +3,10 @@
 // P1 - P3: OK
 pragma solidity ^0.8.0;
 
-import './libraries/SafeERC20.sol';
+import '../libraries/SafeERC20.sol';
 import '@soulswap/swap-core/contracts/interfaces/ISoulSwapPair.sol';
 import '@soulswap/swap-core/contracts/interfaces/ISoulSwapFactory.sol';
-import './libraries/Operable.sol';
+import '../libraries/Operable.sol';
 
 // SoulReaper is SoulSummoner's most generous wizard. SoulReaper may reap up Soul from pretty much anything!
 // This contract handles 'serving up' rewards for SpellBound holders by trading tokens collected from fees for Soul.

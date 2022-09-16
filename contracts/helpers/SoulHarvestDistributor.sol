@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-import './interfaces/ISummoner.sol';
+import '../interfaces/ISummoner.sol';
 
 pragma solidity ^0.8.0;
 
