@@ -5,15 +5,14 @@
   "scripts": {
     "migrate": "truffle migrate --reset",
     "compile": "truffle compile",
-
+    "size": "truffle run contract-size",
     "flat": "truffle-flattener",
     "flat:soulV2": "truffle-flattener contracts/tokens/SoulPowerAny.sol > flats/SoulPowerAny_flat.sol",
     "flat:seanceV2": "truffle-flattener contracts/tokens/SeanceCircleV2.sol > flats/SeanceCircleV2_flat.sol",
-
-    "verify": "truffle run verify",  
+    "flat:manifestor": "truffle-flattener contracts/rewards/SoulManifester.sol > flats/SoulManifester_flat.sol",
+    "verify": "truffle run verify",
     "verify:summoner": "truffle run verify SoulSummoner --network testnet --license SPDX-License-Identifier",
-
-    "test": "npx hardhat test test/SoulSummoner.test.js",
+    "test": "npx hardhat test test/SoulManifester.test.js",
     "test:soulAny": "npx hardhat test test/SoulPowerAny.test.js",
     "test:seance": "npx hardhat test test/SoulSummoner.seance.test.js",
     "test:read": "npx hardhat test test/SoulSummoner.read.test.js",
@@ -35,6 +34,7 @@
     "hardhat": "^2.3.0",
     "solc": "^0.8.0",
     "truffle": "^5.3.4",
+    "truffle-contract-size": "^2.0.1",
     "truffle-flattener": "^1.5.0",
     "truffle-hdwallet-provider-privkey": "^0.3.0"
   },

@@ -30,7 +30,7 @@
   "sourceMap": "",
   "deployedSourceMap": "",
   "source": "// SPDX-License-Identifier: MIT\n\nimport '@openzeppelin/contracts/token/ERC20/IERC20.sol';\n\npragma solidity ^0.8.0;\n\ninterface IMigrator {\n    // Perform LP token migration from legacy.\n    // Take the current LP token address and return the new LP token address.\n    // Migrator should have full access to the caller's LP token.\n    // Return the new LP token address.\n\n    function migrate(IERC20 token) external returns (IERC20);\n}\n",
-  "sourcePath": "/Users/unico/Documents/GitHub/soulswap/soulswap-farms/contracts/interfaces/IMigrator.sol",
+  "sourcePath": "/Users/buns/Documents/GitHub/SoulSwapFinance/soulswap-farms/contracts/interfaces/IMigrator.sol",
   "ast": {
     "absolutePath": "project:/contracts/interfaces/IMigrator.sol",
     "exportedSymbols": {
@@ -38,26 +38,26 @@
         1239
       ],
       "IMigrator": [
-        16468
+        11514
       ]
     },
-    "id": 16469,
+    "id": 11515,
     "license": "MIT",
     "nodeType": "SourceUnit",
     "nodes": [
       {
         "absolutePath": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
         "file": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-        "id": 16457,
+        "id": 11503,
         "nodeType": "ImportDirective",
-        "scope": 16469,
+        "scope": 11515,
         "sourceUnit": 1240,
-        "src": "33:56:24",
+        "src": "33:56:19",
         "symbolAliases": [],
         "unitAlias": ""
       },
       {
-        "id": 16458,
+        "id": 11504,
         "literals": [
           "solidity",
           "^",
@@ -65,7 +65,7 @@
           ".0"
         ],
         "nodeType": "PragmaDirective",
-        "src": "91:23:24"
+        "src": "91:23:19"
       },
       {
         "abstract": false,
@@ -73,33 +73,33 @@
         "contractDependencies": [],
         "contractKind": "interface",
         "fullyImplemented": false,
-        "id": 16468,
+        "id": 11514,
         "linearizedBaseContracts": [
-          16468
+          11514
         ],
         "name": "IMigrator",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "functionSelector": "ce5494bb",
-            "id": 16467,
+            "id": 11513,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
             "name": "migrate",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 16462,
+              "id": 11508,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 16461,
+                  "id": 11507,
                   "mutability": "mutable",
                   "name": "token",
                   "nodeType": "VariableDeclaration",
-                  "scope": 16467,
-                  "src": "391:12:24",
+                  "scope": 11513,
+                  "src": "391:12:19",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -107,17 +107,17 @@
                     "typeString": "contract IERC20"
                   },
                   "typeName": {
-                    "id": 16460,
+                    "id": 11506,
                     "nodeType": "UserDefinedTypeName",
                     "pathNode": {
-                      "id": 16459,
+                      "id": 11505,
                       "name": "IERC20",
                       "nodeType": "IdentifierPath",
                       "referencedDeclaration": 1239,
-                      "src": "391:6:24"
+                      "src": "391:6:19"
                     },
                     "referencedDeclaration": 1239,
-                    "src": "391:6:24",
+                    "src": "391:6:19",
                     "typeDescriptions": {
                       "typeIdentifier": "t_contract$_IERC20_$1239",
                       "typeString": "contract IERC20"
@@ -126,20 +126,20 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "390:14:24"
+              "src": "390:14:19"
             },
             "returnParameters": {
-              "id": 16466,
+              "id": 11512,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 16465,
+                  "id": 11511,
                   "mutability": "mutable",
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 16467,
-                  "src": "423:6:24",
+                  "scope": 11513,
+                  "src": "423:6:19",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -147,17 +147,17 @@
                     "typeString": "contract IERC20"
                   },
                   "typeName": {
-                    "id": 16464,
+                    "id": 11510,
                     "nodeType": "UserDefinedTypeName",
                     "pathNode": {
-                      "id": 16463,
+                      "id": 11509,
                       "name": "IERC20",
                       "nodeType": "IdentifierPath",
                       "referencedDeclaration": 1239,
-                      "src": "423:6:24"
+                      "src": "423:6:19"
                     },
                     "referencedDeclaration": 1239,
-                    "src": "423:6:24",
+                    "src": "423:6:19",
                     "typeDescriptions": {
                       "typeIdentifier": "t_contract$_IERC20_$1239",
                       "typeString": "contract IERC20"
@@ -166,20 +166,20 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "422:8:24"
+              "src": "422:8:19"
             },
-            "scope": 16468,
-            "src": "374:57:24",
+            "scope": 11514,
+            "src": "374:57:19",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 16469,
-        "src": "116:317:24"
+        "scope": 11515,
+        "src": "116:317:19"
       }
     ],
-    "src": "33:401:24"
+    "src": "33:401:19"
   },
   "legacyAST": {
     "absolutePath": "project:/contracts/interfaces/IMigrator.sol",
@@ -188,26 +188,26 @@
         1239
       ],
       "IMigrator": [
-        16468
+        11514
       ]
     },
-    "id": 16469,
+    "id": 11515,
     "license": "MIT",
     "nodeType": "SourceUnit",
     "nodes": [
       {
         "absolutePath": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
         "file": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
-        "id": 16457,
+        "id": 11503,
         "nodeType": "ImportDirective",
-        "scope": 16469,
+        "scope": 11515,
         "sourceUnit": 1240,
-        "src": "33:56:24",
+        "src": "33:56:19",
         "symbolAliases": [],
         "unitAlias": ""
       },
       {
-        "id": 16458,
+        "id": 11504,
         "literals": [
           "solidity",
           "^",
@@ -215,7 +215,7 @@
           ".0"
         ],
         "nodeType": "PragmaDirective",
-        "src": "91:23:24"
+        "src": "91:23:19"
       },
       {
         "abstract": false,
@@ -223,33 +223,33 @@
         "contractDependencies": [],
         "contractKind": "interface",
         "fullyImplemented": false,
-        "id": 16468,
+        "id": 11514,
         "linearizedBaseContracts": [
-          16468
+          11514
         ],
         "name": "IMigrator",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "functionSelector": "ce5494bb",
-            "id": 16467,
+            "id": 11513,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
             "name": "migrate",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 16462,
+              "id": 11508,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 16461,
+                  "id": 11507,
                   "mutability": "mutable",
                   "name": "token",
                   "nodeType": "VariableDeclaration",
-                  "scope": 16467,
-                  "src": "391:12:24",
+                  "scope": 11513,
+                  "src": "391:12:19",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -257,17 +257,17 @@
                     "typeString": "contract IERC20"
                   },
                   "typeName": {
-                    "id": 16460,
+                    "id": 11506,
                     "nodeType": "UserDefinedTypeName",
                     "pathNode": {
-                      "id": 16459,
+                      "id": 11505,
                       "name": "IERC20",
                       "nodeType": "IdentifierPath",
                       "referencedDeclaration": 1239,
-                      "src": "391:6:24"
+                      "src": "391:6:19"
                     },
                     "referencedDeclaration": 1239,
-                    "src": "391:6:24",
+                    "src": "391:6:19",
                     "typeDescriptions": {
                       "typeIdentifier": "t_contract$_IERC20_$1239",
                       "typeString": "contract IERC20"
@@ -276,20 +276,20 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "390:14:24"
+              "src": "390:14:19"
             },
             "returnParameters": {
-              "id": 16466,
+              "id": 11512,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 16465,
+                  "id": 11511,
                   "mutability": "mutable",
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 16467,
-                  "src": "423:6:24",
+                  "scope": 11513,
+                  "src": "423:6:19",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -297,17 +297,17 @@
                     "typeString": "contract IERC20"
                   },
                   "typeName": {
-                    "id": 16464,
+                    "id": 11510,
                     "nodeType": "UserDefinedTypeName",
                     "pathNode": {
-                      "id": 16463,
+                      "id": 11509,
                       "name": "IERC20",
                       "nodeType": "IdentifierPath",
                       "referencedDeclaration": 1239,
-                      "src": "423:6:24"
+                      "src": "423:6:19"
                     },
                     "referencedDeclaration": 1239,
-                    "src": "423:6:24",
+                    "src": "423:6:19",
                     "typeDescriptions": {
                       "typeIdentifier": "t_contract$_IERC20_$1239",
                       "typeString": "contract IERC20"
@@ -316,20 +316,20 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "422:8:24"
+              "src": "422:8:19"
             },
-            "scope": 16468,
-            "src": "374:57:24",
+            "scope": 11514,
+            "src": "374:57:19",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 16469,
-        "src": "116:317:24"
+        "scope": 11515,
+        "src": "116:317:19"
       }
     ],
-    "src": "33:401:24"
+    "src": "33:401:19"
   },
   "compiler": {
     "name": "solc",
@@ -337,7 +337,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.1",
-  "updatedAt": "2021-09-16T16:33:08.466Z",
+  "updatedAt": "2022-09-18T14:11:59.243Z",
   "devdoc": {
     "kind": "dev",
     "methods": {},

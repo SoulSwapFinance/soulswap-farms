@@ -35,7 +35,8 @@ module.exports = {
       }
     },
     plugins: [
-      'truffle-plugin-verify'
+      'truffle-plugin-verify',
+      'truffle-contract-size'
     ],
     api_keys: {
       etherscan: process.env.ETHERSCAN_API_KEY
@@ -43,6 +44,12 @@ module.exports = {
     compilers: {
       solc: {
         version: "0.8.0"
+      }
+    },
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
       }
     }
 };

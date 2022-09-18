@@ -12,5 +12,5 @@
 
 ## Avalanche Mainnet
 - [SoulPower.sol](https://ftmscan.com/address/0x11d6DD25c1695764e64F439E32cc7746f3945543#code): 0x11d6DD25c1695764e64F439E32cc7746f3945543
-- [SeanceCircle.sol](https://ftmscan.com/address/#code): 
+- [SeanceCircle.sol](https://ftmscan.com/address/0xB641880C65A33605fc5a4F8b955a868a98D4a58e#code): 
 - [SoulSummoner.sol](https://ftmscan.com/address/#code):
