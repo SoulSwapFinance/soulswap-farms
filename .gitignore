@@ -111,3 +111,6 @@ artifacts
 .DS_Store
 *.bin.icloud
 *.icloud
+
+# Compilation files
+*bin

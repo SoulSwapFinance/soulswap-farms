@@ -5,14 +5,16 @@
   "scripts": {
     "migrate": "truffle migrate --reset",
     "compile": "truffle compile",
+
     "flat": "truffle-flattener",
-    "flat:multi": "truffle-flattener contracts/SoulPowerMulti.sol > flats/SoulPowerMulti_flat.sol",
-    "flat:timelock": "truffle-flattener contracts/TimelockController.sol > flats/TimelockController_flat.sol",
-    "flat:scarab": "truffle-flattener contracts/SoulScarab.sol > flats/SoulScarab_flat.sol",
-    "flat:summoner": "truffle-flattener contracts/SoulSummoner.sol > flats/SoulSummoner_flat.sol",
+    "flat:soulV2": "truffle-flattener contracts/tokens/SoulPowerAny.sol > flats/SoulPowerAny_flat.sol",
+    "flat:seanceV2": "truffle-flattener contracts/tokens/SeanceCircleV2.sol > flats/SeanceCircleV2_flat.sol",
+
     "verify": "truffle run verify",  
     "verify:summoner": "truffle run verify SoulSummoner --network testnet --license SPDX-License-Identifier",
+
     "test": "npx hardhat test test/SoulSummoner.test.js",
+    "test:soulAny": "npx hardhat test test/SoulPowerAny.test.js",
     "test:seance": "npx hardhat test test/SoulSummoner.seance.test.js",
     "test:read": "npx hardhat test test/SoulSummoner.read.test.js",
     "coverage": "npx hardhat coverage"

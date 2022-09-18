@@ -16,7 +16,6 @@ module.exports = {
           return new HDWalletProvider(
             privateKeys.split(','), // Array of account private keys
             )
-            //`https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`// URL to an Ethereum Node
             `http://rpc.testnet.fantom.network`// URL to an Ethereum Node
         },
         gas: 5000000,
@@ -28,7 +27,6 @@ module.exports = {
           return new HDWalletProvider(
             privateKeys.split(','), // Array of account private keys
             )
-            //`https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`// URL to an Ethereum Node
             `https://rpc.fantom.tools`// URL to an Ethereum Node
         },
         gas: 5000000,
