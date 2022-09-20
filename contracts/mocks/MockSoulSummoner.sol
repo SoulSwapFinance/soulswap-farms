@@ -331,7 +331,7 @@ contract MockSoulSummoner is AccessControl, Pausable, ReentrancyGuard {
 
     // view: bonus multiplier (public)
     function getMultiplier(uint from, uint to) public view returns (uint) {
-        return (to - from) * bonusMultiplier; // todo: minus parens
+        return (to - from) * bonusMultiplier;
     }
 
     // returns: decay rate for a pid

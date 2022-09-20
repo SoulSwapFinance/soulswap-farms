@@ -265,7 +265,7 @@ contract SoulSummonerFantom is AccessControl, Pausable, ReentrancyGuard {
 
     // view: bonus multiplier (public view)
     function getMultiplier(uint from, uint to) public view returns (uint) {
-        return (to - from) * bonusMultiplier; // todo: minus parens
+        return (to - from) * bonusMultiplier;
     }
 
     // returns: decay rate for a pid (public view)
