@@ -975,7 +975,7 @@ interface IMigrator {
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract SoulSummoner is AccessControl, Pausable, ReentrancyGuard {
+contract SoulSummonerTestnet is AccessControl, Pausable, ReentrancyGuard {
 
     // user info
     struct Users {
