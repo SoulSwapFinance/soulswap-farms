@@ -8,7 +8,7 @@ module.exports = {
   networks: {
       development: {
         host: "127.0.0.1",
-        port: 8020,
+        port: 7545,
         network_id: "*"
       },
       testnet: {
@@ -16,22 +16,23 @@ module.exports = {
           return new HDWalletProvider(
             privateKeys.split(','), // Array of account private keys
             )
-            `http://rpc.testnet.fantom.network`// URL to an Ethereum Node
+            // `http://rpc.testnet.fantom.network`// URL to Blockchain Node
+            `https://api.avax-test.network/ext/C/rpc`// URL to Blockchain Node
         },
         gas: 5000000,
         gasPrice: 25000000000,
-        network_id: 4002
+        network_id: 43113
       },
       fantom: {
         provider: function() {
           return new HDWalletProvider(
             privateKeys.split(','), // Array of account private keys
             )
-            `https://rpc.fantom.tools`// URL to an Ethereum Node
+            `https://api.avax.network/ext/bc/C/rpc`// URL to Blockchain Node
         },
         gas: 5000000,
         gasPrice: 25000000000,
-        network_id: 250
+        network_id: 43114
       }
     },
     plugins: [

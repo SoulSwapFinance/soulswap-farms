@@ -970,12 +970,12 @@ interface IMigrator {
     function migrate(IERC20 token) external returns (IERC20);
 }
 
-// File: contracts/SoulSummoner.sol
+// File: contracts/SoulSummonerFantom.sol
 
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract SoulSummoner is AccessControl, Pausable, ReentrancyGuard {
+contract SoulSummonerFantom is AccessControl, Pausable, ReentrancyGuard {
 
     // user info
     struct Users {

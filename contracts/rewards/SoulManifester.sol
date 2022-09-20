@@ -45,8 +45,9 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     address private seanceAddress;
     IToken public seance;
 
-    address public team;        // receives 1/8 supply
-    address public dao;         // recieves 1/8 supply
+    address public supreme = msg.sender;        // I.AM.SHE.
+    address public team;                        // receives 1/8 supply
+    address public dao;                         // recieves 1/8 supply
 
     // rewarder variables: used to calculate share of overall emissions.
     uint public totalWeight;
@@ -133,14 +134,13 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     event DepositRevised(uint pid, address account, uint timestamp);
     event EmergencyWithdraw(address indexed user, uint indexed pid, uint amount);
 
-    // channels the power of isis & ma'at
+    // channels: power to the divine goddesses isis & ma'at
     constructor() {
-        address supreme = msg.sender;
         team = supreme;
         dao = supreme;
 
-        isis = keccak256("isis"); // goddess of magic who creates pools
-        maat = keccak256("maat"); // goddess of cosmic order who allocates emissions
+        isis = keccak256("isis"); // goddess of magic (who creates pools)
+        maat = keccak256("maat"); // goddess of cosmic order (who allocates emissions)
 
         _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, supreme);
         _divinationCeremony(isis, isis, supreme); // isis role created -- supreme divined admin
@@ -148,8 +148,8 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     } 
 
     function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) internal returns (bool) {
-            _setupRole(_role, _account);
-            _setRoleAdmin(_role, _adminRole);
+        _setupRole(_role, _account);
+        _setRoleAdmin(_role, _adminRole);
         return true;
     }
 
@@ -215,6 +215,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     // add: new pool created by the soul summoning goddess whose power transcends all (isis)
     function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _feeDays) public isActive obey(isis) { 
             checkPoolDuplicate(_lpToken);
+            require(_feeDays <= maxFeeDays, 'feeDays may not exceed the maximum of 100 days');
 
             _addPool(_allocPoint, _lpToken, _withUpdate, _feeDays);
     }

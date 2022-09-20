@@ -11,7 +11,9 @@ describe('SoulManifester', () => {
   const ONE_DAY = 86_400
   const ONE_WEEK = 604_800
   const TWO_WEEKS = 1_209_600 
-
+  
+  const ONE_THOUSAND = toWei(1_000)
+  const TEN_THOUSAND = toWei(10_000)
   const HUNDRED_THOUSAND = toWei(100_000)
 
   beforeEach(async () => {
@@ -19,7 +21,7 @@ describe('SoulManifester', () => {
     // fetch and store contracts 
     SoulPower = await ethers.getContractFactory('MockSoulPower')
     SeanceCircle = await ethers.getContractFactory('MockSeanceCircle')
-    Summoner = await ethers.getContractFactory('MockSoulManifester')
+    Manifester = await ethers.getContractFactory('MockSoulManifester')
     LPToken = await ethers.getContractFactory('MockToken')
     
     provider =  await ethers.provider
@@ -33,9 +35,9 @@ describe('SoulManifester', () => {
     seance = await SeanceCircle.deploy()
     await seance.deployed()
     
-    summoner = await Summoner.deploy()
-    await summoner.deployed()
-    await summoner.toggleActive(true)
+    manifester = await Manifester.deploy()
+    await manifester.deployed()
+    await manifester.toggleActive(true)
     
     lpToken = await LPToken.deploy()
     await lpToken.deployed()
@@ -46,24 +48,27 @@ describe('SoulManifester', () => {
     const SOUL = soul.address
     const SEANCE = seance.address
         
-    // initialize and grant roles
-    await soul.grantRole(THOTH, summoner.address)
+    // initialize & grant roles
+    await soul.grantRole(THOTH, manifester.address)
     // console.log('%s role granted', "THOTH")
     
-    await seance.addOperator(summoner.address)
+    await seance.addOperator(manifester.address)
     // console.log('operator added')
 
     await seance.initialize(SOUL)    
-    // console.log('initialized: seance') 
+    console.log('initialized: seance') 
     
-    await summoner.initialize(
+    await manifester.initialize(
       SOUL,     // soul address
       SEANCE,   // seance address
-      1_000)    // weight
+      1_000    // weight
+    )
+
+    let MANIFESTER = await manifester.address
 
     // approve, and mint lp and burn excess soul
-    await soul.approve(summoner.address, HUNDRED_THOUSAND)
-    await lpToken.approve(summoner.address, HUNDRED_THOUSAND)
+    await soul.approve(manifester.address, HUNDRED_THOUSAND)
+    await lpToken.approve(manifester.address, HUNDRED_THOUSAND)
 
     // mint core lpTokens
     await lpToken.mint(HUNDRED_THOUSAND)
@@ -78,54 +83,54 @@ describe('SoulManifester', () => {
     await soul.mint(operator, newSupply)
 
     // [operator] enter staking
-    // await summoner.enterStaking(HUNDRED_THOUSAND)
-    // soulUserStaked = await soul.balanceOf(summoner.address)
+    // await manifester.enterStaking(HUNDRED_THOUSAND)
+    // soulUserStaked = await soul.balanceOf(manifester.address)
     // console.log('[user] staked %s SOUL', fromWei(soulUserStaked))
   })
 
     // deposit test
     describe('review: balances and rewards', function() {
-      it('should return 10,000 SOUL in the summoner', async function() {
-        // console.log('summoner soul bal', fromWei(soulUserStaked))
-        expect(await soul.balanceOf(summoner.address)).to.equal(HUNDRED_THOUSAND)
-      })
+      // it('should return 10,000 SOUL in the manifester', async function() {
+        // console.log('manifester soul bal', fromWei(soulUserStaked))
+        // expect(await soul.balanceOf(MANIFESTER)).to.equal(HUNDRED_THOUSAND)
+      // })
 
       // it('should return [D1] rewards balances of ~250K', async function() {
       // increaseTime(ONE_DAY) // ff 1 day
-      // dayOneRewards = await summoner.pendingSoul(0, operator)
+      // dayOneRewards = await manifester.pendingSoul(0, operator)
       // // console.log('D1 Rewards %s: ', fromWei(dayOneRewards))
-      // expect(await summoner.pendingSoul(0, operator)).to.equal(dayOneRewards)
+      // expect(await manifester.pendingSoul(0, operator)).to.equal(dayOneRewards)
       // })
 
       // it('should return [D2] rewards balances of ~500K', async function() {
       // await increaseTime(172_800) // ff 2 days
-      // dayTwoRewards = await summoner.pendingSoul(0, operator)
+      // dayTwoRewards = await manifester.pendingSoul(0, operator)
       // // console.log('D2 Rewards %s: ', fromWei(dayTwoRewards))
-      // expect(await summoner.pendingSoul(0, operator)).to.equal(dayTwoRewards)
+      // expect(await manifester.pendingSoul(0, operator)).to.equal(dayTwoRewards)
       // })
   })
 
 // /*/ POOLS: Creation /*/
 //   describe('review: adding pairs', function() {
 //     it('should [still] have 250K rewards total', async function() {
-//       await summoner.addPool(500, lpToken.address, true)
+//       await manifester.addPool(500, lpToken.address, true)
 //       // console.log('added FUSD-PAIR: %s', '5x')
 //       // console.log('added ETH-PAIR: %s', '5x')
-//       totalPools = await summoner.poolLength()
+//       totalPools = await manifester.poolLength()
 
 //       expect(await totalPools).to.equal(2)
 //       // console.log('total pools: %s', totalPools)
       
-//       await summoner.deposit(1, HUNDRED_THOUSAND)
+//       await manifester.deposit(1, HUNDRED_THOUSAND)
 //       // console.log('deposited: %s FUSD-PAIR', HUNDRED_THOUSAND)
 //       // console.log('deposited: %s ETH-PAIR', HUNDRED_THOUSAND)
 
 //       await increaseTime(ONE_DAY) // 1 day
 
-//       pendingSoulRewards = await summoner.pendingSoul(0, provider)
+//       pendingSoulRewards = await manifester.pendingSoul(0, provider)
 //       console.log('PID(0) Rewards: %s SOUL', fromWei(pendingSoulRewards))
 
-//       pendingSoulLP = await summoner.pendingSoul(1, provider)
+//       pendingSoulLP = await manifester.pendingSoul(1, provider)
 //       console.log('LP Rewards: %s SOUL', fromWei(pendingSoulLP))
       
 //       totalPendingRewards = pendingSoulRewards.add(pendingSoulLP)
@@ -141,9 +146,9 @@ describe('SoulManifester', () => {
 //     })
 
 //     it('prevents redundant pool', async function() {
-//       await summoner.addPool(1_000, lpToken.address, true)
+//       await manifester.addPool(1_000, lpToken.address, true)
 //       // expect duplicates to revert
-//       await expect(summoner.addPool(1_000, lpToken.address, true)
+//       await expect(manifester.addPool(1_000, lpToken.address, true)
 //       ).to.be.revertedWith('duplicated pool')
 //     })
 //   })
@@ -156,11 +161,11 @@ describe('SoulManifester', () => {
 //       console.log('soul bal: %s', fromWei(preWithdrawalBalance))
 
 //       SOUL_TO_UNSTAKE = HUNDRED_THOUSAND
-//       rawPendingRewards = await summoner.pendingSoul(0, operator)
+//       rawPendingRewards = await manifester.pendingSoul(0, operator)
 //       PENDING_REWARDS = rawPendingRewards.mul(3e12).div(4e12) // 75% of share to miners
 //       console.log('user pending rewards: %s', fromWei(PENDING_REWARDS))
 
-//       await summoner.leaveStaking(SOUL_TO_UNSTAKE)
+//       await manifester.leaveStaking(SOUL_TO_UNSTAKE)
       
 //       console.log('withdrew %s SOUL', fromWei(SOUL_TO_UNSTAKE))
 //       userBalance = await soul.balanceOf(operator)
@@ -183,14 +188,14 @@ describe('SoulManifester', () => {
 //     })
 
 //     it('should withdraw 87% LP staked on D1', async function() {
-//       await summoner.addPool(500, lpToken.address, true)
+//       await manifester.addPool(500, lpToken.address, true)
 //       // console.log('added FTM-PAIR: %s', '5x')
-//       totalPools = await summoner.poolLength()
+//       totalPools = await manifester.poolLength()
 
 //       expect(await totalPools).to.equal(2)
 //       // console.log('total pools: %s', totalPools)
       
-//       await summoner.deposit(1, HUNDRED_THOUSAND)
+//       await manifester.deposit(1, HUNDRED_THOUSAND)
 //       console.log('deposited: %s FTM-PAIR', HUNDRED_THOUSAND)
       
 //       await increaseTime(ONE_DAY) // ff 1 days
@@ -199,7 +204,7 @@ describe('SoulManifester', () => {
 //       console.log('[operator] pre-bal: %s', fromWei(preWithdrawalBalance))
 
 //       LP_TO_UNSTAKE = HUNDRED_THOUSAND
-//       await summoner.withdraw(1, LP_TO_UNSTAKE)
+//       await manifester.withdraw(1, LP_TO_UNSTAKE)
 //       console.log('[operator] unstaked: %s LP', fromWei(LP_TO_UNSTAKE))
 
 //       userNewBalance = await lpToken.balanceOf(operator) // ensures balance is cleared
@@ -213,14 +218,14 @@ describe('SoulManifester', () => {
 
 //     it('[1W] should withdraw 93K LP', async function() {
 
-//       await summoner.addPool(500, lpToken.address, true)
+//       await manifester.addPool(500, lpToken.address, true)
 //       // console.log('added FTM-PAIR: %s', '5x')
-//       totalPools = await summoner.poolLength()
+//       totalPools = await manifester.poolLength()
 
 //       expect(await totalPools).to.equal(2)
 //       // console.log('total pools: %s', totalPools)
       
-//       await summoner.deposit(1, HUNDRED_THOUSAND)
+//       await manifester.deposit(1, HUNDRED_THOUSAND)
 //       console.log('[operator] deposited: %s FTM-PAIR', HUNDRED_THOUSAND)
 
 //       await increaseTime(ONE_WEEK) // ff 7 days
@@ -229,7 +234,7 @@ describe('SoulManifester', () => {
 //       PRE_BALANCE = await lpToken.balanceOf(operator) // ensures balance is cleared
 //       console.log('[operator] LP pre-bal: %s', fromWei(PRE_BALANCE))
       
-//       await summoner.withdraw(1, HUNDRED_THOUSAND)
+//       await manifester.withdraw(1, HUNDRED_THOUSAND)
 //       POST_BALANCE = await lpToken.balanceOf(operator) // ensures balance is cleared
 //       console.log('[operator] LP post-bal: %s', fromWei(POST_BALANCE))
 
@@ -239,14 +244,14 @@ describe('SoulManifester', () => {
 
 //     it('[2W] should withdraw 100% LP', async function() {
       
-//       await summoner.addPool(500, lpToken.address, true)
+//       await manifester.addPool(500, lpToken.address, true)
 //       // console.log('added FTM-PAIR: %s', '5x')
-//       totalPools = await summoner.poolLength()
+//       totalPools = await manifester.poolLength()
 
 //       expect(await totalPools).to.equal(2)
 //       // console.log('total pools: %s', totalPools)
       
-//       await summoner.deposit(1, HUNDRED_THOUSAND)
+//       await manifester.deposit(1, HUNDRED_THOUSAND)
 //       console.log('[operator] deposited: %s FTM-PAIR', HUNDRED_THOUSAND)
 
 //       await increaseTime(TWO_WEEKS) // ff 14 days
@@ -255,7 +260,7 @@ describe('SoulManifester', () => {
 //       PRE_BALANCE = await lpToken.balanceOf(operator) // ensures balance is cleared
 //       console.log('[operator] LP pre-bal: %s', fromWei(PRE_BALANCE))
       
-//       await summoner.withdraw(1, HUNDRED_THOUSAND)
+//       await manifester.withdraw(1, HUNDRED_THOUSAND)
 //       POST_BALANCE = await lpToken.balanceOf(operator) // ensures balance is cleared
 //       console.log('[operator] LP post-bal: %s', fromWei(POST_BALANCE))
 
@@ -267,15 +272,15 @@ describe('SoulManifester', () => {
 //   describe('review: withdrawing staked soul', function() {
 //     it('should return pending rewards of ~250K', async function() {
 //       increaseTime(ONE_DAY) // 1 day
-//       pendingRewards = await summoner.pendingSoul(0, operator)
+//       pendingRewards = await manifester.pendingSoul(0, operator)
 //       // console.log('pending soul %s: ', fromWei(pendingRewards))
-//       expect(await summoner.pendingSoul(0, operator)).to.equal(pendingRewards)
+//       expect(await manifester.pendingSoul(0, operator)).to.equal(pendingRewards)
 //     })
 
-//     it('should return [summoner] balance of 10K SOUL', async function() {
-//       summonerSoulBalance = await soul.balanceOf(summoner.address)
-//       // console.log('[summoner] balance: %s SOUL', fromWei(summonerSoulBalance))
-//       expect(await soul.balanceOf(summoner.address)).to.equal(HUNDRED_THOUSAND)
+//     it('should return [manifester] balance of 10K SOUL', async function() {
+//       manifesterSoulBalance = await soul.balanceOf(manifester.address)
+//       // console.log('[manifester] balance: %s SOUL', fromWei(manifesterSoulBalance))
+//       expect(await soul.balanceOf(manifester.address)).to.equal(HUNDRED_THOUSAND)
 //     })
       
 //     it('should return total payout of ~250K SOUL', async function() {
@@ -290,7 +295,7 @@ describe('SoulManifester', () => {
       
 //       // leave staking
 //       unstakedAmount = HUNDRED_THOUSAND
-//       await summoner.leaveStaking(unstakedAmount)
+//       await manifester.leaveStaking(unstakedAmount)
 //       // console.log('[user] withdrew: %s SOUL', HUNDRED_THOUSAND)
 //       soul.burn(HUNDRED_THOUSAND) // destroys for easy maths
 
@@ -351,15 +356,15 @@ describe('SoulManifester', () => {
 //   /*/ FEES: Rate and Days /*/
 //   describe('review: fees', function() {
 //     it('should show 0 fee for SAS pool', async function() {
-//       feeRate = await summoner.getFeeRate(0, ONE_DAY)
+//       feeRate = await manifester.getFeeRate(0, ONE_DAY)
 //       console.log('[SAS] fee rate: %s', fromWei(feeRate))
 //       await expect(feeRate).to.equal(0)
 //     })
 
 //     it('[D1] should show 13% fee for non-SAS pools', async function() {
 //       await increaseTime(ONE_DAY) // ff 1 days
-//       feeRate1 = await summoner.getFeeRate(1, ONE_DAY)
-//       feeRate2 = await summoner.getFeeRate(2, ONE_DAY)
+//       feeRate1 = await manifester.getFeeRate(1, ONE_DAY)
+//       feeRate2 = await manifester.getFeeRate(2, ONE_DAY)
 //       FEE_RATE = feeRate1 == feeRate2 ? 0 : feeRate1
 //       EXPECTATION = toWei(13)
 //       await expect(FEE_RATE).to.equal(EXPECTATION)
@@ -368,36 +373,36 @@ describe('SoulManifester', () => {
 
 //   describe('review: startRate', function() {
 //     // it('should show startRate of 14%, then 7%', async function() {
-//     //   START_RATE = await summoner.startRate()
+//     //   START_RATE = await manifester.startRate()
 //     //   console.log('startRate: %s%', fromWei(START_RATE))
 //     //   await expect(START_RATE).to.equal(toWei(14))
 
-//     //   await summoner.updateStartRate(7)
+//     //   await manifester.updateStartRate(7)
       
-//     //   NEW_START_RATE = await summoner.startRate()
+//     //   NEW_START_RATE = await manifester.startRate()
 //     //   console.log('newStartRate: %s%', fromWei(NEW_START_RATE))
 //     //   await expect(NEW_START_RATE).to.equal(toWei(7))
 //     // })
 
 //     // it('should show fee of 7% withdrawn after update', async function() {
-//     //   await summoner.addPool(500, lpToken.address, true)
+//     //   await manifester.addPool(500, lpToken.address, true)
 //     //   // console.log('added FTM-PAIR: %s', '5x')
-//     //   totalPools = await summoner.poolLength()
+//     //   totalPools = await manifester.poolLength()
 
 //     //   expect(await totalPools).to.equal(2)
 //     //   // console.log('total pools: %s', totalPools)
       
-//     //   await summoner.deposit(1, HUNDRED_THOUSAND)
+//     //   await manifester.deposit(1, HUNDRED_THOUSAND)
 //     //   console.log('[operator] deposited: %s FTM-PAIR', HUNDRED_THOUSAND)
 
 //     //   await increaseTime(ONE_DAY) // ff 1 day
       
-//     //   START_RATE = await summoner.startRate()
+//     //   START_RATE = await manifester.startRate()
 //     //   console.log('startRate: %s%', fromWei(START_RATE))
 //     //   await expect(START_RATE).to.equal(toWei(14))
 
-//     //   await summoner.updateStartRate(7)
-//     //   NEW_START_RATE = await summoner.startRate()
+//     //   await manifester.updateStartRate(7)
+//     //   NEW_START_RATE = await manifester.startRate()
 
 //     //   console.log('newStartRate: %s%', fromWei(NEW_START_RATE))
 //     //   await expect(NEW_START_RATE).to.equal(toWei(7))
@@ -405,10 +410,10 @@ describe('SoulManifester', () => {
 //     //   PRE_BALANCE = await lpToken.balanceOf(operator)
 //     //   console.log('[operator] pre-balance: %s SOUL', fromWei(PRE_BALANCE))
 
-//     //   PENDING_REWARDS = await summoner.pendingSoul(1, operator)
+//     //   PENDING_REWARDS = await manifester.pendingSoul(1, operator)
 //     //   console.log('[operator] pending rewards: %s SOUL', fromWei(PENDING_REWARDS))
 
-//     //   await summoner.withdraw(1, HUNDRED_THOUSAND)
+//     //   await manifester.withdraw(1, HUNDRED_THOUSAND)
 //     //   console.log('[operator] withdrew: %s SOUL', fromWei(HUNDRED_THOUSAND))
 
 //     //   POST_BALANCE = await lpToken.balanceOf(operator)

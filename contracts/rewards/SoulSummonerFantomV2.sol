@@ -9,7 +9,7 @@ import '../tokens/SeanceCircle.sol';
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.
 
-contract SoulSummoner is AccessControl, ReentrancyGuard {
+contract SoulSummonerFantomV2 is AccessControl, ReentrancyGuard {
 
     // user info
     struct Users {
