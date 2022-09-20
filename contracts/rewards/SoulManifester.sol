@@ -71,10 +71,10 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     uint public immutable bonusMultiplier = 1;
 
     // decay rate on withdrawal fee of 1%.
-    uint public immutable dailyDecay = enWei(1);
+    uint public immutable dailyDecay = toWei(1);
     
     // limits the maximum days to wait for a fee-less withdrawal.
-    uint public immutable maxFeeDays = enWei(100);
+    uint public immutable maxFeeDays = toWei(100);
 
     // initialization state
     bool public isInitialized;
@@ -232,29 +232,45 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
             allocPoint: _allocPoint,
             lastRewardTime: block.timestamp > startTime ? block.timestamp : startTime,
             accSoulPerShare: 0,
-            feeDays: enWei(_feeDays)
+            feeDays: toWei(_feeDays)
         }));
         
-        updateStakingPool();
         uint pid = poolInfo.length;
 
         emit PoolAdded(pid, _allocPoint, _lpToken, totalAllocPoint);
     }
 
-    // set: allocation points (ma'at)
-    function set(uint pid, uint allocPoint, bool withUpdate) external isActive validatePoolByPid(pid) obey(maat) {
+    // todo: verify || updates: allocation points (ma'at)
+    function updatePool(
+        uint pid, 
+        uint _allocPoint, 
+        uint _feeDays, 
+        bool withUpdate
+    ) external isActive validatePoolByPid(pid) obey(maat) {
+        // gets: pool data (stored for updates).
+            Pools memory pool = poolInfo[pid];
             // [if] withUpdate, [then] execute mass pool update.
             if (withUpdate) { massUpdatePools(); }
             
-            // gets: previous allocation point & sets new allocation point
-            uint prevAllocPoint = poolInfo[pid].allocPoint;
-            poolInfo[pid].allocPoint = allocPoint;
+            // gets: current `allocPoint` & `feeDays`.
+            uint allocPoint = pool.allocPoint;
+            uint feeDays = pool.feeDays;
             
-            if (prevAllocPoint != allocPoint) {
-                totalAllocPoint = totalAllocPoint - prevAllocPoint + allocPoint;
-                
-                updateStakingPool(); // updates selected pool (only)
-        }
+            // checks: an update is being executed.
+            require(allocPoint != _allocPoint || feeDays != _feeDays, 'no change requested.');
+
+            // identifies: treatment of new allocation.
+            bool isIncrease = _allocPoint > allocPoint;
+
+            // sets: new `pool.allocPoint`
+            pool.allocPoint = _allocPoint;
+            
+            // sets: new `pool.feeDays`
+            pool.allocPoint = _feeDays;
+
+            // updates: `totalAllocPoint`
+            if (isIncrease) { totalAllocPoint += allocPoint; }
+            else { totalAllocPoint -= allocPoint; }
 
         emit PoolSet(pid, allocPoint);
     }
@@ -274,21 +290,6 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
         return delta;
 	}
 
-    // view: user delta is the time since user either last withdrew OR first deposited.
-	function userDelta(uint pid) public view returns (uint delta) {
-        // grabs the stored user data for the pool
-        Users memory user = userInfo[pid][msg.sender];
-
-        // if user has never withdrawn
-        user.withdrawalTime == 0 
-            // then use the time since their first deposit
-            ? delta = block.timestamp - user.depositTime
-            // else, use the time since the last withdrawal
-            : delta = block.timestamp - user.withdrawalTime;
-
-        return delta;  
-	}
-
     // returns: multiplier during a period.
     function getMultiplier(uint from, uint to) public pure returns (uint) {
         return (to - from) * bonusMultiplier;
@@ -303,7 +304,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     // returns: fee rate for a given pid and timeDelta.
     function getFeeRate(uint pid, uint deltaDays) public view returns (uint feeRate) {
         // calculates: rateDecayed (converts to wei).
-        uint rateDecayed = enWei(deltaDays);
+        uint rateDecayed = toWei(deltaDays);
 
         // gets: info & feeDays (pool)
         Pools memory pool = poolInfo[pid];
@@ -514,11 +515,8 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
 
         updatePool(0);
 
-        // gets: staked amount (user).
-        uint stakedAmount = user.amount;
-
         // [if] already staked (user)
-        if (stakedAmount > 0) {
+        if (user.amount > 0) {
             // [then] get: pending rewards.
             uint pending = pendingSoul(0, msg.sender);
             // [then] send: pending rewards.
@@ -596,25 +594,9 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
         emit WeightUpdated(_weight, _totalWeight);
     }
 
-    // update: staking pool
-    function updateStakingPool() internal {
-        uint length = poolInfo.length;
-        uint points;
-        
-        for (uint pid = 1; pid < length; ++pid) { 
-            points = points + poolInfo[pid].allocPoint; 
-        }
-
-        if (points != 0) {
-            points = points / 3;
-            totalAllocPoint = totalAllocPoint - poolInfo[0].allocPoint + points;
-            poolInfo[0].allocPoint = points;
-        }
-    }
-
     // update: rewards
     function updateRewards(uint _weight, uint _totalWeight) internal {
-        uint share = enWei(_weight) / _totalWeight; // share of total emissions for rewarder (rewarder % total emissions)
+        uint share = toWei(_weight) / _totalWeight; // share of total emissions for rewarder (rewarder % total emissions)
         
         dailySoul = share * globalDailySoul; // dailySoul (for rewarder) = share (%) x globalDailySoul (soul emissions constant)
         soulPerSecond = dailySoul / 1 days; // updates: daily rewards expressed in seconds (1 days = 86,400 secs)
@@ -625,12 +607,13 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     // updates: feeDays (ma'at)
     function updateFeeDays(uint pid, uint _daysRequested) external obey(maat) {
         Pools storage pool = poolInfo[pid];
-        // converts & stores requested days (enWei).
-        uint _feeDays = enWei(_daysRequested);
+        
+        // converts: requested days (toWei).
+        uint _feeDays = toWei(_daysRequested);
 
         // gets: current fee days & ensures distinction (pool)
         uint feeDays = pool.feeDays;
-        require(feeDays != _feeDays, 'must be a new value');
+        require(feeDays != _feeDays, 'no change requested');
         
         // limits: feeDays by maxFeeDays
         require(feeDays <= maxFeeDays, 'exceeds allowable feeDays');
@@ -643,7 +626,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
 
     // updates: dao & team addresses (isis)
     function updateAccounts(address _dao, address _team) external obey(isis) {
-        require(dao != _dao || team != _team, 'must include a new account');
+        require(dao != _dao || team != _team, 'no change requested');
         dao = _dao;
         team = _team;
 
@@ -651,6 +634,6 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     }
 
     // helper functions to convert to wei and 1/100th
-    function enWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
+    function toWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
     function fromWei(uint amount) public pure returns (uint) { return amount / 1e18; }
 }
