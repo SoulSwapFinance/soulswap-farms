@@ -216,22 +216,17 @@ contract SoulBond is AccessControl, ReentrancyGuard {
         updateRewards(weight, totalWeight);
 
         // deploys: all pools at once
-        deployPools();
-
-        // activates: initialize state
-        isInitialized = true;          
-
-        emit Initialized(team, dao, soulAddress, seanceAddress, totalAllocPoint, weight, block.timestamp);
-    }
-    
-    // deploys all pools (@ initialization)
-    function deployPools() internal {
         addPool(250, IERC20(soul_avax), true);
         addPool(150, IERC20(soul_usdc), true);
         addPool(150, IERC20(usdc_avax), true);
         addPool(150, IERC20(eth_avax), true);
         addPool(150, IERC20(btc_avax), true);
         addPool(150, IERC20(usdc_dai), true);
+
+        // activates: initialize state
+        isInitialized = true;          
+
+        emit Initialized(team, dao, soulAddress, seanceAddress, totalAllocPoint, weight, block.timestamp);
     }
 
     // sets: allocation for a given pair (@ initialization)

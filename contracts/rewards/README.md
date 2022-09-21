@@ -3,9 +3,15 @@
 ## SoulBond
 
 **LP Addresses**
+
 - [SOUL-AVAX](https://snowtrace.io/address/0x6Da1AD717C7577AAB46C19aB6d3d9C31aff32A00#code): 0x6Da1AD717C7577AAB46C19aB6d3d9C31aff32A00
-- [SOUL-USDC](https://snowtrace.com/address/#code):
+
+- [SOUL-USDC](https://snowtrace.io/address/0x922fcADa825Dc669798206A35D2D2B455f9A64E7#code): 0x922fcADa825Dc669798206A35D2D2B455f9A64E7
+
 - [USDC-AVAX](https://snowtrace.io/address/0x864384a54ea644852603778c0C200eF2D6F2Ac2f#code): 0x864384a54ea644852603778c0C200eF2D6F2Ac2f
-- [BTC-AVAX](https://snowtrace.com/address/#code):
-- [ETH_AVAX](https://snowtrace.com/address/#code):
-- [USDC-DAI](https://snowtrace.com/address/#code):
+
+- [BTC-AVAX](https://snowtrace.io/address/#code):
+
+- [ETH_AVAX](https://snowtrace.io/address/0x5796Bf89f6C7C47811E4E59Ecd7aCACC8A5B9dEF#code): 0x5796Bf89f6C7C47811E4E59Ecd7aCACC8A5B9dEF
+
+- [USDC-DAI](https://snowtrace.io/address/0xE9807645aDA66F2f3d4f2d2A79223701F3cC0903#code): 0xE9807645aDA66F2f3d4f2d2A79223701F3cC0903
