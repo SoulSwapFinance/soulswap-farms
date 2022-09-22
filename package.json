@@ -9,6 +9,8 @@
     "flat": "truffle-flattener",
     "flat:soulV2": "truffle-flattener contracts/tokens/SoulPowerAny.sol > flats/SoulPowerAny_flat.sol",
     "flat:seanceV2": "truffle-flattener contracts/tokens/SeanceCircleV2.sol > flats/SeanceCircleV2_flat.sol",
+    "flat:erc20": "truffle-flattener contracts/mocks/MockERC20.sol > flats/MockERC20_flat.sol",
+    "flat:bondV2": "truffle-flattener contracts/rewards/SoulBondV2.sol > flats/SoulBondV2_flat.sol",
     "flat:manifestor": "truffle-flattener contracts/rewards/SoulManifester.sol > flats/SoulManifester_flat.sol",
     "verify": "truffle run verify",
     "verify:summoner": "truffle run verify SoulSummoner --network testnet --license SPDX-License-Identifier",

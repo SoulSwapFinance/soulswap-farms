@@ -80,11 +80,11 @@ contract SoulBond is AccessControl, ReentrancyGuard {
     // summoner initialized state.
     bool public isInitialized;
 
-    // fee state.
-    bool public isBondMode;
+    // pool info
+    Pools[] public poolInfo;
 
-    Pools[] public poolInfo; // pool info
-    mapping (uint => mapping (address => Users)) public userInfo; // user data
+    // user data
+    mapping (uint => mapping (address => Users)) public userInfo;
 
     // divinated roles
     bytes32 public isis; // soul summoning goddess of magic
