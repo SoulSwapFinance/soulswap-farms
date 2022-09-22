@@ -37,20 +37,20 @@ contract SoulBond is AccessControl, ReentrancyGuard {
     }
 
     // pair addresses
-    address public immutable soul_avax;
-    address public immutable soul_usdc;
-    address public immutable usdc_avax;
-    address public immutable eth_avax;
-    address public immutable btc_avax;
-    address public immutable usdc_dai;
+    address private immutable soul_avax = 0x6Da1AD717C7577AAB46C19aB6d3d9C31aff32A00;
+    address private immutable soul_usdc = 0x922fcADa825Dc669798206A35D2D2B455f9A64E7;
+    address private immutable usdc_avax = 0x864384a54ea644852603778c0C200eF2D6F2Ac2f;
+    address private immutable eth_avax = 0x5796Bf89f6C7C47811E4E59Ecd7aCACC8A5B9dEF;
+    address private immutable btc_avax = 0x8C162C3Bdd7354b5Cb1A0b18eDBB5725CFE762A3;
+    address private immutable usdc_dai = 0xE9807645aDA66F2f3d4f2d2A79223701F3cC0903;
 
     // team addresses
-    address public team; // receives 1/8 soul supply
+    address private team; // receives 1/8 soul supply
     address public dao; // recieves 1/8 soul supply
 
     // soul & seance addresses
-    address private soulAddress;
-    address private seanceAddress;
+    address private soulAddress = 0x11d6DD25c1695764e64F439E32cc7746f3945543;
+    address private seanceAddress = 0xB641880C65A33605fc5a4F8b955a868a98D4a58e;
 
     // tokens: soul & seance
     IToken public soul;
@@ -71,14 +71,14 @@ contract SoulBond is AccessControl, ReentrancyGuard {
     uint public startTime;
 
     // emergency state
-    bool public isEmergency;
+    bool private isEmergency;
 
     // pools & allocation points
     uint public immutable poolLength = 6;
     uint public totalAllocPoint;
 
     // summoner initialized state.
-    bool public isInitialized;
+    bool private isInitialized;
 
     // pool info
     Pools[] public poolInfo;
@@ -127,10 +127,7 @@ contract SoulBond is AccessControl, ReentrancyGuard {
         uint timeStamp
     );
 
-    event Initialized(
-        address team, address dao, address soulAddress, address seanceAddress, 
-        uint totalAllocPoint, uint weight, uint startTime
-    );
+    event Initialized(uint totalAllocPoint, uint weight, uint startTime);
 
     event PoolAdded(
         uint pid, 
@@ -155,20 +152,9 @@ contract SoulBond is AccessControl, ReentrancyGuard {
     event DepositRevised(uint _pid, address _user, uint _time);
 
     // channels the power of the isis and ma'at
-    constructor(
-        address _team,
-        address _dao,
-        address _soulAddress,
-        address _seanceAddress,
-        address _soul_avax,
-        address _soul_usdc,
-        address _usdc_avax,
-        address _eth_avax,
-        address _btc_avax,
-        address _usdc_dai
-    ) {
-        team = _team;
-        dao = _dao;
+    constructor() {
+        team = 0x221cAc060A2257C8F77B6eb1b03e36ea85A1675A;
+        dao = 0xf551D88fE8fae7a97292d28876A0cdD49dC373fa;
 
         isis = keccak256("isis"); // goddess whose magic creates pools
         maat = keccak256("maat"); // goddess whose cosmic order allocates emissions
@@ -177,21 +163,9 @@ contract SoulBond is AccessControl, ReentrancyGuard {
         _divinationCeremony(isis, isis, msg.sender); // isis role created -- supreme divined admin
         _divinationCeremony(maat, isis, dao); // ma'at role created -- isis divined admin
 
-        // sets: soul & seance addreses
-        soulAddress = _soulAddress;
-        seanceAddress = _seanceAddress;
-
         // sets: soul & seance
-        soul = IToken(_soulAddress);
-        seance = IToken(_seanceAddress);
-
-        // sets: liquidity pool addresses
-        soul_avax = _soul_avax;
-        soul_usdc = _soul_usdc;
-        usdc_avax = _usdc_avax;
-        eth_avax = _eth_avax;
-        btc_avax = _btc_avax;
-        usdc_dai = _usdc_dai;
+        soul = IToken(soulAddress);
+        seance = IToken(seanceAddress);
     } 
 
     function _divinationCeremony(bytes32 _role, bytes32 _adminRole, address _account) 
@@ -226,7 +200,7 @@ contract SoulBond is AccessControl, ReentrancyGuard {
         // activates: initialize state
         isInitialized = true;          
 
-        emit Initialized(team, dao, soulAddress, seanceAddress, totalAllocPoint, weight, block.timestamp);
+        emit Initialized(totalAllocPoint, weight, block.timestamp);
     }
 
     // sets: allocation for a given pair (@ initialization)
@@ -275,29 +249,29 @@ contract SoulBond is AccessControl, ReentrancyGuard {
         emit PoolSet(pid, allocPoint, block.timestamp);
     }
 
+    // view: bonus multiplier
+    function getMultiplier(uint from, uint to) internal pure returns (uint) {
+        return (to - from);
+    }
+
     // returns: pending soul rewards
     function pendingSoul(uint pid, address _user) external view returns (uint pendingRewards) {
-        Pools memory pool = poolInfo[pid];
-        Users memory user = userInfo[pid][_user];
+        Pools storage pool = poolInfo[pid];
+        Users storage user = userInfo[pid][_user];
 
         // gets: pool variables (for reference)
         uint accSoulPerShare = pool.accSoulPerShare;
         uint lpSupply = pool.lpSupply;
-        uint allocPoint = pool.allocPoint;
-        
-        // gets: user variables (for reference)
-        uint userDeposit = user.amount;
-        uint rewardDebt = user.rewardDebt;
 
         // [if] pool is not empty and lastRewardTime has passed.
         if (block.timestamp > pool.lastRewardTime && lpSupply != 0) {
-            // [then] idenfies: `sinceLastReward`
-            uint sinceLastReward = pool.lastRewardTime - block.timestamp;
-            uint soulReward = sinceLastReward * soulPerSecond * allocPoint / totalAllocPoint;
-            accSoulPerShare = accSoulPerShare + (soulReward * 1e12 / lpSupply);
+            // [then] idenfies: `multiplier`
+            uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
+            uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
+            accSoulPerShare = accSoulPerShare + soulReward * 1e12 / lpSupply;
         }
 
-        return userDeposit * accSoulPerShare / 1e12 - rewardDebt;
+        return user.amount * accSoulPerShare / 1e12 - user.rewardDebt;
     }
 
     // update: rewards for all pools (public)
@@ -308,23 +282,18 @@ contract SoulBond is AccessControl, ReentrancyGuard {
 
     // update: rewards for a given pool id (public)
     function updatePool(uint pid) public validatePoolByPid(pid) {
-        Pools storage pool = poolInfo[pid]; 
-        
-        // gets: variables for calculation reference (vs. updates).
-        uint accSoulPerShare = pool.accSoulPerShare;
-        uint lpSupply = pool.lpSupply;
-        uint lastRewardTime = pool.lastRewardTime;
-        uint allocPoint = pool.allocPoint;
+        Pools storage pool = poolInfo[pid];
 
         // [if] rewards have not yet been issued (`lastRewardTime`), [then] ends.
-        if (block.timestamp <= lastRewardTime) { return; }
+        if (block.timestamp <= pool.lastRewardTime) { return; }
+        uint lpSupply = pool.lpSupply;
 
         // [if] pool is empty, [then] updates: `lastRewardTime` & ends here.
         if (lpSupply == 0) { pool.lastRewardTime = block.timestamp; return; }
 
         // calculates: soulReward using time sinceLastReward.
-        uint sinceLastReward = lastRewardTime - block.timestamp;
-        uint soulReward = sinceLastReward * soulPerSecond * allocPoint / totalAllocPoint;
+        uint multiplier = getMultiplier(pool.lastRewardTime, block.timestamp);
+        uint soulReward = multiplier * soulPerSecond * pool.allocPoint / totalAllocPoint;
         
         // calculates: divis & allocates (mints) accordingly.
         uint divi = soulReward * 1e12 / 8e12;
@@ -336,7 +305,7 @@ contract SoulBond is AccessControl, ReentrancyGuard {
         soul.mint(address(seance), soulReward);
         
         // updates: pool variables
-        pool.accSoulPerShare = accSoulPerShare + (soulReward * 1e12 / lpSupply);
+        pool.accSoulPerShare = pool.accSoulPerShare + (soulReward * 1e12 / lpSupply);
         pool.lastRewardTime = block.timestamp;
     }
 
@@ -388,16 +357,16 @@ contract SoulBond is AccessControl, ReentrancyGuard {
         // [-] updates: `lpSupply` (for pool).
         pool.lpSupply -= user.amount;
 
-        // [-] updates: `amount` & `rewardDebt` (for user).
+        // [-] updates: `amount` & `rewardDebt` & `depositTime` (for user).
         user.amount = 0;
         user.rewardDebt = 0;
+        user.depositTime = 0;
 
         emit Bonded(msg.sender, pid, block.timestamp);
     }
 
     // transfer: seance (internal)
     function safeSoulTransfer(address account, uint amount) internal {
-        // todo: add require
         seance.safeSoulTransfer(account, amount);
     }
 
@@ -437,9 +406,10 @@ contract SoulBond is AccessControl, ReentrancyGuard {
         // [-] updates: reduces stored pool `lpSupply` by withdrawAmount.
         pool.lpSupply -= withdrawAmount;
         
-        // [-] updates: user deposit `amount` & `rewardDebt`.
+        // [-] updates: user deposit `amount`, `rewardDebt`, & `depositTime`.
         user.amount = 0;
         user.rewardDebt = 0;
+        user.depositTime = 0;
 
         emit EmergencyWithdraw(msg.sender, pid, withdrawAmount, block.timestamp);
     }
@@ -470,8 +440,6 @@ contract SoulBond is AccessControl, ReentrancyGuard {
     function toggleEmergency(bool enabled) external obey(maat) {
         isEmergency = enabled;
     }
-
-    // VIEWS && HELPERS //
 
     // helper functions to convert to/from wei
     function toWei(uint amount) public pure returns (uint) {  return amount * 1e18; }
