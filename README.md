@@ -15,7 +15,7 @@
 
 - [SeanceCircle.sol](https://snowtrace.io/address/0xB641880C65A33605fc5a4F8b955a868a98D4a58e#code): 0xB641880C65A33605fc5a4F8b955a868a98D4a58e
 
-- [SoulManifester.sol](https://snowtrace.io/address/#code):
+- [SoulManifester.sol](https://snowtrace.io/address/0x9961c13913bC8Aa6e0D9c32765dC7886550603af#code): 0x9961c13913bC8Aa6e0D9c32765dC7886550603af
 
 - [SoulBond.sol](https://snowtrace.io/address/0x4161A44D71F68852d6b013a9C6BF968d3b08D9b7#code): 0x4161A44D71F68852d6b013a9C6BF968d3b08D9b7
 
