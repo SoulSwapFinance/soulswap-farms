@@ -10,7 +10,7 @@
 
 - [USDC-AVAX](https://snowtrace.io/address/0x864384a54ea644852603778c0C200eF2D6F2Ac2f#code): 0x864384a54ea644852603778c0C200eF2D6F2Ac2f
 
-- [BTC-AVAX](https://snowtrace.io/address/#code):
+- [BTC-AVAX](https://snowtrace.io/address/0x8C162C3Bdd7354b5Cb1A0b18eDBB5725CFE762A3#code): 0x8C162C3Bdd7354b5Cb1A0b18eDBB5725CFE762A3
 
 - [ETH_AVAX](https://snowtrace.io/address/0x5796Bf89f6C7C47811E4E59Ecd7aCACC8A5B9dEF#code): 0x5796Bf89f6C7C47811E4E59Ecd7aCACC8A5B9dEF
 
