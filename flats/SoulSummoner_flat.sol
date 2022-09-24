@@ -1,4 +1,4 @@
-// SPDX-License-Identifer: MIT
+// SPDX-License-Identifier: MIT
 
 // File: @openzeppelin/contracts/access/IAccessControl.sol
 
