@@ -573,7 +573,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     
     // transfer: seance (only if there is sufficient coverage for payout).
     function safeSoulTransfer(address account, uint amount) internal {
-        require(seance.balanceOf(soulAddress) >= amount, 'insufficient coverage for requested SOUL from SEANCE');
+        require(soul.balanceOf(seanceAddress) >= amount, 'insufficient coverage for requested SOUL from SEANCE');
         seance.safeSoulTransfer(account, amount);
     }
 
