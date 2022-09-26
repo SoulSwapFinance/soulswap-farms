@@ -15,3 +15,5 @@ artifacts
 
 # Compilation Files
 *bin
+build*
+build/contracts
