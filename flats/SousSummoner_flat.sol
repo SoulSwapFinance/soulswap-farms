@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -86,7 +86,7 @@ interface IERC20 {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Collection of functions related to the address type
@@ -299,7 +299,7 @@ library Address {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -325,7 +325,7 @@ abstract contract Context {
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 /**
@@ -397,7 +397,7 @@ abstract contract Ownable is Context {
 // File: contracts/libraries/Operable.sol
 
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 // --------------------------------------------------------------------------------------
@@ -460,7 +460,7 @@ abstract contract Operable is Context, Ownable {
 
 /// SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 

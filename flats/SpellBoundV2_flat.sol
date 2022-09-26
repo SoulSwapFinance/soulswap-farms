@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
@@ -24,7 +24,7 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 interface IERC20Metadata is IERC20 {
 
@@ -35,7 +35,7 @@ interface IERC20Metadata is IERC20 {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 abstract contract Context {
     function _msgSender() internal view virtual returns (address) {
@@ -49,7 +49,7 @@ abstract contract Context {
 
 // File: contracts/libraries/ERC20.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 contract ERC20 is Context, IERC20, IERC20Metadata {
     mapping(address => uint256) private _balances;
@@ -204,7 +204,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -267,7 +267,7 @@ abstract contract ReentrancyGuard {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 abstract contract Ownable is Context {
     address private _owner;
@@ -305,7 +305,7 @@ abstract contract Ownable is Context {
 
 // File: contracts/SpellBound.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 // spell is the neatest bound around. come in with some soul, and leave with some more! 
 // handles swapping to and from spell -- our dex reward token.

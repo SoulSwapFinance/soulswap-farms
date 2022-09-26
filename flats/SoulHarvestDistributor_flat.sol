@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -112,7 +112,7 @@ interface ISummoner {
 }
 
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 contract SoulHarvestDistributor {
 

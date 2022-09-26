@@ -2,7 +2,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -84,7 +84,7 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/utils/Address.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Collection of functions related to the address type
@@ -295,7 +295,7 @@ library Address {
 
 // File: contracts/libraries/SafeERC20.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @title SafeERC20
@@ -466,7 +466,7 @@ interface ISoulSwapFactory {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /*
  * @dev Provides information about the current execution context, including the
@@ -490,7 +490,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -560,7 +560,7 @@ abstract contract Ownable is Context {
 
 // File: contracts/libraries/Operable.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 // --------------------------------------------------------------------------------------
 //  Allows multiple contracts to act as `owner`, from `Ownable.sol`, with `onlyOperator`.
@@ -620,7 +620,7 @@ abstract contract Operable is Context, Ownable {
 
 // File: contracts/SoulMaker.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 // SoulReaper is SoulSummoner's most generous wizard. SoulReaper may reap up Soul from pretty much anything!
 // This contract handles 'serving up' rewards for SpellBound holders by trading tokens collected from fees for Soul.

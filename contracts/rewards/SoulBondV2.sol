@@ -3,16 +3,16 @@
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../libraries/SafeERC20.sol";
 import "../libraries/Operable.sol";
 import "../interfaces/IToken.sol";
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 // the bonder of souls
-contract SoulBond is AccessControl, ReentrancyGuard {
+contract SoulBondV2 is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
     // user info
     struct Users {

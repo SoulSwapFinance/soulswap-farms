@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 interface ICalculator {
     function getTokenPrice(address tokenAddress) external view returns (uint tokenPrice);

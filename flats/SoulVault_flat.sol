@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
@@ -26,7 +26,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -96,7 +96,7 @@ abstract contract Ownable is Context {
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -178,7 +178,7 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -204,7 +204,7 @@ interface IERC20Metadata is IERC20 {
 
 // File: contracts/libraries/ERC20.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Implementation of the {IERC20} interface.
@@ -549,7 +549,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: @openzeppelin/contracts/utils/Address.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Collection of functions related to the address type
@@ -760,7 +760,7 @@ library Address {
 
 // File: @openzeppelin/contracts/security/Pausable.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -849,7 +849,7 @@ abstract contract Pausable is Context {
 
 // File: contracts/interfaces/IMigrator.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 interface IMigrator {
     // Perform LP token migration from legacy.
@@ -862,7 +862,7 @@ interface IMigrator {
 
 // File: contracts/interfaces/ISummoner.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 interface ISummoner {
     function deposit(uint256 _pid, uint256 _amount) external;
@@ -886,7 +886,7 @@ interface ISummoner {
     the user needs to approve the contract address with soul `allowance()` in order to deposit.
  */
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 contract SoulVault is Ownable, Pausable {
 

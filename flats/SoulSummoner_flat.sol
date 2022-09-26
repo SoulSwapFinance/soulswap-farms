@@ -2,7 +2,7 @@
 
 // File: @openzeppelin/contracts/access/IAccessControl.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev External interface of AccessControl declared to support ERC165 detection.
@@ -90,7 +90,7 @@ interface IAccessControl {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -114,7 +114,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/utils/Strings.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev String operations.
@@ -181,7 +181,7 @@ library Strings {
 
 // File: @openzeppelin/contracts/utils/introspection/IERC165.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the
@@ -206,7 +206,7 @@ interface IERC165 {
 
 // File: @openzeppelin/contracts/utils/introspection/ERC165.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 /**
@@ -234,7 +234,7 @@ abstract contract ERC165 is IERC165 {
 
 // File: @openzeppelin/contracts/access/AccessControl.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Contract module that allows children to implement role-based access
@@ -440,7 +440,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 /**
@@ -511,7 +511,7 @@ abstract contract Ownable is Context {
 
 // File: @openzeppelin/contracts/security/Pausable.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 /**
@@ -601,7 +601,7 @@ abstract contract Pausable is Context {
 
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -664,7 +664,7 @@ abstract contract ReentrancyGuard {
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -747,7 +747,7 @@ interface IERC20 {
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 /**
@@ -775,7 +775,7 @@ interface IERC20Metadata is IERC20 {
 // File: contracts/libraries/ERC20.sol
 
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 
@@ -1123,7 +1123,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File: contracts/SoulPower.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 
@@ -1374,7 +1374,7 @@ contract SoulPower is ERC20('SoulPower', 'SOUL'), AccessControl {
 
 // File: contracts/libraries/Operable.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 // --------------------------------------------------------------------------------------
@@ -1435,7 +1435,7 @@ abstract contract Operable is Context, Ownable {
 
 // File: contracts/SeanceCircle.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 // SeanceCircle with Governance.
 contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
@@ -1661,7 +1661,7 @@ contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
 
 // File: contracts/interfaces/IMigrator.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 interface IMigrator {
     // Perform LP token migration from legacy.
@@ -1674,7 +1674,7 @@ interface IMigrator {
 
 // File: contracts/SoulSummoner.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 // the summoner of souls | ownership transferred to a governance smart contract 
 // upon sufficient distribution + the community's desire to self-govern.

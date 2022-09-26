@@ -4,11 +4,7 @@
 
 module.exports = {
   skipFiles: [
-    "libs",
-    "libs",
-    "libs",
-    "SeanceCircle.sol",
-    "Timelock.sol"
+    "libs"
   ],
   measureStatementCoverage: false,
   measureFunctionCoverage: true,

@@ -2,7 +2,7 @@
 
 // File: @openzeppelin/contracts/access/IAccessControl.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev External interface of AccessControl declared to support ERC165 detection.
@@ -90,7 +90,7 @@ interface IAccessControl {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -114,7 +114,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/utils/Strings.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev String operations.
@@ -181,7 +181,7 @@ library Strings {
 
 // File: @openzeppelin/contracts/utils/introspection/IERC165.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the
@@ -206,7 +206,7 @@ interface IERC165 {
 
 // File: @openzeppelin/contracts/utils/introspection/ERC165.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 
 /**
@@ -234,7 +234,7 @@ abstract contract ERC165 is IERC165 {
 
 // File: @openzeppelin/contracts/access/AccessControl.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Contract module that allows children to implement role-based access
@@ -440,7 +440,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 
 // File: contracts/tokens/SoulPowerAny.sol
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.

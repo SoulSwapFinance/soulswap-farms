@@ -7,7 +7,7 @@
     the user needs to approve the contract address with soul `allowance()` in order to deposit.
  */
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '../libraries/ERC20.sol';

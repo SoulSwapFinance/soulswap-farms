@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 // P1 - P3: OK
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 import '../libraries/SafeERC20.sol';
 import '@soulswap/swap-core/contracts/interfaces/ISoulSwapPair.sol';

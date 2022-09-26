@@ -2,7 +2,7 @@
 
 import './IMigrator.sol';
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 interface ISummoner {
     function deposit(uint _pid, uint _amount) external;

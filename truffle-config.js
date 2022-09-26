@@ -2,7 +2,7 @@ require('babel-register');
 require('babel-polyfill');
 require('dotenv').config();
 const HDWalletProvider = require('truffle-hdwallet-provider-privkey');
-const privateKeys = process.env.PRIVATE_KEYS || ""
+const privateKeys = process.env.PK || ""
 
 module.exports = {
   networks: {
@@ -16,7 +16,6 @@ module.exports = {
           return new HDWalletProvider(
             privateKeys.split(','), // Array of account private keys
             )
-            // `http://rpc.testnet.fantom.network`// URL to Blockchain Node
             `https://api.avax-test.network/ext/C/rpc`// URL to Blockchain Node
         },
         gas: 5000000,
@@ -44,7 +43,7 @@ module.exports = {
     },
     compilers: {
       solc: {
-        version: "0.8.0"
+        version: "^0.8.17"
       }
     },
     settings: {
