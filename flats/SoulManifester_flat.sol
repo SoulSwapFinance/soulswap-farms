@@ -914,9 +914,7 @@ interface IToken {
 
 pragma solidity >=0.8.0;
 
-// manifestor of new souls | ownership transferred to a governance smart contract 
-// upon sufficient distribution + the community's desire to self-govern.
-
+// manifester of new souls
 contract SoulManifester is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -932,8 +930,11 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
         // the following occurs when a user +/- tokens to a pool:
         //   1. pool: `accSoulPerShare` and `lastRewardTime` update.
         //   2. user: receives pending reward.
-        //   3. user: `amount` updates(+/-).
+        //   3. user: `amount` updates (+/-).
         //   4. user: `rewardDebt` updates (+/-).
+        //   5. user: [if] first-timer, 
+            // [then] `depositTime` updates,
+            // [else] `withdrawalTime` updates.
     }
 
     // pool info
@@ -950,8 +951,8 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     address public dao; // recieves 1/8 soul supply
 
     // soul & seance addresses
-    address private soulAddress = 0x11d6DD25c1695764e64F439E32cc7746f3945543;
-    address private seanceAddress = 0xB641880C65A33605fc5a4F8b955a868a98D4a58e;
+    address private soulAddress;
+    address private seanceAddress;
 
     // tokens: soul & seance
     IToken public soul;
@@ -962,34 +963,28 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     uint public weight;
 
     // global daily SOUL
-    uint public immutable globalDailySoul = 250_000;
+    uint private globalDailySoul = 250_000;
 
     // local daily SOUL
     uint public dailySoul; // = weight * globalDailySoul * 1e18;
 
     // rewards per second for this rewarder
-    uint public soulPerSecond; // = dailySoul / 86400;
+    uint public soulPerSecond; // = dailySoul / 86_400;
 
     // marks the beginning of soul rewards.
     uint public startTime;
 
     // total allocation points: must be the sum of all allocation points
     uint public totalAllocPoint;
-
-    // decay rate on withdrawal fee of 1%.
-    uint private immutable dailyDecay = toWei(1);
     
     // limits the maximum days to wait for a fee-less withdrawal.
     uint public immutable maxFeeDays = toWei(100);
 
-    // initialization state
-    bool public isInitialized;
-    
     // emergency state
-    bool public isEmergency;
+    bool private isEmergency;
 
     // activation state
-    bool public isActivated;
+    bool private isActivated;
 
     // pool info
     Pools[] public poolInfo;
@@ -1015,7 +1010,6 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
 
     // proxy for pausing contract.
     modifier isActive {
-        require(isInitialized, 'rewards have not yet begun.');
         require(isActivated, 'contract is currently paused');
         _;
     }
@@ -1042,15 +1036,40 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
 
     // channels: power to the divine goddesses isis & ma'at
     constructor() {
+        // sets: user addresses
         team = 0x221cAc060A2257C8F77B6eb1b03e36ea85A1675A;
         dao = 0xf551D88fE8fae7a97292d28876A0cdD49dC373fa;
 
+        // sets: roles
         isis = keccak256("isis"); // goddess of magic (who creates pools)
         maat = keccak256("maat"); // goddess of cosmic order (who allocates emissions)
 
+        // divines: role admins
         _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
         _divinationCeremony(isis, isis, msg.sender); // isis role created -- supreme divined admin
         _divinationCeremony(maat, isis, msg.sender); // maat role created -- isis divined admin
+
+        // sets: `startTime`
+        startTime = block.timestamp;
+
+        // sets: `soul` & `seance`
+        setTokens(0x11d6DD25c1695764e64F439E32cc7746f3945543, 0x97Ee3C9Cf4E5DE384f95e595a8F327e65265cC4E);
+    
+        // sets: `weight`, `totalWeight`, `dailySoul` & `soulPerSecond`
+        updateWeight(1, 1_000);
+
+        // adds: staking pool (allocation: 1,000 & withdrawFee: 0).
+        poolInfo.push(Pools({
+            lpToken: IERC20(0x11d6DD25c1695764e64F439E32cc7746f3945543),
+            allocPoint: 1_000,
+            lastRewardTime: block.timestamp,
+            accSoulPerShare: 0,
+            feeDays: 0
+        }));
+
+        // sets: total allocation point.
+        totalAllocPoint += 1_000;
+        
     } 
 
     // divines: `role` to recipient.
@@ -1069,41 +1088,6 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
         }
     }
 
-    // activates: rewards (isis)
-    function initialize(uint _weight) external obey(isis) {
-        // checks: rewards have not already begun
-        require(!isInitialized, 'rewards have already begun');
-
-        // sets: times & weights
-        startTime = block.timestamp;
-        totalWeight = 1_000;
-        weight = _weight;
-
-        // sets: tokens
-        soul  = IToken(soulAddress);
-        seance = IToken(seanceAddress);
-
-        // updates: dailySoul and soulPerSecond
-        updateRewards(weight, totalWeight); 
-
-        // adds: staking pool (allocation: 1,000 & withdrawFee: 0).
-        poolInfo.push(Pools({
-            lpToken: IERC20(soulAddress),
-            allocPoint: 1_000,
-            lastRewardTime: startTime,
-            accSoulPerShare: 0,
-            feeDays: 0
-        }));
-
-        // sets: total allocation point.
-        totalAllocPoint += 1_000;
-        
-        // triggers: initialization
-        isInitialized = true;
-
-        emit Initialized(_weight, startTime);
-    }
-
     // enables: panic button (ma'at)
     function toggleEmergency(bool enabled) external obey(maat) {
         isEmergency = enabled;
@@ -1118,7 +1102,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     function poolLength() external view returns (uint) { return poolInfo.length; }
 
     // add: new pool created by the soul summoning goddess whose power transcends all (isis)
-    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _feeDays) public isActive obey(isis) { 
+    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _feeDays) public obey(isis) { 
             checkPoolDuplicate(_lpToken);
             require(_feeDays <= maxFeeDays, 'feeDays may not exceed the maximum of 100 days');
 
@@ -1176,24 +1160,46 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
         emit PoolSet(pid, _allocPoint);
     }
 
-    // view: user delta is the time since user either last withdrew OR first deposited.
-	function userDelta(uint pid, address _user) public view returns (uint delta) {
-        // grabs the stored user data for the pool
-        Users storage user = userInfo[pid][_user];
+    // returns: user delta is the time since user either last withdrew OR first deposited OR 0.
+	function getUserDelta(uint pid, address account) public view returns (uint timeDelta) {
+        // gets: stored `user` data (for a given pid).
+        Users storage user = userInfo[pid][account];
 
-        // if user has never withdrawn
-        user.withdrawalTime == 0 
-            // then use the time since their first deposit
-            ? delta = block.timestamp - user.depositTime
-            // else, use the time since the last withdrawal
-            : delta = block.timestamp - user.withdrawalTime;
-
-        return delta;
+        // [if] has never withdrawn & has deposited, [then] returns: `timeDelta` as the seconds since first `depositTime`.
+        if (user.withdrawalTime == 0 && user.depositTime > 0) { return timeDelta = block.timestamp - user.depositTime; }
+            // [else if] `user` has withdrawn, [then] returns: `timeDelta` as the time since the last withdrawal.
+            else if(user.withdrawalTime > 0) { return timeDelta = block.timestamp - user.withdrawalTime; }
+                // [else] returns: `timeDelta` as 0, since the user has never deposited.
+                else return timeDelta = 0;
 	}
 
     // returns: multiplier during a period.
     function getMultiplier(uint from, uint to) public pure returns (uint) {
         return to - from;
+    }
+    
+    // returns: multiplier during a period.
+    function getMaxFee(address account, uint pid) public view returns (uint maxFee) {
+        // gets: stored `user` data (`pid`).
+        Users storage user = userInfo[pid][account];
+
+        // gets: stored `user` staked `amount` (`pid`).
+        uint stakedBal = user.amount;
+
+        // gets: `timeDelta` as the time since last withdrawal or first deposit (`pid`, `account`).
+        uint timeDelta = getUserDelta(pid, account);
+
+        // gets: `deltaDays` from the `timeDelta` of the specified `account` (`pid`).
+        uint deltaDays = getDeltaDays(timeDelta);
+
+        // calculates: withdrawable amount (`pid`, `deltaDays`, `stakedBal`).
+        (, uint withdrawableAmount) = getWithdrawable(pid, deltaDays, stakedBal); 
+
+        // calculates: `maxFee` as the `amount` requested minus `withdrawableAmount`.
+        maxFee = stakedBal - withdrawableAmount;
+
+        return maxFee;
+ 
     }
 
     // gets: days based off a given timeDelta (seconds).
@@ -1300,6 +1306,15 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
         }
     }
 
+    // harvest: all pools in a single transaction.
+    function harvestAll() external {
+        for (uint pid = 0; pid < poolInfo.length; ++pid) {
+        // gets senders pending rewards (where staked)
+        Users storage user = userInfo[pid][msg.sender];
+            if (user.amount > 0) { harvest(pid); }
+        }
+    }
+
     // deposit: lp tokens (lp owner)
     function deposit(uint pid, uint amount) public nonReentrant isActive validatePoolByPid(pid) {
         require (pid != 0, 'deposit SOUL by staking (enterStaking)');
@@ -1357,7 +1372,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
         if(pendingReward > 0) { safeSoulTransfer(msg.sender, pendingReward); }
 
         // gets: timeDelta as the time since last withdrawal.
-        uint timeDelta = userDelta(pid, msg.sender);
+        uint timeDelta = getUserDelta(pid, msg.sender);
 
         // gets: deltaDays as days passed using timeDelta.
         uint deltaDays = getDeltaDays(timeDelta);
@@ -1486,7 +1501,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     }
 
     // update: weight (ma'at)
-    function updateWeight(uint _weight, uint _totalWeight) external obey(maat) {
+    function updateWeight(uint _weight, uint _totalWeight) public obey(maat) {
         require(weight != _weight || totalWeight != _totalWeight, 'must include a new value');
         require(_totalWeight >= _weight, 'weight cannot exceed totalWeight');
 
@@ -1502,8 +1517,11 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     function updateRewards(uint _weight, uint _totalWeight) internal {
         uint share = toWei(_weight) / _totalWeight; // share of total emissions for rewarder (rewarder % total emissions)
         
-        dailySoul = share * globalDailySoul; // dailySoul (for rewarder) = share (%) x globalDailySoul (soul emissions constant)
-        soulPerSecond = dailySoul / 1 days; // updates: daily rewards expressed in seconds (1 days = 86,400 secs)
+        // sets: `dailySoul` = share (%) x globalDailySoul (soul emissions constant)
+        dailySoul = share * globalDailySoul;
+
+        // sets: `soulPerSecond` as `dailySoul` expressed per second (1 days = 86,400 secs).
+        soulPerSecond = dailySoul / 1 days;
 
         emit RewardsUpdated(dailySoul, soulPerSecond);
     }
@@ -1529,12 +1547,24 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     }
 
     // updates: dao & team addresses (isis)
-    function updateAccounts(address _dao, address _team) external obey(isis) {
+    function updateAccounts(address _dao, address _team) public obey(isis) {
         require(dao != _dao || team != _team, 'no change requested');
         dao = _dao;
         team = _team;
 
         emit AccountsUpdated(dao, team);
+    }
+
+    // updates: soul & seance addresses (isis)
+    function setTokens(address _soulAddress, address _seanceAddress) public obey(isis) {
+        require(soulAddress != _soulAddress || seanceAddress != _seanceAddress, 'no change requested');
+        soulAddress = _soulAddress;
+        seanceAddress = _seanceAddress;
+
+        soul = IToken(_soulAddress);
+        seance = IToken(_seanceAddress);
+
+        emit TokensUpdated(_soulAddress, _seanceAddress);
     }
 
     // helper functions to convert to wei and 1/100th

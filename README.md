@@ -13,11 +13,13 @@
 ## Avalanche Mainnet
 - [SoulPower.sol](https://snowtrace.io/address/0x11d6DD25c1695764e64F439E32cc7746f3945543#code): 0x11d6DD25c1695764e64F439E32cc7746f3945543
 
-- [SeanceCircle.sol](https://snowtrace.io/address/0xB641880C65A33605fc5a4F8b955a868a98D4a58e#code): 0xB641880C65A33605fc5a4F8b955a868a98D4a58e
+- [SeanceCircle.sol](https://snowtrace.io/address/0x97Ee3C9Cf4E5DE384f95e595a8F327e65265cC4E#code): 0x97Ee3C9Cf4E5DE384f95e595a8F327e65265cC4E
 
-- [SoulManifester.sol](https://snowtrace.io/address/0x9961c13913bC8Aa6e0D9c32765dC7886550603af#code): 0x9961c13913bC8Aa6e0D9c32765dC7886550603af
+- [SoulManifester.sol](https://snowtrace.io/address/0x090D4911Db910efaA498f9b97b8999FbE7A41Dd7#code): 0x090D4911Db910efaA498f9b97b8999FbE7A41Dd7
 
 - [SoulBond.sol](https://snowtrace.io/address/0x4161A44D71F68852d6b013a9C6BF968d3b08D9b7#code): 0x4161A44D71F68852d6b013a9C6BF968d3b08D9b7
+
+- [SoulAutoStake.sol](https://snowtrace.io/address/0xD191F9C5Bd60c9b2239E321C37a2397269170D61#code): 0xD191F9C5Bd60c9b2239E321C37a2397269170D61
 
 ## Avalanche Testnet
 - [SoulPower.sol](https://testnet.snowtrace.io/address/0x81582F803A17a4a454A80600e9185B42E32e0fcF#code): 0x81582F803A17a4a454A80600e9185B42E32e0fcF

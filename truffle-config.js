@@ -22,7 +22,7 @@ module.exports = {
         gasPrice: 25000000000,
         network_id: 43113
       },
-      fantom: {
+      avalanche: {
         provider: function() {
           return new HDWalletProvider(
             privateKeys.split(','), // Array of account private keys

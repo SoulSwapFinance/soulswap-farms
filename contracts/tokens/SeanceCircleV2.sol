@@ -1,222 +1,337 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-import '../libraries/Operable.sol';
-import '../libraries/ERC20.sol';
+pragma solidity >=0.8.0;
+
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
+interface IERC20 {
+    function totalSupply() external view returns (uint);
+
+    function decimals() external view returns (uint8);
+
+    function balanceOf(address account) external view returns (uint);
+
+    function transfer(address recipient, uint amount)
+        external
+        returns (bool);
+
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint);
+
+    function approve(address spender, uint amount) external returns (bool);
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint amount
+    ) external returns (bool);
+
+    event Transfer(address indexed from, address indexed to, uint value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint value
+    );
+}
+
+library Address {
+    function isContract(address account) internal view returns (bool) {
+        bytes32 codehash;
+        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            codehash := extcodehash(account)
+        }
+        return (codehash != 0x0 && codehash != accountHash);
+    }
+}
+
+library SafeERC20 {
+    using Address for address;
+
+    function safeTransfer(
+        IERC20 token,
+        address to,
+        uint value
+    ) internal {
+        callOptionalReturn(
+            token,
+            abi.encodeWithSelector(token.transfer.selector, to, value)
+        );
+    }
+
+    function safeTransferFrom(
+        IERC20 token,
+        address from,
+        address to,
+        uint value
+    ) internal {
+        callOptionalReturn(
+            token,
+            abi.encodeWithSelector(token.transferFrom.selector, from, to, value)
+        );
+    }
+
+    function safeApprove(
+        IERC20 token,
+        address spender,
+        uint value
+    ) internal {
+        require(
+            (value == 0) || (token.allowance(address(this), spender) == 0),
+            "SafeERC20: approve from non-zero to non-zero allowance"
+        );
+        callOptionalReturn(
+            token,
+            abi.encodeWithSelector(token.approve.selector, spender, value)
+        );
+    }
+
+    function callOptionalReturn(IERC20 token, bytes memory data) private {
+        require(address(token).isContract(), "SafeERC20: call to non-contract");
+
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, bytes memory returndata) = address(token).call(data);
+        require(success, "SafeERC20: low-level call failed");
+
+        if (returndata.length > 0) {
+            // Return data is optional
+            // solhint-disable-next-line max-line-length
+            require(
+                abi.decode(returndata, (bool)),
+                "SafeERC20: ERC20 operation did not succeed"
+            );
+        }
+    }
+}
+
+// File: contracts/tokens/SeanceCircleV2.sol
+
+pragma solidity >=0.8.0;
 
 // SeanceCircle with Governance.
-contract SeanceCircle is ERC20('SeanceCircle', 'SEANCE'), Ownable, Operable {
+contract SeanceCircleV2 is IERC20, AccessControl {
+    using SafeERC20 for IERC20;
+    
+    /// @dev stores key ERC20 details.
+    string public name;
+    string public symbol;
+    uint8 public immutable override decimals;
+
     IERC20 public soul;
-    bool isInitialized;
 
-    function mint(address _to, uint256 _amount) public onlyOperator {
-        require(isInitialized, 'the circle has not yet begun');
-        _mint(_to, _amount);
-        _moveDelegates(address(0), _delegates[_to], _amount);
+    /// @dev records amount of SEANCE owned by account.
+    mapping(address => uint) public override balanceOf;
+    uint private _totalSupply;
+
+    // mapping used to verify minters (vanity).
+    mapping(address => bool) public isMinter;
+    
+    // arrays composed of minters.
+    address[] public minters;
+
+    /// @dev records # of SEANCE that `account` (2nd) will be allowed to spend on behalf of another `account` (1st) via { transferFrom }.
+    mapping(address => mapping(address => uint)) public override allowance;
+
+    // supreme & roles
+    address private supreme; // supreme divine
+    bytes32 public anunnaki; // admin role
+    bytes32 public thoth; // minter role
+    bytes32 public sophia; // transfer/burner roles
+
+    // events
+    event NewSupreme(address supreme);
+    event Rethroned(bytes32 role, address oldAccount, address newAccount);
+
+    // modifiers
+    modifier onlySupreme() {
+        require(_msgSender() == supreme, 'sender must be supreme');
+        _;
     }
 
-    function burn(address _from ,uint256 _amount) public onlyOperator {
-        _burn(_from, _amount);
-        _moveDelegates(_delegates[_from], address(0), _amount);
+    // restricted to the house of the role passed as an object to obey
+    modifier obey(bytes32 role) {
+        _checkRole(role, _msgSender());
+        _;
     }
 
-    function initialize(IERC20 _soul) external onlyOwner {
-        require(!isInitialized, 'the circle has already begun');
-        soul = _soul;
-        isInitialized = true;
+    constructor() {
+        // sets: key token details.
+        name = 'SeanceCircle';
+        symbol = 'SEANCE';
+        decimals = 18;
+
+        // sets: roles.
+        supreme = msg.sender; // head supreme
+        anunnaki = keccak256("anunnaki"); // alpha supreme
+        thoth = keccak256("thoth"); // god of wisdom and magic
+        sophia = keccak256("sophia"); // goddess of wisdom and magic
+
+        // sets: SOUL token.
+        soul = IERC20(0x11d6DD25c1695764e64F439E32cc7746f3945543);
+
+        // divines: roles
+        _divinationRitual(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, supreme); // supreme as root admin
+        _divinationRitual(anunnaki, anunnaki, supreme); // anunnaki as admin of anunnaki
+        _divinationRitual(thoth, anunnaki, supreme); // anunnaki as admin of thoth
+        _divinationRitual(sophia, anunnaki, supreme); // anunnaki as admin of sophia
+
     }
 
-    // safe soul transfer function, just in case if rounding error causes pool to not have enough SOUL.
-    function safeSoulTransfer(address _to, uint256 _amount) public onlyOperator {
-        uint256 soulBal = soul.balanceOf(address(this));
-        require(_amount <= soulBal, 'amount exceeds balance');
-        soul.transfer(_to, _amount);
+    // mints: specified `amount` of SEANCE to `account` (thoth)
+    function mint(address to, uint amount) external obey(thoth) returns (bool) {
+        _mint(to, amount);
+        return true;
     }
 
-    // record of each accounts delegate
-    mapping (address => address) internal _delegates;
+    // internal mint
+    function _mint(address account, uint amount) internal {
+        require(account != address(0), "cannot mint to the zero address");
 
-    // checkpoint for marking number of votes from a given block timestamp
-    struct Checkpoint {
-        uint256 fromTime;
-        uint256 votes;
+        // increases: totalSupply by `amount`
+        _totalSupply += amount;
+
+        // increases: user balance by `amount`
+        balanceOf[account] += amount;
+
+        emit Transfer(address(0), account, amount);
     }
 
-    // record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint256 => Checkpoint)) public checkpoints;
 
-    // number of checkpoints for each account
-    mapping (address => uint256) public numCheckpoints;
-
-    // EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-
-    // EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
-
-    // record of states for signing / validating signatures
-    mapping (address => uint) public nonces;
-
-    // emitted when an account changes its delegate
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
-
-    // emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
-
-    // returns the address delegated by a given delegator (external view)
-    function delegates(address delegator) external view returns (address) { return _delegates[delegator]; }
-
-    // delegates to the `delegatee` (external)
-    function delegate(address delegatee) external { return _delegate(msg.sender, delegatee); }
-
-    // delegates votes from signatory to `delegatee` (external)
-    function delegateBySig(
-        address delegatee,
-        uint nonce,
-        uint expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    )
-        external
-    {
-        bytes32 domainSeparator = keccak256(
-            abi.encode(
-                DOMAIN_TYPEHASH,
-                keccak256(bytes(name())),
-                getChainId(),
-                address(this)
-            )
-        );
-
-        bytes32 structHash = keccak256(
-            abi.encode(
-                DELEGATION_TYPEHASH,
-                delegatee,
-                nonce,
-                expiry
-            )
-        );
-
-        bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                domainSeparator,
-                structHash
-            )
-        );
-
-        address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "SOUL::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "SOUL::delegateBySig: invalid nonce");
-        require(block.timestamp <= expiry, "SOUL::delegateBySig: signature expired");
-        return _delegate(signatory, delegatee);
+    // burns: destroys specified `amount` belonging to `from` (sophia)
+    function burn(address from, uint amount) external obey(sophia) returns (bool) {
+        _burn(from, amount);
+        return true;
     }
 
-    // returns current votes balance for `account` (external view)
-    function getCurrentVotes(address account) external view returns (uint) {
-        uint nCheckpoints = numCheckpoints[account];
-        return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
+    function _burn(address account, uint amount) internal {
+        require(account != address(0), "cannot burn from the zero address");
+
+        // checks: `account` balance to ensure coverage for burn `amount` [C].
+        uint balance = balanceOf[account];
+        require(balance >= amount, "burn amount exceeds balance");
+
+        // reduces: `account` by `amount` [E1].
+        balanceOf[account] = balance - amount;
+
+        // reduces: totalSupply by `amount` [E2].
+        _totalSupply -= amount;
+
+        emit Transfer(account, address(0), amount);
     }
 
-    // returns an account's prior vote count as of a given timestamp (external view)
-    function getPriorVotes(address account, uint blockTimestamp) external view returns (uint256) {
-        require(blockTimestamp < block.timestamp, "SOUL::getPriorVotes: not yet determined");
+    // sets: total supply of SEANCE
+    function totalSupply() external view override returns (uint) {
+        return _totalSupply;
+    }
 
-        uint256 nCheckpoints = numCheckpoints[account];
-        if (nCheckpoints == 0) {
-            return 0;
-        }
+    // sets: minter address (onlySupreme)
+    function setMinter(address _minter) external onlySupreme {
+        _setMinter(_minter);
+    }
 
-        // checks most recent balance
-        if (checkpoints[account][nCheckpoints - 1].fromTime <= blockTimestamp) {
-            return checkpoints[account][nCheckpoints - 1].votes;
-        }
+    // adds: the minter to the array of minters[]
+    function _setMinter(address _minter) internal {
+        require(_minter != address(0), "SeanceCircle: cannot set minter to address(0)");
+        minters.push(_minter);
+    }
 
-        // checks implicit zero balance
-        if (checkpoints[account][0].fromTime > blockTimestamp) {
-            return 0;
-        }
+    // no time delay revoke minter (onlySupreme)
+    function revokeMinter(address _minter) external onlySupreme {
+        isMinter[_minter] = false;
+    }
 
-        uint256 lower = 0;
-        uint256 upper = nCheckpoints - 1;
-        while (upper > lower) {
-            uint256 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromTime == blockTimestamp) {
-                return cp.votes;
-            } else if (cp.fromTime < blockTimestamp) {
-                lower = center;
-            } else {
-                upper = center - 1;
+    // approves: `spender` in the specified `amount`
+    function approve(address spender, uint value) external override returns (bool) {
+        allowance[msg.sender][spender] = value;
+        emit Approval(msg.sender, spender, value);
+
+        return true;
+    }
+
+    // restricts: `transfer` (sophia)
+    function transfer(address to, uint value) external override obey(sophia) returns (bool) {
+        require(to != address(0) && to != address(this), 'SeanceCircle: cannot send to address(0) nor to SEANCE');
+        uint senderBalance = balanceOf[msg.sender];
+        require(senderBalance >= value, "SeanceCircle: transfer amount exceeds balance");
+
+        balanceOf[msg.sender] = senderBalance - value;
+        balanceOf[to] += value;
+        emit Transfer(msg.sender, to, value);
+
+        return true;
+    }
+
+    // restricts: `transferFrom` (sophia)
+    function transferFrom(address from, address to, uint value) external override obey(sophia) returns (bool) {
+        require(to != address(0) && to != address(this));
+        if (from != msg.sender) {
+            uint allowed = allowance[from][msg.sender];
+            if (allowed != type(uint).max) {
+                require(
+                    allowed >= value,
+                    "SeanceCircle: request exceeds allowance"
+                );
+                uint reduced = allowed - value;
+                allowance[from][msg.sender] = reduced;
+                emit Approval(from, msg.sender, reduced);
             }
         }
-        return checkpoints[account][lower].votes;
+
+        uint balance = balanceOf[from];
+        require(balance >= value, "SeanceCircle: transfer amount exceeds balance");
+
+        balanceOf[from] = balance - value;
+        balanceOf[to] += value;
+        emit Transfer(from, to, value);
+
+        return true;
     }
 
-    function _delegate(address delegator, address delegatee) internal {
-        address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying SOUL (not scaled);
-        _delegates[delegator] = delegatee;
+    // grants: `role` to `newAccount` && renounces `role` from `oldAccount` [ obey(role) ]
+    function rethroneRitual(bytes32 role, address oldAccount, address newAccount) public obey(role) {
+        require(oldAccount != newAccount, "must be a new address");
+        grantRole(role, newAccount); // grants new account
+        renounceRole(role, oldAccount); //  removes old account of role
 
-        emit DelegateChanged(delegator, currentDelegate, delegatee);
-
-        _moveDelegates(currentDelegate, delegatee, delegatorBalance);
+        emit Rethroned(role, oldAccount, newAccount);
     }
 
-    function _moveDelegates(address srcRep, address dstRep, uint256 amount) internal {
-        if (srcRep != dstRep && amount > 0) {
-            if (srcRep != address(0)) {
-                // decrease old representative
-                uint256 srcRepNum = numCheckpoints[srcRep];
-                uint256 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint256 srcRepNew = srcRepOld - amount;
-                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
-            }
-
-            if (dstRep != address(0)) {
-                // increase new representative
-                uint256 dstRepNum = numCheckpoints[dstRep];
-                uint256 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint256 dstRepNew = dstRepOld + amount;
-                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
-            }
-        }
+    // solidifies roles (internal)
+    function _divinationRitual(bytes32 _role, bytes32 _adminRole, address _account) internal {
+        _setupRole(_role, _account);
+        _setRoleAdmin(_role, _adminRole);
     }
 
-    function _writeCheckpoint(
-        address delegatee,
-        uint256 nCheckpoints,
-        uint256 oldVotes,
-        uint256 newVotes
-    )
-        internal
-    {
-        uint256 blockTimestamp = safe256(block.timestamp, "SOUL::_writeCheckpoint: block timestamp exceeds 256 bits");
+    // updates supreme address (anunnaki).
+    function newSupreme(address _supreme) external obey(anunnaki) {
+        require(supreme != _supreme, "make a change, be the change"); //  prevents self-destruct
+        rethroneRitual(DEFAULT_ADMIN_ROLE, supreme, _supreme); //   empowers new supreme
+        supreme = _supreme;
 
-        if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromTime == blockTimestamp) {
-            checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
-        } else {
-            checkpoints[delegatee][nCheckpoints] = Checkpoint(blockTimestamp, newVotes);
-            numCheckpoints[delegatee] = nCheckpoints + 1;
-        }
-
-        emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
+        emit NewSupreme(supreme);
     }
 
-    function safe256(uint n, string memory errorMessage) internal pure returns (uint256) {
-        require(n < type(uint256).max, errorMessage);
-        return uint256(n);
+    // prevents: sending partial SOUL rewards.
+    function safeSoulTransfer(address to, uint amount) external obey(sophia) {
+        uint soulBal = soul.balanceOf(address(this));
+        require(amount <= soulBal, 'amount exceeds balance');
+        soul.transfer(to, amount);
     }
 
-    function getChainId() internal view returns (uint) {
-        uint256 chainId;
+    // shows: chainId (view)
+    function getChainId() external view returns (uint chainId) {
         assembly { chainId := chainid() }
         return chainId;
     }
 
-    function newSoul(address _soul) external onlyOperator {
+    // updates: address for SOUL (onlySupreme).
+    function newSoul(address _soul) external onlySupreme {
         require(soul != IERC20(_soul), 'must be a new address');
         soul = IERC20(_soul);
     }
