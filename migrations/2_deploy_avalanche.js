@@ -30,7 +30,7 @@ module.exports = async function(deployer) {
 
   // [manifester]: add pool
   await manifester.addPool(
-        750, // _allocPoint, 
+        500, // _allocPoint, 
         SOUL_AVAX, // _lpToken, 
         false, // _withUpdate,
         14 // _feeDays
