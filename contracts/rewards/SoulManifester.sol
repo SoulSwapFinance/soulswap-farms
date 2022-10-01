@@ -237,19 +237,28 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
                         
             // checks: an update is being executed.
             require(pool.allocPoint != _allocPoint || pool.feeDays != _feeDays, 'no change requested.');
+            
+            // checks: fee is below maximum
+            require(_feeDays <= maxFeeDays, 'fee days exceeds max');
 
             // identifies: treatment of new allocation.
             bool isIncrease = _allocPoint > pool.allocPoint;
+            
+            // calculates: | delta | for global allocation;
+            uint absDelta 
+                = isIncrease 
+                    ? _allocPoint - pool.allocPoint
+                    : pool.allocPoint - _allocPoint;
 
             // sets: new `pool.allocPoint`
             pool.allocPoint = _allocPoint;
 
             // sets: new `pool.feeDays`
-            pool.allocPoint = _feeDays;
+            pool.feeDays = _feeDays;
 
             // updates: `totalAllocPoint`
-            if (isIncrease) { totalAllocPoint += _allocPoint; }
-            else { totalAllocPoint -= _allocPoint; }
+            if (isIncrease) { totalAllocPoint += absDelta; }
+            else { totalAllocPoint -= absDelta; }
 
         emit PoolSet(pid, _allocPoint);
     }
