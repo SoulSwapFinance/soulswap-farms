@@ -119,7 +119,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     event Withdraw(address indexed user, uint indexed pid, uint amount, uint feeAmount, uint timestamp);
     event Initialized(uint weight, uint timestamp);
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
-    event PoolSet(uint pid, uint allocPoint);
+    event PoolSet(uint pid, uint allocPoint, uint totalAllocPoint, uint absDelta, uint timestamp);
     event WeightUpdated(uint weight, uint totalWeight);
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
     event FeeDaysUpdated(uint pid, uint feeDays);
@@ -196,7 +196,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     function poolLength() external view returns (uint) { return poolInfo.length; }
 
     // add: new pool created by the soul summoning goddess whose power transcends all (isis)
-    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _feeDays) public obey(isis) { 
+    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _feeDays) external obey(isis) { 
             checkPoolDuplicate(_lpToken);
             require(_feeDays <= maxFeeDays, 'feeDays may not exceed the maximum of 100 days');
 
@@ -257,10 +257,16 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
             pool.feeDays = _feeDays;
 
             // updates: `totalAllocPoint`
-            if (isIncrease) { totalAllocPoint += absDelta; }
-            else { totalAllocPoint -= absDelta; }
+            isIncrease 
+                ? totalAllocPoint += absDelta
+                : totalAllocPoint -= absDelta;
 
-        emit PoolSet(pid, _allocPoint);
+        emit PoolSet(pid, _allocPoint, totalAllocPoint, absDelta, block.timestamp);
+    }
+
+    // safety: in case of errors.
+    function setTotalAllocPoint(uint _totalAllocPoint) external obey(isis) {
+        totalAllocPoint = _totalAllocPoint;
     }
 
     // returns: user delta is the time since user either last withdrew OR first deposited OR 0.

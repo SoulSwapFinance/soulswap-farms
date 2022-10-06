@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 // File: @openzeppelin/contracts/access/IAccessControl.sol
-
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev External interface of AccessControl declared to support ERC165 detection.
@@ -89,8 +88,7 @@ interface IAccessControl {
 }
 
 // File: @openzeppelin/contracts/utils/Context.sol
-
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -114,7 +112,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/utils/Strings.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev String operations.
@@ -181,7 +179,7 @@ library Strings {
 
 // File: @openzeppelin/contracts/utils/introspection/IERC165.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the
@@ -206,7 +204,8 @@ interface IERC165 {
 
 // File: @openzeppelin/contracts/utils/introspection/ERC165.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
+
 
 /**
  * @dev Implementation of the {IERC165} interface.
@@ -233,7 +232,11 @@ abstract contract ERC165 is IERC165 {
 
 // File: @openzeppelin/contracts/access/AccessControl.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
+
+
+
+
 
 /**
  * @dev Contract module that allows children to implement role-based access
@@ -439,7 +442,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -502,8 +505,7 @@ abstract contract ReentrancyGuard {
 
 // File: @openzeppelin/contracts/access/Ownable.sol
 
-pragma solidity >=0.8.0;
-
+pragma solidity ^0.8.0;
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -573,7 +575,7 @@ abstract contract Ownable is Context {
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -655,8 +657,7 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
-pragma solidity >=0.8.0;
-
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface for the optional metadata functions from the ERC20 standard.
@@ -682,7 +683,7 @@ interface IERC20Metadata is IERC20 {
 
 // File: @openzeppelin/contracts/utils/Address.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Collection of functions related to the address type
@@ -898,8 +899,9 @@ library Address {
 }
 
 // File: contracts/libraries/SafeERC20.sol
-
 pragma solidity >=0.8.0;
+
+
 
 /**
  * @title SafeERC20
@@ -991,68 +993,7 @@ library SafeERC20 {
     }
 }
 
-// File: contracts/libraries/Operable.sol
-
-pragma solidity >=0.8.0;
-
-// --------------------------------------------------------------------------------------
-//  Allows multiple contracts to act as `owner`, from `Ownable.sol`, with `onlyOperator`.
-// --------------------------------------------------------------------------------------
-
-abstract contract Operable is Context, Ownable {
-
-    address[] public operators;
-    mapping(address => bool) public operator;
-
-    event OperatorUpdated(address indexed operator, bool indexed access);
-    constructor () {
-        address msgSender = _msgSender();
-        operator[msgSender] = true;
-        operators.push(msgSender);
-        emit OperatorUpdated(msgSender, true);
-    }
-
-    /**
-     * @dev Throws if called by any account other than the operator.
-     */
-    modifier onlyOperator() {
-        address msgSender = _msgSender();
-        require(operator[msgSender], "Operator: caller is not an operator");
-        _;
-    }
-
-    /**
-     * @dev Leaves the contract without operator. It will not be possible to call
-     * `onlyOperator` functions anymore. Can only be called by an operator.
-     */
-    function removeOperator(address removingOperator) public virtual onlyOperator {
-        require(operator[removingOperator], 'Operable: address is not an operator');
-        operator[removingOperator] = false;
-        for (uint8 i; i < operators.length; i++) {
-            if (operators[i] == removingOperator) {
-                operators[i] = operators[i+1];
-                operators.pop();
-                emit OperatorUpdated(removingOperator, false);
-                return;
-            }
-        }
-    }
-
-    /**
-     * @dev Adds address as operator of the contract.
-     * Can only be called by an operator.
-     */
-    function addOperator(address newOperator) public virtual onlyOperator {
-        require(newOperator != address(0), "Operable: new operator is the zero address");
-        require(!operator[newOperator], 'Operable: address is already an operator');
-        operator[newOperator] = true;
-        operators.push(newOperator);
-        emit OperatorUpdated(newOperator, true);
-    }
-}
-
 // File: contracts/interfaces/IToken.sol
-
 pragma solidity >=0.8.0;
 
 // interface used for interacting with SOUL & SEANCE
@@ -1064,11 +1005,10 @@ interface IToken {
 }
 
 // File: contracts/rewards/SoulBondV2.sol
-
 pragma solidity >=0.8.0;
 
 // the bonder of souls
-contract SoulBond is AccessControl, ReentrancyGuard {
+contract SoulBondV2 is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
     // user info
     struct Users {
@@ -1106,7 +1046,7 @@ contract SoulBond is AccessControl, ReentrancyGuard {
 
     // soul & seance addresses
     address private soulAddress = 0x11d6DD25c1695764e64F439E32cc7746f3945543;
-    address private seanceAddress = 0xB641880C65A33605fc5a4F8b955a868a98D4a58e;
+    address private seanceAddress = 0x97Ee3C9Cf4E5DE384f95e595a8F327e65265cC4E;
 
     // tokens: soul & seance
     IToken public soul;
@@ -1196,6 +1136,8 @@ contract SoulBond is AccessControl, ReentrancyGuard {
     event PoolSet(
         uint pid, 
         uint allocPoint, 
+        uint totalAllocPoint, 
+        uint absDelta,
         uint timestamp
     );
 
@@ -1217,7 +1159,7 @@ contract SoulBond is AccessControl, ReentrancyGuard {
 
         _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
         _divinationCeremony(isis, isis, msg.sender); // isis role created -- supreme divined admin
-        _divinationCeremony(maat, isis, dao); // ma'at role created -- isis divined admin
+        _divinationCeremony(maat, isis, msg.sender); // ma'at role created -- isis divined admin
 
         // sets: soul & seance
         soul = IToken(soulAddress);
@@ -1295,19 +1237,31 @@ contract SoulBond is AccessControl, ReentrancyGuard {
             // identifies: treatment of new allocation.
             bool isIncrease = _allocPoint > allocPoint;
 
+            // calculates: | delta | for global allocation;
+            uint absDelta 
+                = isIncrease 
+                    ? _allocPoint - allocPoint
+                    : allocPoint - _allocPoint;
+
             // sets: new `pool.allocPoint`
             pool.allocPoint = _allocPoint;
 
-            // updates: global `totalAllocPoint`
-            if (isIncrease) { totalAllocPoint += allocPoint; }
-            else { totalAllocPoint -= allocPoint; }
+            // updates: `totalAllocPoint`
+            isIncrease 
+                ? totalAllocPoint += absDelta
+                : totalAllocPoint -= absDelta;
 
-        emit PoolSet(pid, allocPoint, block.timestamp);
+        emit PoolSet(pid, allocPoint, totalAllocPoint, absDelta, block.timestamp);
     }
 
-    // view: bonus multiplier
+    // view: bonus multiplier.
     function getMultiplier(uint from, uint to) internal pure returns (uint) {
         return (to - from);
+    }
+
+    // safety: in case of errors.
+    function setTotalAllocPoint(uint _totalAllocPoint) external obey(isis) {
+        totalAllocPoint = _totalAllocPoint;
     }
 
     // returns: pending soul rewards
@@ -1368,6 +1322,7 @@ contract SoulBond is AccessControl, ReentrancyGuard {
     // deposits: lp tokens
     function deposit(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
         require(isInitialized, 'rewards have not yet begun');
+        require(!isEmergency, 'emergency activated');
         require(amount > 0, 'must deposit more than 0');
 
         Pools storage pool = poolInfo[pid];

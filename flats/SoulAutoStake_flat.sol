@@ -672,8 +672,8 @@ contract SoulAutoStake is Ownable, Pausable, ReentrancyGuard {
 
     constructor() {
         treasury = msg.sender;
-        soulSummoner = ISoulSummoner(0x090D4911Db910efaA498f9b97b8999FbE7A41Dd7);
-        IERC20(soul).approve(0x090D4911Db910efaA498f9b97b8999FbE7A41Dd7, type(uint).max);
+        soulSummoner = ISoulSummoner(0xB1e330401c920077Ddf157AbA5594238d36b54B1);
+        IERC20(soul).approve(0xB1e330401c920077Ddf157AbA5594238d36b54B1, type(uint).max);
     }
 
     // ERC20 Brujeria

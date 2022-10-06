@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 // File: @openzeppelin/contracts/access/IAccessControl.sol
-
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev External interface of AccessControl declared to support ERC165 detection.
@@ -90,7 +89,7 @@ interface IAccessControl {
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Provides information about the current execution context, including the
@@ -114,7 +113,7 @@ abstract contract Context {
 
 // File: @openzeppelin/contracts/utils/Strings.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev String operations.
@@ -181,7 +180,7 @@ library Strings {
 
 // File: @openzeppelin/contracts/utils/introspection/IERC165.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC165 standard, as defined in the
@@ -206,7 +205,7 @@ interface IERC165 {
 
 // File: @openzeppelin/contracts/utils/introspection/ERC165.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 
 /**
@@ -234,11 +233,7 @@ abstract contract ERC165 is IERC165 {
 
 // File: @openzeppelin/contracts/access/AccessControl.sol
 
-pragma solidity >=0.8.0;
-
-
-
-
+pragma solidity ^0.8.0;
 
 /**
  * @dev Contract module that allows children to implement role-based access
@@ -444,7 +439,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
 
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Contract module that helps prevent reentrant calls to a function.
@@ -507,7 +502,7 @@ abstract contract ReentrancyGuard {
 
 // File: @openzeppelin/contracts/token/ERC20/IERC20.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -589,7 +584,7 @@ interface IERC20 {
 
 // File: @openzeppelin/contracts/utils/Address.sol
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
  * @dev Collection of functions related to the address type
@@ -1025,7 +1020,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     event Withdraw(address indexed user, uint indexed pid, uint amount, uint feeAmount, uint timestamp);
     event Initialized(uint weight, uint timestamp);
     event PoolAdded(uint pid, uint allocPoint, IERC20 lpToken, uint totalAllocPoint);
-    event PoolSet(uint pid, uint allocPoint);
+    event PoolSet(uint pid, uint allocPoint, uint totalAllocPoint, uint absDelta, uint timestamp);
     event WeightUpdated(uint weight, uint totalWeight);
     event RewardsUpdated(uint dailySoul, uint soulPerSecond);
     event FeeDaysUpdated(uint pid, uint feeDays);
@@ -1102,7 +1097,7 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
     function poolLength() external view returns (uint) { return poolInfo.length; }
 
     // add: new pool created by the soul summoning goddess whose power transcends all (isis)
-    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _feeDays) public obey(isis) { 
+    function addPool(uint _allocPoint, IERC20 _lpToken, bool _withUpdate, uint _feeDays) external obey(isis) { 
             checkPoolDuplicate(_lpToken);
             require(_feeDays <= maxFeeDays, 'feeDays may not exceed the maximum of 100 days');
 
@@ -1143,21 +1138,36 @@ contract SoulManifester is AccessControl, ReentrancyGuard {
                         
             // checks: an update is being executed.
             require(pool.allocPoint != _allocPoint || pool.feeDays != _feeDays, 'no change requested.');
+            
+            // checks: fee is below maximum
+            require(_feeDays <= maxFeeDays, 'fee days exceeds max');
 
             // identifies: treatment of new allocation.
             bool isIncrease = _allocPoint > pool.allocPoint;
+            
+            // calculates: | delta | for global allocation;
+            uint absDelta 
+                = isIncrease 
+                    ? _allocPoint - pool.allocPoint
+                    : pool.allocPoint - _allocPoint;
 
             // sets: new `pool.allocPoint`
             pool.allocPoint = _allocPoint;
 
             // sets: new `pool.feeDays`
-            pool.allocPoint = _feeDays;
+            pool.feeDays = _feeDays;
 
             // updates: `totalAllocPoint`
-            if (isIncrease) { totalAllocPoint += _allocPoint; }
-            else { totalAllocPoint -= _allocPoint; }
+            isIncrease 
+                ? totalAllocPoint += absDelta
+                : totalAllocPoint -= absDelta;
 
-        emit PoolSet(pid, _allocPoint);
+        emit PoolSet(pid, _allocPoint, totalAllocPoint, absDelta, block.timestamp);
+    }
+
+    // safety: in case of errors.
+    function setTotalAllocPoint(uint _totalAllocPoint) external obey(isis) {
+        totalAllocPoint = _totalAllocPoint;
     }
 
     // returns: user delta is the time since user either last withdrew OR first deposited OR 0.

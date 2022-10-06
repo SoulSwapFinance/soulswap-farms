@@ -3,10 +3,8 @@
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../libraries/SafeERC20.sol";
-import "../libraries/Operable.sol";
 import "../interfaces/IToken.sol";
 
 pragma solidity >=0.8.0;
@@ -50,7 +48,7 @@ contract SoulBondV2 is AccessControl, ReentrancyGuard {
 
     // soul & seance addresses
     address private soulAddress = 0x11d6DD25c1695764e64F439E32cc7746f3945543;
-    address private seanceAddress = 0xB641880C65A33605fc5a4F8b955a868a98D4a58e;
+    address private seanceAddress = 0x97Ee3C9Cf4E5DE384f95e595a8F327e65265cC4E;
 
     // tokens: soul & seance
     IToken public soul;
@@ -140,6 +138,8 @@ contract SoulBondV2 is AccessControl, ReentrancyGuard {
     event PoolSet(
         uint pid, 
         uint allocPoint, 
+        uint totalAllocPoint, 
+        uint absDelta,
         uint timestamp
     );
 
@@ -161,7 +161,7 @@ contract SoulBondV2 is AccessControl, ReentrancyGuard {
 
         _divinationCeremony(DEFAULT_ADMIN_ROLE, DEFAULT_ADMIN_ROLE, msg.sender);
         _divinationCeremony(isis, isis, msg.sender); // isis role created -- supreme divined admin
-        _divinationCeremony(maat, isis, dao); // ma'at role created -- isis divined admin
+        _divinationCeremony(maat, isis, msg.sender); // ma'at role created -- isis divined admin
 
         // sets: soul & seance
         soul = IToken(soulAddress);
@@ -239,19 +239,31 @@ contract SoulBondV2 is AccessControl, ReentrancyGuard {
             // identifies: treatment of new allocation.
             bool isIncrease = _allocPoint > allocPoint;
 
+            // calculates: | delta | for global allocation;
+            uint absDelta 
+                = isIncrease 
+                    ? _allocPoint - allocPoint
+                    : allocPoint - _allocPoint;
+
             // sets: new `pool.allocPoint`
             pool.allocPoint = _allocPoint;
 
-            // updates: global `totalAllocPoint`
-            if (isIncrease) { totalAllocPoint += allocPoint; }
-            else { totalAllocPoint -= allocPoint; }
+            // updates: `totalAllocPoint`
+            isIncrease 
+                ? totalAllocPoint += absDelta
+                : totalAllocPoint -= absDelta;
 
-        emit PoolSet(pid, allocPoint, block.timestamp);
+        emit PoolSet(pid, allocPoint, totalAllocPoint, absDelta, block.timestamp);
     }
 
-    // view: bonus multiplier
+    // view: bonus multiplier.
     function getMultiplier(uint from, uint to) internal pure returns (uint) {
         return (to - from);
+    }
+
+    // safety: in case of errors.
+    function setTotalAllocPoint(uint _totalAllocPoint) external obey(isis) {
+        totalAllocPoint = _totalAllocPoint;
     }
 
     // returns: pending soul rewards
@@ -312,6 +324,7 @@ contract SoulBondV2 is AccessControl, ReentrancyGuard {
     // deposits: lp tokens
     function deposit(uint pid, uint amount) external nonReentrant validatePoolByPid(pid) {
         require(isInitialized, 'rewards have not yet begun');
+        require(!isEmergency, 'emergency activated');
         require(amount > 0, 'must deposit more than 0');
 
         Pools storage pool = poolInfo[pid];
