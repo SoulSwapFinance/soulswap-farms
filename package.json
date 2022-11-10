@@ -12,6 +12,7 @@
     "flat:erc20": "truffle-flattener contracts/mocks/MockERC20.sol > flats/MockERC20_flat.sol",
     "flat:bondV2": "truffle-flattener contracts/rewards/SoulBondV2.sol > flats/SoulBondV2_flat.sol",
     "flat:manifestor": "truffle-flattener contracts/rewards/SoulManifester.sol > flats/SoulManifester_flat.sol",
+    "flat:farmManifester": "truffle-flattener contracts/rewards/FarmManifester.sol > flats/FarmManifester_flat.sol",
     "verify": "truffle run verify",
     "verify:summoner": "truffle run verify SoulSummoner --network testnet --license SPDX-License-Identifier",
     "test": "npx hardhat test test/SoulManifester.test.js",
