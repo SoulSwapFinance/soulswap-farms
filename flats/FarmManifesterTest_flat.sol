@@ -919,8 +919,23 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     ) internal virtual {}
 }
 
-// File: contracts/rewards/FarmManifester.sol
-pragma solidity >=0.8.0;
+interface ISoulSwapFactory {
+    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+    event SetFeeTo(address indexed user, address indexed _feeTo);
+    event SetMigrator(address indexed user, address indexed _migrator);
+    event FeeToSetter(address indexed user, address indexed feeToSetter);
+
+    function feeTo() external view returns (address _feeTo);
+    function feeToSetter() external view returns (address _fee);
+    function migrator() external view returns (address _migrator);
+
+    function getPair(address tokenA, address tokenB) external view returns (address pair);
+
+    function createPair(address tokenA, address tokenB) external returns (address pair);
+    function setMigrator(address) external;
+    function setFeeTo(address) external;
+    function setFeeToSetter(address) external;
+}
 
 contract Farm is ReentrancyGuard, Ownable {
 using SafeERC20 for IERC20;
@@ -929,7 +944,7 @@ using SafeERC20 for IERC20;
     IERC20 public rewardToken;
     IERC20 public depositToken;
     
-    uint public duration;
+    uint public duraDays;
     uint public feeDays;
     uint public dailyReward;
     uint public totalRewards;
@@ -988,26 +1003,32 @@ using SafeERC20 for IERC20;
         address _dao,
         address _rewardToken,
         address _depositToken,
-        uint _duration,
+        uint _duraDays,
         uint _feeDays,
         uint _dailyReward,
         uint _totalRewards
-    ) external {
+    ) external returns (bool) {
         require(msg.sender == manifester, "only the manifeser many manifest"); // sufficient check
         require(!isManifested, 'initialize once');
         dao = _dao;
         rewardToken = IERC20(_rewardToken);
         depositToken = IERC20(_depositToken);
-        duration = _duration;
+        duraDays = _duraDays;
         feeDays = toWei(_feeDays);
         dailyReward = _dailyReward;
         totalRewards = _totalRewards;
+
+        // transfers: `totalRewards` to this contract.
+        IERC20(rewardToken).transferFrom(msg.sender, address(this), totalRewards);
 
         // sets: initialization state.
         isManifested = true;
 
         // sets: rewardPerSecond.
         rewardPerSecond = dailyReward / 1 days;
+
+        // returns execution state.
+        return true;
     }
 
     // returns: pending rewards for the sender.
@@ -1159,7 +1180,7 @@ using SafeERC20 for IERC20;
         uint withdrawable = amount - feeAmount;
 
         return (feeAmount, withdrawable);
-    }
+    }    
 
     // withdraw: lp tokens (external farmers)
     function withdraw(uint amount) external nonReentrant isActive {
@@ -1251,57 +1272,98 @@ using SafeERC20 for IERC20;
         emit FeeDaysUpdated(toWei(_feeDays));
     }
 
-    function forfeit() external {
-        uint rewardTokenBalance = rewardToken.balanceOf(address(this));
-        uint depositTokenBalance = depositToken.balanceOf(address(this));
-
-        rewardToken.transfer(dao, rewardTokenBalance);
-        depositToken.transfer(dao, depositTokenBalance);
-    }
-
     /*/ HELPER FUNCTIONS /*/
-    // helper functions to convert to wei and 1/100th
+    // helper functions to convert to/from wei (ether).
     function toWei(uint amount) public pure returns (uint) { return amount * 1e18; }
     function fromWei(uint amount) public pure returns (uint) { return amount / 1e18; }
 
 }
 
-contract FarmManifesterTest {
+contract FarmManifester is Ownable {
+    using SafeERC20 for IERC20;
     bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Farm).creationCode));
 
-    uint256 public totalFarms = 0;
+    ISoulSwapFactory public Factory;
+    uint256 public totalFarms;
     address[] public allFarms;
+
+    address public soulDAO;
+    address public WNATIVE_ADDRESS;
+    uint bloodSacrifice;
+
+    bool public isPaused;
 
     mapping(address => mapping(address => address)) public getFarm; // depositToken, creatorAddress
 
-    event FarmCreated(address indexed creatorAddress, address indexed depositToken, address dao, address rewardToken, address farm, uint duration, uint feeDays, uint totalFarms);
+    event FarmCreated(
+            address indexed creatorAddress, 
+            address indexed depositToken, 
+            address dao, 
+            address rewardToken, 
+            uint sacrifice,
+            address farm, 
+            uint duraDays, 
+            uint feeDays, 
+            uint totalFarms
+    );
 
-    function createFarm(address dao, address rewardToken, address depositToken, uint duration, uint feeDays, uint dailyReward) external returns (address farm) {
+    event Paused(address pauserAddress);
+
+    // proxy for pausing contract.
+    modifier isActive {
+        require(!isPaused, 'contract is currently paused');
+        _;
+    }
+
+    constructor(address _daoAddress, uint _sacrifice, address _wnative) {
+        Factory = ISoulSwapFactory(0x1120e150dA9def6Fe930f4fEDeD18ef57c0CA7eF);
+        soulDAO = _daoAddress;
+        bloodSacrifice = toWei(_sacrifice);
+        WNATIVE_ADDRESS = _wnative;
+    }
+
+    function createFarm(address dao, address rewardToken, uint duraDays, uint feeDays, uint dailyReward) external returns (address farm) {
+        address depositToken = Factory.getPair(WNATIVE_ADDRESS, rewardToken);
+
+        // [if] pair does not exist
+        if (depositToken == address(0)) {
+            // [then] create pair and store as the depositToken.
+            depositToken == Factory.createPair(WNATIVE_ADDRESS, rewardToken);
+        }
+
+        // ensures the rewardToken and depositToken are distinct.
         require(rewardToken != depositToken, 'reward and deposit cannot be identical.');
         address creatorAddress = address(msg.sender);
         uint tokenDecimals = ERC20(rewardToken).decimals();
-        uint totalRewards = duration * 1 days * dailyReward * tokenDecimals;
+        require(tokenDecimals == 18, 'reward token must be 18 decimals'); // neccessary for rewards distribution calculation.
+    
+        uint rewards = getTotalRewards(duraDays, dailyReward);
+        uint sacrifice = getSacrifice(rewards);
+        uint total = rewards + sacrifice;
 
+        // ensures: depositToken is never 0x.
+        require(depositToken != address(0));
         // ensures: unique deposit-owner mapping.
         require(getFarm[depositToken][creatorAddress] == address(0), 'reward already exists'); // single check is sufficient
         
-        // checks: the creator has a sufficient balance.
-        require(ERC20(rewardToken).balanceOf(msg.sender) >= totalRewards, 'insufficient balance to launch farm');
+        // checks: the creator has a sufficient balance to cover both rewards + sacrifice.
+        require(ERC20(rewardToken).balanceOf(msg.sender) >= total, 'insufficient balance to launch farm');
 
-        // transfers: `totalRewards` to this contract.
-        ERC20(rewardToken).transferFrom(msg.sender, address(this), totalRewards);
-
+        // generates the creation code, salt, then assembles a create2Address for the new farm.
         bytes memory bytecode = type(Farm).creationCode;
         bytes32 salt = keccak256(abi.encodePacked(depositToken, creatorAddress));
         
         assembly { farm := create2(0, add(bytecode, 32), mload(bytecode), salt) }
 
+        // transfers: sacrifice directly to soulDAO.
+        IERC20(rewardToken).safeTransfer(rewardToken, sacrifice);
+
         // creates: new farm based off of the inputs, then stores as an array.
-        Farm(farm).manifest(dao, rewardToken, depositToken, duration, feeDays, dailyReward, totalRewards);
+        require(Farm(farm).manifest(dao, rewardToken, depositToken, duraDays, feeDays, dailyReward, rewards), 'manifestation failed');
         
-        // populates: the getFarm mapping
+        // populates: the getFarm mapping (also in reverse direction).
         getFarm[depositToken][creatorAddress] = farm;
-        getFarm[creatorAddress][depositToken] = farm; // populate mapping in the reverse direction
+        getFarm[creatorAddress][depositToken] = farm; 
 
         // stores the farm to the allFarms array
         allFarms.push(farm);
@@ -1309,6 +1371,40 @@ contract FarmManifesterTest {
         // increments: the total number of farms
         totalFarms++;
 
-        emit FarmCreated(creatorAddress, depositToken, rewardToken, dao, farm, duration, feeDays, totalFarms);
+        emit FarmCreated( creatorAddress, depositToken, dao, rewardToken, sacrifice, farm, duraDays, feeDays, totalFarms);
     }
+
+    /*/ GETTER FUNCTIONS /*/
+    function getTotalRewards(uint duraDays, uint dailyReward) public pure returns (uint) {
+        uint totalRewards = duraDays * toWei(dailyReward);
+        return totalRewards;
+    }
+
+    function getSacrifice(uint rewards) public view returns (uint) {
+        uint sacrifice = rewards * bloodSacrifice;
+        return sacrifice;
+    }
+
+    /*/ ADMIN FUNCTIONS /*/
+    function updateFactory(address _factoryAddress) external onlyOwner {
+        Factory = ISoulSwapFactory(_factoryAddress);
+    }
+
+    function updateDao(address _daoAddress) external onlyOwner {
+        soulDAO = _daoAddress;
+    }
+
+    function updateSacrifice(uint _sacrifice) external onlyOwner {
+        bloodSacrifice = toWei(_sacrifice);
+    }
+
+    function togglePause(bool enabled) external onlyOwner {
+        isPaused = enabled;
+
+        emit Paused(msg.sender);
+    }
+
+    /*/ HELPER FUNCTIONS /*/
+    function toWei(uint amount) public pure returns (uint) { return amount * 1e18; }
+    function fromWei(uint amount) public pure returns (uint) { return amount / 1e18; }
 }
