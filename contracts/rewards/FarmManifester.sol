@@ -333,7 +333,6 @@ using SafeERC20 for IERC20;
         emit EmergencyWithdraw(msg.sender, user.amount, user.withdrawalTime);
     }
 
-
     /*/ ADMINISTRATIVE FUNCTIONS /*/
     // enables: panic button (owner)
     function toggleEmergency(bool enabled) external onlyOwner {
@@ -409,7 +408,7 @@ contract FarmManifester is Ownable {
         WNATIVE_ADDRESS = _wnative;
     }
 
-    function createFarm(address dao, address rewardToken, uint duraDays, uint feeDays, uint dailyReward) external returns (address farm) {
+    function createFarm(address dao, address rewardToken, uint duraDays, uint feeDays, uint dailyReward) external isActive returns (address farm) {
         address depositToken = Factory.getPair(WNATIVE_ADDRESS, rewardToken);
 
         // [if] pair does not exist
