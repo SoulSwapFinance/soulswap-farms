@@ -919,7 +919,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     ) internal virtual {}
 }
 
-// File: contracts/rewards/FarmManifester.sol
+// File: contracts/rewards/ManifestationManifester.sol
 pragma solidity >=0.8.0;
 
 interface ISoulSwapFactory {
@@ -940,12 +940,39 @@ interface ISoulSwapFactory {
     function setFeeToSetter(address) external;
 }
 
-contract Farm is ReentrancyGuard, Ownable {
-using SafeERC20 for IERC20;
-    address public manifester;
-    address public dao;
+interface IManifestation {
+    function name() external returns (string memory);
+    function symbol() external returns (string memory);
+}
+
+interface IManifester {
+    function soulDAO() external returns (address);
+    function getNativeSymbol() external view returns (string memory);
+    function getOracleAddress() external view returns (address);
+    function getWrappedAddress() external view returns (address);
+}
+
+interface IOracle {
+  function latestAnswer() external view returns (int256);
+  function decimals() external view returns (uint8);
+  function latestTimestamp() external view returns (uint256);
+}
+
+
+contract Manifestation is IManifestation, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
+    address public creatorAddress;
+    IManifester public manifester;
+    address public DAO;
+    address public soulDAO;
+
     IERC20 public rewardToken;
     IERC20 public depositToken;
+
+    string public override name;
+    string public override symbol;
+    string public logoURI;
     
     uint public duraDays;
     uint public feeDays;
@@ -955,9 +982,10 @@ using SafeERC20 for IERC20;
     uint public accRewardPerShare;
     uint public lastRewardTime;
 
-    bool private isManifested;
-    bool private isEmergency;
-    bool private isActivated;
+    bool public isManifested;
+    bool public isEmergency;
+    bool public isActivated;
+    bool public isSettable;
 
     // user info
     struct Users {
@@ -988,8 +1016,25 @@ using SafeERC20 for IERC20;
     }
 
     // proxy for pausing contract.
-    modifier isActive {
+    modifier whileActive {
         require(isActivated, 'contract is currently paused');
+        _;
+    }
+
+    // proxy for setting contract.
+    modifier whileSettable {
+        require(isSettable, 'contract is currently not settable');
+        _;
+    }
+
+    // designates: soul access (for (rare) overrides).
+    modifier onlySOUL() {
+        require(soulDAO == msg.sender, "onlySOUL: caller is not the soulDAO address");
+        _;
+    }
+
+    modifier onlyDAO() {
+        require(DAO == msg.sender, "onlyDAO: caller is not the DAO address");
         _;
     }
 
@@ -998,40 +1043,40 @@ using SafeERC20 for IERC20;
     event EmergencyWithdraw(address indexed user, uint amount, uint timestamp);
     event FeeDaysUpdated(uint feeDays);
 
-    // sets the manifester address (at creation).
-    constructor() { manifester = msg.sender; }
-
     // called once by the manifester (at creation).
     function manifest(
-        address _dao,
         address _rewardToken,
         address _depositToken,
+        address _DAO,
+        address _manifester,
         uint _duraDays,
         uint _feeDays,
-        uint _dailyReward,
-        uint _totalRewards
-    ) external returns (bool) {
-        require(msg.sender == manifester, "only the manifeser many manifest"); // sufficient check
+        uint _dailyReward
+    ) external {
         require(!isManifested, 'initialize once');
-        dao = _dao;
+
+        // sets: from input data.
+        DAO = _DAO;
+        manifester = IManifester(_manifester);
         rewardToken = IERC20(_rewardToken);
         depositToken = IERC20(_depositToken);
         duraDays = _duraDays;
         feeDays = toWei(_feeDays);
-        dailyReward = _dailyReward;
-        totalRewards = _totalRewards;
-
-        // transfers: `totalRewards` to this contract.
-        IERC20(rewardToken).transferFrom(msg.sender, address(this), totalRewards);
+        dailyReward = toWei(_dailyReward);
 
         // sets: initialization state.
         isManifested = true;
 
         // sets: rewardPerSecond.
-        rewardPerSecond = dailyReward / 1 days;
+        rewardPerSecond = toWei(_dailyReward) / 1 days;
 
-        // returns execution state.
-        return true;
+        // constructs: name that corresponds to the rewardToken.
+        name = string(abi.encodePacked('Manifest: ', IERC20Metadata(address(rewardToken)).name()));
+        symbol = string(abi.encodePacked(IERC20Metadata(address(rewardToken)).symbol(), '-', getNativeSymbol(), ' MP'));
+
+        // sets: key data.
+        soulDAO = manifester.soulDAO();
+        totalRewards = duraDays * toWei(_dailyReward);
     }
 
     // returns: pending rewards for the sender.
@@ -1045,7 +1090,7 @@ using SafeERC20 for IERC20;
         Users storage user = userInfo[account];
 
         // gets: `accRewardPerShare` & `lpSupply` (pool)
-        uint _accRewardPerShare = accRewardPerShare;
+        uint _accRewardPerShare = accRewardPerShare; // uses: local variable for reference use.
         uint depositSupply = depositToken.balanceOf(address(this));
 
         // [if] holds deposits & rewards issued at least once (pool)
@@ -1067,18 +1112,49 @@ using SafeERC20 for IERC20;
         return to - from;
     }
 
+    // returns: 
+    function getNativeSymbol() public view returns (string memory) {
+        return IManifester(manifester).getNativeSymbol();
+    }
+
+    function getNativePrice() public view returns (uint nativePrice) {
+        address nativeOracle = IManifester(manifester).getOracleAddress();
+        uint decimals = uint(IOracle(nativeOracle).decimals());
+        uint latestPrice = uint(IOracle(nativeOracle).latestAnswer());
+        uint divisor = 10**decimals;
+        nativePrice = latestPrice / divisor;
+    }
+
+    // returns: price per token
+    function getPricePerToken() public view returns (uint pricePerToken) {
+        uint nativePriceUSD = getNativePrice();
+        IERC20 WNATIVE = IERC20(IManifester(manifester).getWrappedAddress());
+        uint wnativeBalance = WNATIVE.balanceOf(address(depositToken));
+        uint totalSupply = depositToken.totalSupply();
+        uint nativeValue = wnativeBalance * nativePriceUSD;
+
+        pricePerToken = nativeValue * 2 / totalSupply;
+    }
+    
+    // returns: TVL
+    function getTVL() public view returns (uint tvl) {
+        uint pricePerToken = getPricePerToken();
+        uint depositBalance = depositToken.balanceOf(address(this));
+        tvl = depositBalance * pricePerToken;
+    }
+
     // returns: the total amount of deposited tokens.
     function getDepositSupply() public view returns (uint) {
         return depositToken.balanceOf(address(this));
     }
 
     // updates: the reward that is accounted for.
-    function updateFarm() public {
+    function updateManifestation() public {
 
         if (block.timestamp <= lastRewardTime) { return; }
         uint depositSupply = getDepositSupply();
 
-        // [if] first farmer, [then] set `lastRewardTime` to meow.
+        // [if] first manifestationer, [then] set `lastRewardTime` to meow.
         if (depositSupply == 0) { lastRewardTime = block.timestamp; return; }
 
         // gets: multiplier from time elasped since pool began issuing rewards.
@@ -1124,7 +1200,6 @@ using SafeERC20 for IERC20;
         return feeRate;
     }
 
-    
     // USER FUNCTIONS //
 
     // harvests: pending rewards.
@@ -1134,12 +1209,12 @@ using SafeERC20 for IERC20;
     }
 
     // deposit: tokens.
-    function deposit(uint amount) public nonReentrant isActive {
+    function deposit(uint amount) public nonReentrant whileActive {
 
         // gets: stored data for pool and user.
         Users storage user = userInfo[msg.sender];
 
-        updateFarm();
+        updateManifestation();
 
         // [if] already deposited (user)
         if (user.amount > 0) {
@@ -1183,15 +1258,19 @@ using SafeERC20 for IERC20;
         uint withdrawable = amount - feeAmount;
 
         return (feeAmount, withdrawable);
-    }    
+    }  
 
-    // withdraw: lp tokens (external farmers)
-    function withdraw(uint amount) external nonReentrant isActive {
+    function getLogo() public view returns (string memory) {
+        return logoURI;
+    }  
+
+    // withdraw: lp tokens (external manifestationers)
+    function withdraw(uint amount) external nonReentrant whileActive {
         require(amount > 0, 'cannot withdraw zero');
         Users storage user = userInfo[msg.sender];
 
         require(user.amount >= amount, 'withdrawal exceeds deposit');
-        updateFarm();
+        updateManifestation();
 
         // gets: pending rewards as determined by pendingSoul.
         uint pendingReward = user.amount * accRewardPerShare / 1e12 - user.rewardDebt;
@@ -1220,7 +1299,7 @@ using SafeERC20 for IERC20;
         uint feeAmount = amount - withdrawableAmount;
 
         // transfers: `feeAmount` --> owner.
-        rewardToken.safeTransfer(owner(), feeAmount);
+        rewardToken.safeTransfer(DAO, feeAmount);
         // transfers: withdrawableAmount amount --> user.
         rewardToken.safeTransfer(address(msg.sender), withdrawableAmount);
 
@@ -1250,18 +1329,23 @@ using SafeERC20 for IERC20;
     }
 
     /*/ ADMINISTRATIVE FUNCTIONS /*/
-    // enables: panic button (owner)
-    function toggleEmergency(bool enabled) external onlyOwner {
+    // enables: panic button (onlyDAO)
+    function toggleEmergency(bool enabled) external onlyDAO {
         isEmergency = enabled;
     }
 
-    // toggles: pause state (owner)
-    function toggleActive(bool enabled) external onlyOwner {
+    // toggles: pause state (onlyDAO)
+    function toggleActive(bool enabled) external onlyDAO whileSettable {
         isActivated = enabled;
     }
 
-    // updates: feeDays (owner)
-    function updateFeeDays(uint _feeDays) external onlyOwner {
+    // updates: LogoURI (onlyDAO, whileSettable)
+    function setLogoURI(string memory _logoURI) external onlyDAO whileSettable {
+        logoURI = _logoURI;
+    }
+
+    // updates: feeDays (onlyDAO)
+    function updateFeeDays(uint _feeDays) external onlyDAO {
         // gets: current fee days & ensures distinction (pool)
         require(feeDays != toWei(_feeDays), 'no change requested');
         
@@ -1274,106 +1358,144 @@ using SafeERC20 for IERC20;
         emit FeeDaysUpdated(toWei(_feeDays));
     }
 
+    // sets: DAO address (onlyDAO)
+    function setDAO(address _DAO) external onlyDAO {
+        require(_DAO != address(0), 'cannot set to zero address');
+        // updates: DAO adddress
+        DAO = _DAO;
+    }
+
+    /*/ SOUL-RESTRICTED (OVERRIDE) FUNCTIONS /*/
+    // enables soulDAO to update logoURI (onlySOUL)
+    function setLogo(string memory _logoURI) external onlySOUL {
+        logoURI = _logoURI;
+    }
+
+    // prevents: any funny business (onlySOUL)
+    function toggleSettable(bool enabled) external onlySOUL {
+        isSettable = enabled;
+    }
+
+    function toggleActiveOverride(bool enabled) external onlySOUL {
+        isActivated = enabled;
+    }
+
+    // sets: soulDAO address (onlySOUL)
+    function setSoulDAO(address _soulDAO) external onlySOUL {
+        require(_soulDAO != address(0), 'cannot set to zero address');
+        // updates: soulDAO adddress
+        soulDAO = _soulDAO;
+    }
+
     /*/ HELPER FUNCTIONS /*/
-    // helper functions to convert to/from wei (ether).
     function toWei(uint amount) public pure returns (uint) { return amount * 1e18; }
     function fromWei(uint amount) public pure returns (uint) { return amount / 1e18; }
 
 }
 
-contract FarmManifester is Ownable {
+contract Manifester is IManifester, Ownable {
     using SafeERC20 for IERC20;
-    bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Farm).creationCode));
+    bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Manifestation).creationCode));
 
     ISoulSwapFactory public Factory;
-    uint256 public totalFarms;
-    address[] public allFarms;
+    uint256 public totalManifestations;
+    address[] public manifestations;
 
-    address public soulDAO;
-    address public WNATIVE_ADDRESS;
-    uint bloodSacrifice;
+    address public override soulDAO;
+    address public wnativeAddress;
+
+    IERC20 public WNATIVE;
+    IOracle public nativeOracle;
+
+    string public nativeSymbol;
+    uint public bloodSacrifice;
 
     bool public isPaused;
 
-    mapping(address => mapping(address => address)) public getFarm; // depositToken, creatorAddress
+    mapping(address => mapping(address => address)) public getManifestation; // depositToken, creatorAddress
 
-    event FarmCreated(
+    event SummonedManifestation(
             address indexed creatorAddress, 
             address indexed depositToken, 
-            address dao, 
             address rewardToken, 
-            uint sacrifice,
-            address farm, 
+            address manifestation, 
             uint duraDays, 
             uint feeDays, 
-            uint totalFarms
+            uint totalManifestations
     );
 
     event Paused(address pauserAddress);
 
     // proxy for pausing contract.
-    modifier isActive {
+    modifier whileActive {
         require(!isPaused, 'contract is currently paused');
         _;
     }
 
-    constructor(address _daoAddress, uint _sacrifice, address _wnative) {
+    // constructor(address _factoryAddress, address _wnativeAddress) {
+    constructor() {
         Factory = ISoulSwapFactory(0x1120e150dA9def6Fe930f4fEDeD18ef57c0CA7eF);
-        soulDAO = _daoAddress;
-        bloodSacrifice = toWei(_sacrifice);
-        WNATIVE_ADDRESS = _wnative;
+        bloodSacrifice = toWei(1);
+        WNATIVE = IERC20(0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83);
+        nativeSymbol = 'FTM';
+        wnativeAddress = 0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83;
+        soulDAO = msg.sender;
+        nativeOracle = IOracle(0xf4766552D15AE4d256Ad41B6cf2933482B0680dc);
     }
 
-    function createFarm(address dao, address rewardToken, uint duraDays, uint feeDays, uint dailyReward) external isActive returns (address farm) {
-        address depositToken = Factory.getPair(WNATIVE_ADDRESS, rewardToken);
+    function createManifestation(address _rewardToken, uint _duraDays, uint _feeDays, uint _dailyReward) external whileActive returns (address manifestation) {
+        address depositToken = Factory.getPair(address(WNATIVE), _rewardToken);
 
         // [if] pair does not exist
         if (depositToken == address(0)) {
             // [then] create pair and store as the depositToken.
-            depositToken == Factory.createPair(WNATIVE_ADDRESS, rewardToken);
+            createDepositToken(_rewardToken);
+            depositToken = Factory.getPair(address(WNATIVE), _rewardToken);
         }
 
-        // ensures the rewardToken and depositToken are distinct.
-        require(rewardToken != depositToken, 'reward and deposit cannot be identical.');
-        address creatorAddress = address(msg.sender);
-        uint tokenDecimals = ERC20(rewardToken).decimals();
-        require(tokenDecimals == 18, 'reward token must be 18 decimals'); // neccessary for rewards distribution calculation.
+        // ensures: `rewardToken` and `depositToken` are distinct.
+        require(_rewardToken != depositToken, 'reward and deposit cannot be identical.');
+        // ensures: reward token has 18 decimals.
+        require(ERC20(_rewardToken).decimals() == 18, 'reward token must be 18 decimals'); // neccessary for rewards distribution calculation.
     
-        uint rewards = getTotalRewards(duraDays, dailyReward);
-        uint sacrifice = getSacrifice(rewards);
+        uint rewards = getTotalRewards(_duraDays, _dailyReward);
+        uint sacrifice = getSacrifice(fromWei(rewards));
         uint total = rewards + sacrifice;
 
         // ensures: depositToken is never 0x.
         require(depositToken != address(0));
         // ensures: unique deposit-owner mapping.
-        require(getFarm[depositToken][creatorAddress] == address(0), 'reward already exists'); // single check is sufficient
+        require(getManifestation[depositToken][msg.sender] == address(0), 'reward already exists'); // single check is sufficient
         
         // checks: the creator has a sufficient balance to cover both rewards + sacrifice.
-        require(ERC20(rewardToken).balanceOf(msg.sender) >= total, 'insufficient balance to launch farm');
+        require(ERC20(_rewardToken).balanceOf(msg.sender) >= total, 'insufficient balance to launch manifestation');
 
-        // generates the creation code, salt, then assembles a create2Address for the new farm.
-        bytes memory bytecode = type(Farm).creationCode;
-        bytes32 salt = keccak256(abi.encodePacked(depositToken, creatorAddress));
+        // generates the creation code, salt, then assembles a create2Address for the new manifestation.
+        bytes memory bytecode = type(Manifestation).creationCode;
+        bytes32 salt = keccak256(abi.encodePacked(depositToken, msg.sender));
         
-        assembly { farm := create2(0, add(bytecode, 32), mload(bytecode), salt) }
+        assembly { manifestation := create2(0, add(bytecode, 32), mload(bytecode), salt) }
 
         // transfers: sacrifice directly to soulDAO.
-        IERC20(rewardToken).safeTransfer(rewardToken, sacrifice);
-
-        // creates: new farm based off of the inputs, then stores as an array.
-        require(Farm(farm).manifest(dao, rewardToken, depositToken, duraDays, feeDays, dailyReward, rewards), 'manifestation failed');
+        IERC20(_rewardToken).safeTransferFrom(msg.sender, soulDAO, sacrifice);
         
-        // populates: the getFarm mapping (also in reverse direction).
-        getFarm[depositToken][creatorAddress] = farm;
-        getFarm[creatorAddress][depositToken] = farm; 
+        // transfers: `totalRewards` to the manifestation contract.
+        IERC20(_rewardToken).safeTransferFrom(msg.sender, manifestation, rewards);
 
-        // stores the farm to the allFarms array
-        allFarms.push(farm);
+        // creates: new manifestation based off of the inputs, then stores as an array.
+        Manifestation(manifestation).manifest(_rewardToken, depositToken, msg.sender, address(this), _duraDays, _feeDays, _dailyReward);
+        
+        // populates: the getManifestation mapping (also in reverse direction).
+        getManifestation[depositToken][msg.sender] = manifestation;
+        getManifestation[msg.sender][depositToken] = manifestation; 
 
-        // increments: the total number of farms
-        totalFarms++;
+        // stores the manifestation to the manifestations[] array
+        manifestations.push(manifestation);
 
-        emit FarmCreated( creatorAddress, depositToken, dao, rewardToken, sacrifice, farm, duraDays, feeDays, totalFarms);
+        // increments: the total number of manifestations
+        totalManifestations++;
+
+        emit SummonedManifestation(msg.sender, depositToken, _rewardToken, manifestation, _duraDays, _feeDays, totalManifestations);
     }
 
     /*/ GETTER FUNCTIONS /*/
@@ -1383,8 +1505,34 @@ contract FarmManifester is Ownable {
     }
 
     function getSacrifice(uint rewards) public view returns (uint) {
-        uint sacrifice = rewards * bloodSacrifice;
+        uint sacrifice = (rewards * bloodSacrifice) / 100;
         return sacrifice;
+    }
+
+    function getNativeSymbol() external view override returns (string memory) {
+        return nativeSymbol;
+    }
+
+    function getOracleAddress() external override pure returns (address _oracleAddress) {
+        return _oracleAddress;
+    }
+    
+    function getWrappedAddress() external override pure returns (address _wnativeAddress) {
+        return _wnativeAddress;
+    }
+
+    function getInfo(uint id) public view returns (address mAddress, string memory name, string memory symbol, uint rewardPerSecond) {
+        mAddress = address(manifestations[id]);
+        Manifestation manifestation = Manifestation(mAddress);
+
+        name = manifestation.name();
+        symbol = manifestation.symbol();
+
+        rewardPerSecond = manifestation.rewardPerSecond();
+    }
+
+    function createDepositToken(address rewardToken) public {
+        Factory.createPair(address(WNATIVE), rewardToken);
     }
 
     /*/ ADMIN FUNCTIONS /*/
@@ -1392,8 +1540,8 @@ contract FarmManifester is Ownable {
         Factory = ISoulSwapFactory(_factoryAddress);
     }
 
-    function updateDao(address _daoAddress) external onlyOwner {
-        soulDAO = _daoAddress;
+    function updateDAO(address _DAOAddress) external onlyOwner {
+        soulDAO = _DAOAddress;
     }
 
     function updateSacrifice(uint _sacrifice) external onlyOwner {
