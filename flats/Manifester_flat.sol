@@ -1399,19 +1399,18 @@ contract Manifester is IManifester, Ownable {
 
     ISoulSwapFactory public Factory;
     uint256 public totalManifestations;
-    address[] public manifestations;
 
+    address[] public manifestations;
     address public override soulDAO;
-    address public wnativeAddress;
 
     IERC20 public WNATIVE;
     IOracle public nativeOracle;
 
     string public nativeSymbol;
     uint public bloodSacrifice;
-
     bool public isPaused;
 
+    address private wnativeAddress;
     mapping(address => mapping(address => address)) public getManifestation; // depositToken, creatorAddress
 
     event SummonedManifestation(
@@ -1513,12 +1512,12 @@ contract Manifester is IManifester, Ownable {
         return nativeSymbol;
     }
 
-    function getOracleAddress() external override pure returns (address _oracleAddress) {
-        return _oracleAddress;
+    function getOracleAddress() external override view returns (address oracleAddress) {
+        oracleAddress = address(nativeOracle);
     }
     
-    function getWrappedAddress() external override pure returns (address _wnativeAddress) {
-        return _wnativeAddress;
+    function getWrappedAddress() external override view returns (address _wnativeAddress) {
+        return wnativeAddress;
     }
 
     function getInfo(uint id) public view returns (address mAddress, string memory name, string memory symbol, uint rewardPerSecond) {
