@@ -408,7 +408,6 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     ) internal virtual {}
 }
 
-// File: contracts/rewards/ManifestationManifester.sol
 pragma solidity >=0.8.0;
 
 interface ISoulSwapFactory {
@@ -983,7 +982,7 @@ contract Manifester is IManifester {
     using SafeERC20 for IERC20;
     bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Manifestation).creationCode));
 
-    ISoulSwapFactory public Factory;
+    ISoulSwapFactory public SoulSwapFactory;
     uint256 public totalManifestations;
 
     address[] public manifestations;
@@ -1029,24 +1028,24 @@ contract Manifester is IManifester {
     }
 
     constructor() {
-        Factory = ISoulSwapFactory(0x1120e150dA9def6Fe930f4fEDeD18ef57c0CA7eF);
+        SoulSwapFactory = ISoulSwapFactory(0x1120e150dA9def6Fe930f4fEDeD18ef57c0CA7eF);
         bloodSacrifice = toWei(1);
         WNATIVE = IERC20(0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83);
         nativeSymbol = 'FTM';
         wnativeAddress = 0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83;
         soulDAO = msg.sender;
         nativeOracle = IOracle(0xf4766552D15AE4d256Ad41B6cf2933482B0680dc);
-        oracleDecimals = 8;
+        oracleDecimals = nativeOracle.decimals();
     }
 
     function createManifestation(address _rewardToken, uint _duraDays, uint _feeDays, uint _dailyReward) external whileActive returns (address manifestation) {
-        address depositToken = Factory.getPair(address(WNATIVE), _rewardToken);
+        address depositToken = SoulSwapFactory.getPair(address(WNATIVE), _rewardToken);
 
         // [if] pair does not exist
         if (depositToken == address(0)) {
             // [then] creates: pair and stores as depositToken.
             createDepositToken(_rewardToken);
-            depositToken = Factory.getPair(address(WNATIVE), _rewardToken);
+            depositToken = SoulSwapFactory.getPair(address(WNATIVE), _rewardToken);
         }
 
         // ensures: `rewardToken` and `depositToken` are distinct.
@@ -1097,7 +1096,7 @@ contract Manifester is IManifester {
 
     // creates: deposit token (as reward-native pair).
     function createDepositToken(address rewardToken) public {
-        Factory.createPair(address(WNATIVE), rewardToken);
+        SoulSwapFactory.createPair(address(WNATIVE), rewardToken);
     }
 
     //////////////////////////////
@@ -1128,7 +1127,16 @@ contract Manifester is IManifester {
         string memory name, 
         string memory symbol, 
         string memory logoURI,
-        uint rewardPerSecond) {
+
+        address rewardToken,
+        address depositToken,
+
+        uint rewardPerSecond,
+        uint rewardRemaining,
+        uint startTime,
+        uint endTime,
+        uint dailyReward, 
+        uint feeDays) {
         mAddress = address(manifestations[id]);
         Manifestation manifestation = Manifestation(mAddress);
 
@@ -1136,7 +1144,17 @@ contract Manifester is IManifester {
         symbol = manifestation.symbol();
 
         logoURI = manifestation.logoURI();
+
+        rewardToken = address(manifestation.rewardToken());
+        depositToken = address(manifestation.depositToken());
+    
         rewardPerSecond = manifestation.rewardPerSecond();
+        rewardRemaining = ERC20(rewardToken).balanceOf(mAddress);
+
+        startTime = manifestation.startTime();
+        endTime = manifestation.endTime();
+        dailyReward = manifestation.dailyReward();
+        feeDays = manifestation.feeDays();
     }
 
     // returns: user info for a given id.
@@ -1153,7 +1171,7 @@ contract Manifester is IManifester {
     ///////////////////////////////
 
     function updateFactory(address _factoryAddress) external onlySOUL {
-        Factory = ISoulSwapFactory(_factoryAddress);
+        SoulSwapFactory = ISoulSwapFactory(_factoryAddress);
     }
 
     function updateDAO(address _soulDAO) external onlySOUL {
