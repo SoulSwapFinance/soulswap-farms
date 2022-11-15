@@ -17,4 +17,4 @@ artifacts
 *bin
 build*
 build/contracts
-*/bin/*
+bin
