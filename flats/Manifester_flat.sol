@@ -4,10 +4,10 @@ pragma solidity >=0.8.0;
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
 abstract contract ReentrancyGuard {
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
+    uint private constant _NOT_ENTERED = 1;
+    uint private constant _ENTERED = 2;
 
-    uint256 private _status;
+    uint private _status;
 
     constructor() {
         _status = _NOT_ENTERED;
@@ -44,19 +44,19 @@ abstract contract Context {
 
 interface IERC20 {
 
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
-    function approve(address spender, uint256 amount) external returns (bool);
+    function totalSupply() external view returns (uint);
+    function balanceOf(address account) external view returns (uint);
+    function transfer(address recipient, uint amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint);
+    function approve(address spender, uint amount) external returns (bool);
     function transferFrom(
         address sender,
         address recipient,
-        uint256 amount
+        uint amount
     ) external returns (bool);
 
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Transfer(address indexed from, address indexed to, uint value);
+    event Approval(address indexed owner, address indexed spender, uint value);
 }
 
 // File: @openzeppelin/contracts/utils/Address.sol
@@ -67,14 +67,14 @@ library Address {
         // construction, since the code is only stored at the end of the
         // constructor execution.
 
-        uint256 size;
+        uint size;
         assembly {
             size := extcodesize(account)
         }
         return size > 0;
     }
 
-    function sendValue(address payable recipient, uint256 amount) internal {
+    function sendValue(address payable recipient, uint amount) internal {
         require(address(this).balance >= amount, "Address: insufficient balance");
 
         (bool success, ) = recipient.call{value: amount}("");
@@ -96,7 +96,7 @@ library Address {
     function functionCallWithValue(
         address target,
         bytes memory data,
-        uint256 value
+        uint value
     ) internal returns (bytes memory) {
         return functionCallWithValue(target, data, value, "Address: low-level call with value failed");
     }
@@ -104,7 +104,7 @@ library Address {
     function functionCallWithValue(
         address target,
         bytes memory data,
-        uint256 value,
+        uint value,
         string memory errorMessage
     ) internal returns (bytes memory) {
         require(address(this).balance >= value, "Address: insufficient balance for call");
@@ -175,7 +175,7 @@ library SafeERC20 {
     function safeTransfer(
         IERC20 token,
         address to,
-        uint256 value
+        uint value
     ) internal {
         _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
     }
@@ -184,7 +184,7 @@ library SafeERC20 {
         IERC20 token,
         address from,
         address to,
-        uint256 value
+        uint value
     ) internal {
         _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
     }
@@ -192,7 +192,7 @@ library SafeERC20 {
     function safeApprove(
         IERC20 token,
         address spender,
-        uint256 value
+        uint value
     ) internal {
         // safeApprove should only be called when setting an initial allowance,
         // or when resetting it to zero. To increase and decrease it, use
@@ -207,20 +207,20 @@ library SafeERC20 {
     function safeIncreaseAllowance(
         IERC20 token,
         address spender,
-        uint256 value
+        uint value
     ) internal {
-        uint256 newAllowance = token.allowance(address(this), spender) + value;
+        uint newAllowance = token.allowance(address(this), spender) + value;
         _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
     }
 
     function safeDecreaseAllowance(
         IERC20 token,
         address spender,
-        uint256 value
+        uint value
     ) internal {
-            uint256 oldAllowance = token.allowance(address(this), spender);
+            uint oldAllowance = token.allowance(address(this), spender);
             require(oldAllowance >= value, "SafeERC20: decreased allowance below zero");
-            uint256 newAllowance = oldAllowance - value;
+            uint newAllowance = oldAllowance - value;
             _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
     }
 
@@ -259,11 +259,11 @@ interface IERC20Metadata is IERC20 {
 // File: contracts/libraries/ERC20.sol
 
 contract ERC20 is Context, IERC20, IERC20Metadata {
-    mapping(address => uint256) private _balances;
+    mapping(address => uint) private _balances;
 
-    mapping(address => mapping(address => uint256)) private _allowances;
+    mapping(address => mapping(address => uint)) private _allowances;
 
-    uint256 private _totalSupply;
+    uint private _totalSupply;
 
     string private _name;
     string private _symbol;
@@ -285,24 +285,24 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         return 18;
     }
 
-    function totalSupply() public view virtual override returns (uint256) {
+    function totalSupply() public view virtual override returns (uint) {
         return _totalSupply;
     }
 
-    function balanceOf(address account) public view virtual override returns (uint256) {
+    function balanceOf(address account) public view virtual override returns (uint) {
         return _balances[account];
     }
 
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
+    function transfer(address recipient, uint amount) public virtual override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
 
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+    function allowance(address owner, address spender) public view virtual override returns (uint) {
         return _allowances[owner][spender];
     }
 
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+    function approve(address spender, uint amount) public virtual override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -310,11 +310,11 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function transferFrom(
         address sender,
         address recipient,
-        uint256 amount
+        uint amount
     ) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
 
-        uint256 currentAllowance = _allowances[sender][_msgSender()];
+        uint currentAllowance = _allowances[sender][_msgSender()];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
         _approve(sender, _msgSender(), currentAllowance - amount);
         
@@ -322,13 +322,13 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         return true;
     }
 
-    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
+    function increaseAllowance(address spender, uint addedValue) public virtual returns (bool) {
         _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
         return true;
     }
 
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        uint256 currentAllowance = _allowances[_msgSender()][spender];
+    function decreaseAllowance(address spender, uint subtractedValue) public virtual returns (bool) {
+        uint currentAllowance = _allowances[_msgSender()][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
         _approve(_msgSender(), spender, currentAllowance - subtractedValue);
 
@@ -338,14 +338,14 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _transfer(
         address sender,
         address recipient,
-        uint256 amount
+        uint amount
     ) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        uint256 senderBalance = _balances[sender];
+        uint senderBalance = _balances[sender];
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
         _balances[sender] = senderBalance - amount;
         _balances[recipient] += amount;
@@ -355,7 +355,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         _afterTokenTransfer(sender, recipient, amount);
     }
 
-    function _mint(address account, uint256 amount) internal virtual {
+    function _mint(address account, uint amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
 
         _beforeTokenTransfer(address(0), account, amount);
@@ -367,12 +367,12 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         _afterTokenTransfer(address(0), account, amount);
     }
 
-    function _burn(address account, uint256 amount) internal virtual {
+    function _burn(address account, uint amount) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
 
         _beforeTokenTransfer(account, address(0), amount);
 
-        uint256 accountBalance = _balances[account];
+        uint accountBalance = _balances[account];
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
         _balances[account] = accountBalance - amount;
         
@@ -386,7 +386,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _approve(
         address owner,
         address spender,
-        uint256 amount
+        uint amount
     ) internal virtual {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
@@ -398,13 +398,13 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _beforeTokenTransfer(
         address from,
         address to,
-        uint256 amount
+        uint amount
     ) internal virtual {}
 
     function _afterTokenTransfer(
         address from,
         address to,
-        uint256 amount
+        uint amount
     ) internal virtual {}
 }
 
@@ -450,7 +450,7 @@ interface IManifester {
 interface IOracle {
   function latestAnswer() external view returns (int256);
   function decimals() external view returns (uint8);
-  function latestTimestamp() external view returns (uint256);
+  function latestTimestamp() external view returns (uint);
 }
 
 
@@ -998,7 +998,7 @@ contract Manifester is IManifester {
     bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(Manifestation).creationCode));
 
     ISoulSwapFactory public SoulSwapFactory;
-    uint256 public totalManifestations;
+    uint public totalManifestations;
 
     address[] public manifestations;
     address public override soulDAO;
