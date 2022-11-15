@@ -483,6 +483,7 @@ contract Manifestation is IManifestation, ReentrancyGuard {
     uint public override endTime;
 
     bool public isManifested;
+    bool public isSetup;
     bool public isEmergency;
     bool public isActivated;
     bool public isSettable;
@@ -553,10 +554,9 @@ contract Manifestation is IManifestation, ReentrancyGuard {
         address _rewardToken,
         address _depositToken,
         address _DAO,
-        address _manifester,
-        uint _duraDays,
-        uint _feeDays,
-        uint _dailyReward) external {
+        address _manifester
+
+        ) external {
         require(!isManifested, 'initialize once');
 
         // sets: from input data.
@@ -564,29 +564,41 @@ contract Manifestation is IManifestation, ReentrancyGuard {
         depositToken = IERC20(_depositToken);
         DAO = _DAO;
         manifester = IManifester(_manifester);
-        duraDays = _duraDays;
-        feeDays = toWei(_feeDays);
-        dailyReward = toWei(_dailyReward);
+
 
         // sets: initial states.
         isManifested = true;
         isSettable = true;
 
         // sets: key data.
-        rewardPerSecond = toWei(_dailyReward) / 1 days;
         soulDAO = manifester.soulDAO();
         wnativeAddress = manifester.wnativeAddress();
         nativeSymbol = manifester.nativeSymbol();
 
-        totalRewards = duraDays * toWei(_dailyReward);
         creatorAddress = _DAO;
 
         // constructs: name that corresponds to the rewardToken.
         name = string(abi.encodePacked('Manifest: ', ERC20(address(rewardToken)).name()));
         symbol = string(abi.encodePacked(ERC20(address(rewardToken)).symbol(), '-', nativeSymbol, ' MP'));
     }
+    
+    function setRewards(uint _duraDays, uint _feeDays, uint _dailyReward) external {
+        require(msg.sender == address(manifester), 'only the Manifester may set rewards');
+        require(!isSetup, 'already setup');
 
-    // updates: the reward that is accounted for.
+        // sets: key info.
+        duraDays = _duraDays;
+        feeDays = toWei(_feeDays);
+        dailyReward = toWei(_dailyReward);
+        rewardPerSecond = toWei(_dailyReward) / 1 days;
+        totalRewards = duraDays * toWei(_dailyReward);
+
+        // sets: setup state.
+        isSetup = true;
+            
+    }
+
+    // updates: rewards, so that they are accounted for.
     function update() public {
 
         if (block.timestamp <= lastRewardTime) { return; }
@@ -627,40 +639,43 @@ contract Manifestation is IManifestation, ReentrancyGuard {
         }
 
         // returns: rewardShare for user minus the amount paid out (user)
-        return user.amount * _accRewardPerShare / 1e12 - user.rewardDebt;
+        pendingAmount = user.amount * _accRewardPerShare / 1e12 - user.rewardDebt;
+
+        return pendingAmount;
     }
 
     // returns: multiplier during a period.
-    function getMultiplier(uint from, uint to) public pure returns (uint) {
-        return to - from;
-    }
+    function getMultiplier(uint from, uint to) public pure returns (uint multiplier) {
+        multiplier = to - from;
 
-    // returns: native price.
-    function getNativePrice() public view returns (int nativePrice) {
-        return IManifester(manifester).getNativePrice();
+        return multiplier;
     }
 
     // returns: price per token
     function getPricePerToken() public view returns (uint pricePerToken) {
-        uint nativePriceUSD = uint(getNativePrice());
+        uint nativePriceUSD = uint(IManifester(manifester).getNativePrice());
         IERC20 WNATIVE = IERC20(wnativeAddress);
         uint wnativeBalance = WNATIVE.balanceOf(address(depositToken));
         uint totalSupply = depositToken.totalSupply();
         uint nativeValue = wnativeBalance * nativePriceUSD;
-
         pricePerToken = nativeValue * 2 / totalSupply;
+
+        return pricePerToken;
     }
 
     // returns: TVL
     function getTVL() external view override returns (uint tvl) {
         uint pricePerToken = getPricePerToken();
-        uint depositBalance = depositToken.balanceOf(address(this));
-        tvl = depositBalance * pricePerToken;
+        uint totalDeposited = getTotalDeposit();
+        tvl = totalDeposited * pricePerToken;
+        
+        return tvl;
     }
 
     // returns: the total amount of deposited tokens.
     function getTotalDeposit() public view override returns (uint totalDeposited) {
         totalDeposited = depositToken.balanceOf(address(this));
+        return totalDeposited;
     }
 
     // returns: user delta is the time since user either last withdrew OR first deposited OR 0.
@@ -988,7 +1003,6 @@ contract Manifester is IManifester {
     address[] public manifestations;
     address public override soulDAO;
 
-    IERC20 public WNATIVE;
     IOracle public nativeOracle;
     uint public oracleDecimals;
 
@@ -999,16 +1013,14 @@ contract Manifester is IManifester {
     bool public isPaused;
 
 
-    mapping(address => mapping(address => address)) public getManifestation; // depositToken, creatorAddress
+    mapping(address => mapping(uint => address)) public getManifestation; // depositToken, id
 
     event SummonedManifestation(
-            address indexed creatorAddress, 
+            uint indexed id,
             address indexed depositToken, 
             address rewardToken, 
-            address manifestation, 
-            uint duraDays, 
-            uint feeDays, 
-            uint totalManifestations
+            address creatorAddress, 
+            address manifestation
     );
 
     event Paused(address msgSender);
@@ -1030,7 +1042,6 @@ contract Manifester is IManifester {
     constructor() {
         SoulSwapFactory = ISoulSwapFactory(0x1120e150dA9def6Fe930f4fEDeD18ef57c0CA7eF);
         bloodSacrifice = toWei(1);
-        WNATIVE = IERC20(0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83);
         nativeSymbol = 'FTM';
         wnativeAddress = 0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83;
         soulDAO = msg.sender;
@@ -1038,52 +1049,53 @@ contract Manifester is IManifester {
         oracleDecimals = nativeOracle.decimals();
     }
 
-    function createManifestation(address _rewardToken, uint _duraDays, uint _feeDays, uint _dailyReward) external whileActive returns (address manifestation) {
-        address depositToken = SoulSwapFactory.getPair(address(WNATIVE), _rewardToken);
+    function createManifestation(address rewardToken, uint duraDays, uint feeDays, uint dailyReward) external whileActive returns (address manifestation, uint id) {
+        address depositToken = SoulSwapFactory.getPair(wnativeAddress, rewardToken);
+        // ensures: reward token has 18 decimals, which is needed for reward calculations.
+        require(ERC20(rewardToken).decimals() == 18, 'reward token must be 18 decimals');
 
         // [if] pair does not exist
         if (depositToken == address(0)) {
             // [then] creates: pair and stores as depositToken.
-            createDepositToken(_rewardToken);
-            depositToken = SoulSwapFactory.getPair(address(WNATIVE), _rewardToken);
+            createDepositToken(rewardToken);
+            depositToken = SoulSwapFactory.getPair(wnativeAddress, rewardToken);
         }
 
-        // ensures: `rewardToken` and `depositToken` are distinct.
-        require(_rewardToken != depositToken, 'reward and deposit cannot be identical.');
-
-        // ensures: reward token has 18 decimals, which is needed for reward calculations.
-        require(ERC20(_rewardToken).decimals() == 18, 'reward token must be 18 decimals');
-    
-        uint rewards = getTotalRewards(_duraDays, _dailyReward);
+        // creates: variables for usage.
+        id = manifestations.length;
+        uint rewards = getTotalRewards(duraDays, dailyReward);
         uint sacrifice = getSacrifice(fromWei(rewards));
         uint total = rewards + sacrifice;
 
         // ensures: depositToken is never 0x.
         require(depositToken != address(0));
-        // ensures: unique deposit-owner mapping.
-        require(getManifestation[depositToken][msg.sender] == address(0), 'reward already exists'); // single check is sufficient
+        // ensures: unique depositToken-id mapping.
+        require(getManifestation[depositToken][id] == address(0), 'reward already exists'); // single check is sufficient
         
         // checks: the creator has a sufficient balance to cover both rewards + sacrifice.
-        require(ERC20(_rewardToken).balanceOf(msg.sender) >= total, 'insufficient balance to launch manifestation');
+        require(ERC20(rewardToken).balanceOf(msg.sender) >= total, 'insufficient balance to launch manifestation');
 
         // generates the creation code, salt, then assembles a create2Address for the new manifestation.
         bytes memory bytecode = type(Manifestation).creationCode;
-        bytes32 salt = keccak256(abi.encodePacked(depositToken, msg.sender));
+        bytes32 salt = keccak256(abi.encodePacked(depositToken, id));
         assembly { manifestation := create2(0, add(bytecode, 32), mload(bytecode), salt) }
 
         // transfers: sacrifice directly to soulDAO.
-        IERC20(_rewardToken).safeTransferFrom(msg.sender, soulDAO, sacrifice);
+        IERC20(rewardToken).safeTransferFrom(msg.sender, soulDAO, sacrifice);
         
         // transfers: `totalRewards` to the manifestation contract.
-        IERC20(_rewardToken).safeTransferFrom(msg.sender, manifestation, rewards);
+        IERC20(rewardToken).safeTransferFrom(msg.sender, manifestation, rewards);
 
         // creates: new manifestation based off of the inputs, then stores as an array.
-        // inputs: rewardToken, depositToken, DAO, manifester, duraDays, feeDays, dailyReward
-        Manifestation(manifestation).manifest(_rewardToken, depositToken, msg.sender, address(this), _duraDays, _feeDays, _dailyReward);
+        // inputs: rewardToken, depositToken, DAO, manifester.
+        Manifestation(manifestation).manifest(rewardToken, depositToken, msg.sender, address(this));
         
-        // populates: the getManifestation mapping (also in reverse direction).
-        getManifestation[depositToken][msg.sender] = manifestation;
-        getManifestation[msg.sender][depositToken] = manifestation; 
+        // sets: the rewards data for the newly-created manifestation.
+        // inputs: duraDays, feeDays, dailyReward.aa
+        Manifestation(manifestation).setRewards(duraDays, feeDays, dailyReward);
+        
+        // populates: the getManifestation mapping.
+        getManifestation[depositToken][id] = manifestation;
 
         // stores the manifestation to the manifestations[] array
         manifestations.push(manifestation);
@@ -1091,12 +1103,12 @@ contract Manifester is IManifester {
         // increments: the total number of manifestations
         totalManifestations++;
 
-        emit SummonedManifestation(msg.sender, depositToken, _rewardToken, manifestation, _duraDays, _feeDays, totalManifestations);
+        emit SummonedManifestation(id, depositToken, rewardToken, msg.sender, manifestation);
     }
 
     // creates: deposit token (as reward-native pair).
     function createDepositToken(address rewardToken) public {
-        SoulSwapFactory.createPair(address(WNATIVE), rewardToken);
+        SoulSwapFactory.createPair(wnativeAddress, rewardToken);
     }
 
     //////////////////////////////
