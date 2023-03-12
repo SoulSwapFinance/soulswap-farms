@@ -1,7 +1,7 @@
 # SoulSwap Farms Smart Contracts
 🕯 SoulSwap smart contracts for SoulPower, SoulSummoner, SpellBound, and Seance Circles.
 
-**Interested in DeFarms?** Checkout the code [here](https://github.com/defarms-contracts).
+**Interested in DeFarms?** Checkout the code [here](https://github.com/SoulSwapFinance/defarms-contracts).
 
 ## Contract: Address
 
