@@ -35,14 +35,14 @@ contract SoulBondFantom is AccessControl, ReentrancyGuard {
     }
 
     // pair addresses
-    address private immutable SOUL_FTM = 0xa2527Af9DABf3E3B4979d7E0493b5e2C6e63dC57;    // FTM
-    address private immutable SOUL_USDC = 0x5cED9D6B44a1F7C927AF31A8Af26dEF60C776712;   // axlUSDC
-    address private immutable NATIVE_USDC = 0xd1A432df5ee2Df3F891F835854ffeA072C273C65; // axlUSDC
-    address private immutable BTC_NATIVE = 0x44DF3a3b162826D7354b4e2495AEF097B6862069;    // axlBTC
-    // address private immutable BTC_USDC = ;    // axlUSDC
-    address private immutable ETH_NATIVE = 0x9827713159B666855BdfB53CE0F16aA7b0E30847;    // axlETH
-    // address private immutable ETH_USDC = ;    // axlUSDC
-    address private immutable USDC_USDC = 0xBBdA07f2121274ecb1a08077F37A60F7E0D36629; // axlUSDC - lzUSDC
+    address private immutable SOUL_FTM = 0xa2527Af9DABf3E3B4979d7E0493b5e2C6e63dC57;        // [.√.] SOUL-WFTM
+    address private immutable SOUL_USDC = 0x5cED9D6B44a1F7C927AF31A8Af26dEF60C776712;       // [.√.] SOUL-axlUSDC
+    address private immutable NATIVE_USDC = 0xd1A432df5ee2Df3F891F835854ffeA072C273C65;     // [.√.] WFTM-axlUSDC
+    address private immutable BTC_NATIVE = 0x44DF3a3b162826D7354b4e2495AEF097B6862069;      // [.√.] axlBTC-FTM
+    address private immutable BTC_USDC = 0xC258ee426f5607cc6f003e73F705CdeE06EbBDe2;        // [.√.] axlBTC-axlUSDC
+    address private immutable ETH_NATIVE = 0x9827713159B666855BdfB53CE0F16aA7b0E30847;      // [.√.] axlETH-FTM
+    address private immutable ETH_USDC = 0xd9535aaA72a0eD8fd5c3F453cE4c4FA00Fc117b3 ;       // [.√.] axlETH-axlUSDC
+    address private immutable USDC_USDC = 0xBBdA07f2121274ecb1a08077F37A60F7E0D36629;       // [.√.] axlUSDC - lzUSDC
 
     // team addresses
     address private team; // receives 1/8 soul supply
