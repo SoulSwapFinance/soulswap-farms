@@ -10,9 +10,8 @@ import "../interfaces/IToken.sol";
 pragma solidity >=0.8.0;
 
 // the bonder of souls
-contract SoulBondV3 is AccessControl, ReentrancyGuard {
+contract SoulBondFantom is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
- 
     // user info
     struct Users {
         uint amount;           // total tokens user has provided.
@@ -36,19 +35,22 @@ contract SoulBondV3 is AccessControl, ReentrancyGuard {
     }
 
     // pair addresses
-    address private immutable soul_native;      // 0xa2527Af9DABf3E3B4979d7E0493b5e2C6e63dC57
-    address private immutable soul_usdc;        // 0x5cED9D6B44a1F7C927AF31A8Af26dEF60C776712
-    address private immutable FTM_axlUSDC;      // 0xd1A432df5ee2Df3F891F835854ffeA072C273C65
-    address private immutable FTM_lzUSDC;      //
-    address private immutable USDC_lzUSDC;        //
+    address private immutable SOUL_FTM = 0xa2527Af9DABf3E3B4979d7E0493b5e2C6e63dC57;    // FTM
+    address private immutable SOUL_USDC = 0x5cED9D6B44a1F7C927AF31A8Af26dEF60C776712;   // axlUSDC
+    address private immutable NATIVE_USDC = 0xd1A432df5ee2Df3F891F835854ffeA072C273C65; // axlUSDC
+    address private immutable BTC_NATIVE = 0x44DF3a3b162826D7354b4e2495AEF097B6862069;    // axlBTC
+    // address private immutable BTC_USDC = ;    // axlUSDC
+    address private immutable ETH_NATIVE = 0x9827713159B666855BdfB53CE0F16aA7b0E30847;    // axlETH
+    // address private immutable ETH_USDC = ;    // axlUSDC
+    address private immutable USDC_USDC = 0xBBdA07f2121274ecb1a08077F37A60F7E0D36629; // axlUSDC - lzUSDC
 
     // team addresses
     address private team; // receives 1/8 soul supply
     address public dao; // recieves 1/8 soul supply
 
     // soul & seance addresses
-    address private soulAddress;    //
-    address private seanceAddress;  //
+    address private soulAddress = 0xe2fb177009FF39F52C0134E8007FA0e4BaAcBd07;   // FTM
+    address private seanceAddress = 0x104cBF4643E371CC96E3bcbD93e29BDFc43DF2B0; // FTM
 
     // tokens: soul & seance
     IToken public soul;
@@ -63,7 +65,7 @@ contract SoulBondV3 is AccessControl, ReentrancyGuard {
     uint public dailySoul; // = weight * globalDailySoul * 1e18;
 
     // soul x second x this.chain
-    uint public soulPerSecond; // = dailySoul / 86_400;
+    uint public soulPerSecond; // = dailySoul / 86400;
 
     // timestamp when soul rewards began (initialized)
     uint public startTime;
@@ -72,7 +74,7 @@ contract SoulBondV3 is AccessControl, ReentrancyGuard {
     bool private isEmergency;
 
     // pools & allocation points
-    uint public immutable poolLength = 6;
+    uint public poolLength;
     uint public totalAllocPoint;
 
     // summoner initialized state.
@@ -152,24 +154,9 @@ contract SoulBondV3 is AccessControl, ReentrancyGuard {
     event DepositRevised(uint _pid, address _user, uint _time);
 
     // channels the power of the isis and ma'at
-    constructor(
-        address _team,
-        address _dao,
-        address _soul_native,
-        address _soul_usdc,  
-        address _usdc_native,
-        address _frax_native,
-        address _usdc_frax
-    ) {
-        // admin recipients //
-        team = _team;
-        dao = _dao;
-        // immutable addresses //
-        soul_native = _soul_native;
-        soul_usdc = _soul_usdc;
-        usdc_native = _usdc_native;
-        frax_native = _frax_native;
-        usdc_frax = _usdc_frax;
+    constructor() {
+        team = 0x221cAc060A2257C8F77B6eb1b03e36ea85A1675A;  // FTM √
+        dao = 0x1C63C726926197BD3CB75d86bCFB1DaeBcD87250;   // FTM √
 
         isis = keccak256("isis"); // goddess whose magic creates pools
         maat = keccak256("maat"); // goddess whose cosmic order allocates emissions
@@ -193,31 +180,26 @@ contract SoulBondV3 is AccessControl, ReentrancyGuard {
     /*/ EXTERNAL TRANSACTIONS /*/
 
     // activates: rewards (isis)
-    function initialize(
-        address _soulAddress,
-        address _seanceAddress,
-        uint _weight
-     ) external obey(isis) {
+    function initialize( uint _weight ) external obey(isis) {
         require(!isInitialized, 'already initialized');
 
         // updates: global constants
         startTime = block.timestamp;
         totalWeight = 1000;
         weight = _weight;
-        
-        // updates: token addresses
-        soulAddress = _soulAddress;
-        seanceAddress = _seanceAddress;
 
         // updates: dailySoul and soulPerSecond
         updateRewards(weight, totalWeight);
 
         // deploys: all pools at once
-        addPool(250, IERC20(soul_native), true);
-        addPool(150, IERC20(soul_usdc), true);
-        addPool(150, IERC20(usdc_native), true);
-        addPool(150, IERC20(frax_native), true);
-        addPool(150, IERC20(usdc_frax), true);
+        addPool(400, IERC20(SOUL_FTM), true);
+        addPool(200, IERC20(SOUL_USDC), true);
+        addPool(200, IERC20(NATIVE_USDC), true);
+        addPool(200, IERC20(BTC_NATIVE), true);
+        addPool(200, IERC20(BTC_USDC), true);
+        addPool(200, IERC20(ETH_NATIVE), true);
+        addPool(200, IERC20(ETH_USDC), true);
+        addPool(200, IERC20(USDC_USDC), true);
 
         // activates: initialize state
         isInitialized = true;          
@@ -241,6 +223,7 @@ contract SoulBondV3 is AccessControl, ReentrancyGuard {
         }));
         
         uint pid = poolInfo.length;
+        poolLength++;
 
         emit PoolAdded(pid, _allocPoint, _lpToken, totalAllocPoint, block.timestamp);
     }
@@ -424,11 +407,8 @@ contract SoulBondV3 is AccessControl, ReentrancyGuard {
     function updateRewards(uint _weight, uint _totalWeight) internal {
         uint share = toWei(_weight) / _totalWeight; // share of ttl emissions for chain (chain % ttl emissions)
         
-        // dailySoul (for this.chain) = share (%) x globalDailySoul
-        dailySoul = share * globalDailySoul; 
-        // updates: daily rewards expressed in seconds (1 days = 86,400 secs)
-        soulPerSecond = dailySoul / 1 days; 
-        
+        dailySoul = share * globalDailySoul; // dailySoul (for this.chain) = share (%) x globalDailySoul
+        soulPerSecond = dailySoul / 1 days; // updates: daily rewards expressed in seconds (1 days = 86,400 secs)
 
         emit RewardsUpdated(dailySoul, soulPerSecond, block.timestamp);
     }
