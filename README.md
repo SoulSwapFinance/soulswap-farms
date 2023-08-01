@@ -11,6 +11,7 @@
 - [SoulSummoner.sol](https://ftmscan.com/address/0xce6ccbB1EdAD497B4d53d829DF491aF70065AB5B#code): 0xce6ccbB1EdAD497B4d53d829DF491aF70065AB5B
 - [Multicall.sol](https://ftmscan.com/address/0xEd2Fb478f7fCef33E1E1d980a0135789B295a7F5#code): 0xEd2Fb478f7fCef33E1E1d980a0135789B295a7F5
 - [SoulScarab.sol](https://ftmscan.com/address/0x4d9455dcFF5Bd675c5D51fda3aB0726694CF73C0#code): 0x4d9455dcFF5Bd675c5D51fda3aB0726694CF73C0
+- [SoulAura.sol](https://ftmscan.com/address/0x91Dd51634f280DB77dA5D8c383a9de1e72224C4e#code): 0x91Dd51634f280DB77dA5D8c383a9de1e72224C4e
 
 ## Avalanche Mainnet
 - [SoulPower.sol](https://snowtrace.io/address/0x11d6DD25c1695764e64F439E32cc7746f3945543#code): 0x11d6DD25c1695764e64F439E32cc7746f3945543
